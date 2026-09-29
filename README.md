@@ -112,6 +112,16 @@ npm test
 npm run build
 ```
 
+Build order: build the frontend before the desktop project. `GeopoliticalMonitor.Desktop.csproj` includes the existing `src/frontend/dist` files as content and copies them to `wwwroot\` in the desktop build output, which the app WebView serves. If `dist` is missing when the desktop project builds, `wwwroot\` is not populated and the app launches with a blank window. After rebuilding the frontend, rebuild the desktop project to refresh `wwwroot\`.
+
+```powershell
+cd src/frontend
+npm ci
+npm run build
+cd ../..
+dotnet build src/backend/GeopoliticalMonitor.sln
+```
+
 Optional frontend hot reload may use:
 
 ```powershell

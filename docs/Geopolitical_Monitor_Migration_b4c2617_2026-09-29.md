@@ -15,6 +15,8 @@ Repository:
 
 `C:\Dev\GeopoliticalMonitor-github`
 
+This repository's history begins at commit 1222d52. Earlier history, including b4c2617, exists only in the owner's local archive repository.
+
 Branch:
 
 `main`
