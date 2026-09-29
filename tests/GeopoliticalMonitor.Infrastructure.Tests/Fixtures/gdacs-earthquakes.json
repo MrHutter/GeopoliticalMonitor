@@ -1,0 +1,41 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [160.5129, 53.1928] },
+      "properties": {
+        "eventtype": "EQ",
+        "eventid": 1500811,
+        "episodeid": 1661062,
+        "name": "Earthquake in Russia",
+        "description": "Earthquake in Russia",
+        "alertlevel": "Orange",
+        "fromdate": "2025-09-18T18:58:12",
+        "datemodified": "2025-09-19T20:01:59",
+        "country": "Russia",
+        "iso3": "RUS",
+        "url": { "report": "https://www.gdacs.org/report.aspx?eventid=1500811&episodeid=1661062&eventtype=EQ" },
+        "severitydata": { "severity": 7.8 }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-22.4, 63.8] },
+      "properties": {
+        "eventtype": "EQ",
+        "eventid": 1500812,
+        "episodeid": 1661063,
+        "name": "Earthquake near Iceland",
+        "description": "",
+        "alertlevel": "Green",
+        "fromdate": "2025-09-18T20:10:00",
+        "datemodified": "2025-09-18T20:20:00",
+        "country": null,
+        "iso3": null,
+        "url": { "report": "https://www.gdacs.org/report.aspx?eventid=1500812&episodeid=1661063&eventtype=EQ" },
+        "severitydata": null
+      }
+    }
+  ]
+}

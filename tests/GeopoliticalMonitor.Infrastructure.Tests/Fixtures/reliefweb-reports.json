@@ -1,0 +1,40 @@
+{
+  "data": [
+    {
+      "id": "5187658",
+      "fields": {
+        "title": "Flood response situation report",
+        "url": "https://reliefweb.int/report/example-country/flood-response-situation-report",
+        "origin": "https://example.org/reports/flood-response",
+        "date": {
+          "original": "2026-09-20T08:30:00+00:00",
+          "created": "2026-09-20T10:00:00+00:00",
+          "changed": "2026-09-21T12:00:00+00:00"
+        },
+        "source": [
+          { "id": 101, "name": "Example Humanitarian Organization", "shortname": "EHO" },
+          { "id": 102, "name": "Example Response Agency" }
+        ],
+        "format": [{ "id": 10, "name": "Situation Report" }],
+        "country": [{ "id": 20, "name": "Example Country", "iso3": "EXA" }],
+        "disaster": [{
+          "id": 30,
+          "name": "Example Country: Floods - Sep 2026",
+          "glide": "FL-2026-000001-EXA",
+          "type": [{ "id": 40, "name": "Flood" }]
+        }],
+        "language": [{ "id": 50, "name": "English" }],
+        "body": "Fixture body that must be ignored.",
+        "file": [{ "url": "https://example.org/not-retained.pdf" }]
+      }
+    },
+    {
+      "id": 5187659,
+      "fields": {
+        "title": "Sparse assessment metadata",
+        "url": "https://www.reliefweb.int/report/example-country/sparse-assessment",
+        "date": { "original": "2026-09-19T06:00:00Z" }
+      }
+    }
+  ]
+}
