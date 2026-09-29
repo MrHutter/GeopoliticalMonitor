@@ -13,7 +13,7 @@ This handoff is intended for continuing the project in a fresh ChatGPT conversat
 
 Repository:
 
-`C:\Dev\GeopoliticalMonitor`
+`C:\Dev\GeopoliticalMonitor-github`
 
 Branch:
 
@@ -96,7 +96,7 @@ ALWAYS provide the exact current PowerShell launch command.
 Last verified command:
 
 ```powershell
-cd C:\Dev\GeopoliticalMonitor
+cd C:\Dev\GeopoliticalMonitor-github
 & ".\src\backend\GeopoliticalMonitor.Desktop\bin\Debug\net10.0-windows10.0.19041.0\win-x64\GeopoliticalMonitor.Desktop.exe"
 ```
 
@@ -105,7 +105,7 @@ If build output changes, recover the actual current command rather than blindly 
 For FIRMS configured testing:
 
 ```powershell
-cd C:\Dev\GeopoliticalMonitor
+cd C:\Dev\GeopoliticalMonitor-github
 $env:GEOPOLITICALMONITOR_FIRMS_MAP_KEY = "<your MAP_KEY>"
 & ".\src\backend\GeopoliticalMonitor.Desktop\bin\Debug\net10.0-windows10.0.19041.0\win-x64\GeopoliticalMonitor.Desktop.exe"
 ```
