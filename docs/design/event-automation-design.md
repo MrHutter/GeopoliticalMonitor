@@ -1,8 +1,8 @@
 # Event Automation Design
 
-Status: design proposal, not implemented. Baseline: `main` at `e30d955` ("Add third-party notices and security policy"). Written 2026-09-30.
+Status: design approved by the owner on 2026-09-30, with the changes recorded in section 14; implementation not started. Baseline: `main` at `e30d955` ("Add third-party notices and security policy"). Written 2026-09-30.
 
-Everything marked **PROPOSED** needs owner approval before implementation. File and line references are to the baseline commit.
+Values marked **PROPOSED** are approved as starting values and will be revisited after about two weeks of real data. File and line references are to the baseline commit.
 
 ---
 
@@ -16,6 +16,7 @@ What changes for the user:
 - Every Event shows a severity level: low, medium, high, critical or catastrophic. Severity is separate from lifecycle status and from any provider's own alert level, and Details explains how it was derived.
 - Automatically created Events are visibly marked as unverified and carry a provider label (GDACS, UCDP Candidate, GDELT machine-coded).
 - New routes: UCDP Candidate Events (curated conflict events, monthly release) and GDELT 2.0 (live, machine-coded, noisy; strict creation rules). ReliefWeb stays attach-only. ACLED is out of scope.
+- UCDP Candidate data is released monthly and is up to about a month old. The 24H and 7D time filters will therefore show few UCDP Events, and the status strip labels UCDP as "monthly release".
 - Each provider shows its last successful update, its next scheduled refresh, and a stale or failed state. Manual refresh buttons remain.
 - Demo Events are removed from normal startup once real feeds exist.
 
@@ -210,7 +211,7 @@ Nothing waits on shutdown and nothing outlives the window.
 - Configuration problems (for example a missing UCDP token when the API route is chosen) mark the provider `Unconfigured`. It stops being scheduled until restart, making zero requests, as ReliefWeb does without an appname.
 - There are no retry storms: at most one attempt per provider per due time, one provider at a time, and no queued retries.
 - **Stale rule (PROPOSED):** a provider is stale when its last success is older than 3 × its interval, or for UCDP when the newest imported release is more than 45 days old.
-- **What the UI shows:** a compact provider status strip in the Events panel header. Each provider shows its name, "Updated 12 min ago", the next refresh time, and a state of refreshing, stale, failed with a fixed short message, or not configured. The existing "Refresh GDACS" button becomes one Refresh action per provider, disabled while that provider is refreshing.
+- **What the UI shows:** a compact provider status strip in the Events panel header. Each provider shows its name, "Updated 12 min ago", the next refresh time, and a state of refreshing, stale, failed with a fixed short message, or not configured. UCDP carries the label "monthly release", because its data is released monthly and is up to about a month old; the 24H and 7D filters will show few UCDP Events. The existing "Refresh GDACS" button becomes one Refresh action per provider, disabled while that provider is refreshing.
 
 ### 3.5 Permanent rules versus relaxed slice rules
 
@@ -257,7 +258,7 @@ Severity is recomputed by the owning provider on each accepted update. A rule ch
 
 | `best` | Severity |
 | :- | :- |
-| 0 | Low |
+| 0 | Low (unused while Q5 skips zero-fatality records; kept for rule completeness) |
 | 1–9 | Medium |
 | 10–99 | High |
 | 100–999 | Critical |
@@ -267,8 +268,10 @@ Severity is recomputed by the owning provider on each accepted update. A rule ch
 
 | Condition | Severity |
 | :- | :- |
-| Event meets the creation bar (section 5.2) | Medium |
+| Event meets the creation bar (section 5.2), including the root-18 subset | Medium |
 | … and `EventRootCode` is 19 or 20, and `NumSources` ≥ 5 | High |
+
+Root-18 subset Events (bombings and assassinations) stay Medium in this rule version.
 
 **Demo and manual Events:** set explicitly, with rule `manual`.
 
@@ -317,7 +320,7 @@ Each record also creates a SourceItem `src-ucdp-cand-{id}` with SourceType Datas
 
 A record **creates an Event** only if all of the following hold:
 
-1. `EventRootCode` is 18 (assault), 19 (fight) or 20 (unconventional mass violence), and `QuadClass` = 4.
+1. `QuadClass` = 4, and either `EventRootCode` is 19 (fight) or 20 (unconventional mass violence), or `EventCode` is in the root-18 subset: 183, 1831, 1832 and 1833 (non-military, suicide, car and roadside bombing), 185 (attempt to assassinate) and 186 (assassinate). Ordinary assault codes (180, 181, 182, 1821, 1822, 1823 and 184) are excluded. Codes verified against the GDELT CAMEO event code lookup, <https://www.gdeltproject.org/data/lookups/CAMEO.eventcodes.txt>, on 2026-09-30.
 2. `IsRootEvent` = 1.
 3. `ActionGeo_Type` is 3 or 4 (city-level), and the coordinates are valid and not (0, 0).
 4. `NumSources` ≥ 3 and `NumArticles` ≥ 5. Because these count only the first 15-minute window, this is a deliberately high bar.
@@ -335,7 +338,7 @@ Mapping:
 
 - Id `evt-gdelt-{GlobalEventID}`.
 - Title from `EventCode` description plus `ActionGeo_FullName`.
-- Category: root 18 or 19 → MilitaryConflict; 20 → Security.
+- Category: root 19 → MilitaryConflict; root 20 and the root-18 subset → Security.
 - Status Unverified.
 - The SourceItem has SourceType NewsArticle, ExternalId `GDELT:EVT:{GlobalEventID}`, and the URL set to `SOURCEURL`, displayed as text.
 
@@ -440,6 +443,7 @@ The approach is rule-based and deterministic. GDACS is excluded, because natural
 1. Stop calling `DemoDataSeeder` in normal startup (`MainWindow.xaml.cs:510`). Keep the class, because the three tests that run it (section 2.1) still use it.
 2. Delete existing demo rows once, in one transaction: Events with ID prefix `evt-demo-` and SourceItems with `src-demo-`.
    - Cascades remove their associations, Watchlist memberships and Alert occurrences.
+   - Removing demo Events therefore also deletes their Watchlist memberships and Alert history. A Watchlist that held only demo Events becomes empty but is not deleted.
    - The UI tells the user this once: "Demo Events were removed."
    - A preference flag records that cleanup ran, so it never repeats.
 3. Leave demo-style IDs in unit-test fixtures as they are; they are plain strings and do not depend on the seeder.
@@ -460,7 +464,7 @@ The approach is rule-based and deterministic. GDACS is excluded, because natural
 
 **Database growth:** roughly 3 KB per Event with one SourceItem, so 20,000 Events is about 60 MB. That is acceptable for local SQLite.
 
-**Known pressure point:** `GetEventsAsync` loads every Event (`SqliteEventStore.cs:15-23`), and the frontend renders every marker. Before GDELT runs for long periods, add a default time filter on the native query (for example the last 90 days) or paging. This is a slice 5 prerequisite.
+**Known pressure point:** `GetEventsAsync` loads every Event (`SqliteEventStore.cs:15-23`), and the frontend renders every marker. Native windowing of the Event list is handled by Slice 2B, which is required before Slice 3 because the first UCDP import can create up to 5,000 Events.
 
 **Marker density:** no clustering now. **Revisit trigger:** more than 2,000 markers visible in the default view, or more than 20,000 Events in the table.
 
@@ -498,7 +502,7 @@ The approach is rule-based and deterministic. GDACS is excluded, because natural
 
 ## 13. Implementation slices
 
-The suggested order is kept, with demo removal moved after UCDP. Each slice is independently testable and can be accepted manually.
+The suggested order is kept, with demo removal moved after UCDP and Slice 2B (Event list windowing) inserted before UCDP. Other slice numbers are unchanged. Each slice is independently testable and can be accepted manually.
 
 ### Slice 1: Severity field and display
 
@@ -527,8 +531,44 @@ The suggested order is kept, with demo removal moved after UCDP. Each slice is i
 - **Tests:** a fake `TimeProvider` drives ticks; single in-flight across manual and timer; a skipped tick is not queued; backoff sequence and reset; cancellation mid-persist leaves the database unchanged; shutdown with an in-flight refresh raises no unhandled exception; the push schema rejects unexpected fields.
 - **Manual acceptance:** launch, and GDACS refreshes about a minute later; the status strip shows the times; manual refresh during a timer refresh shows "already in progress"; disconnect the network and see the failed state with backoff; close the window mid-refresh and confirm in Task Manager that nothing remains running.
 
+### Slice 2B: Event list windowing
+
+Required before Slice 3. The first UCDP import can create up to 5,000 Events, but `GetEventsAsync` loads every Event (`SqliteEventStore.cs:15-23`) and the UI starts on the ALL time range.
+
+- **Scope (PROPOSED):**
+  - `events.list` gains typed, validated request fields:
+    - `range`: one of `24H`, `7D`, `30D`, `90D` or `ALL`.
+    - `query`: an optional string of at most 200 characters.
+    - `watchlistId`: optional.
+    - Unknown fields and values are rejected, as today. This is a fixed Event query, not a generic query capability.
+  - The native store applies scope, time range and search in SQL, with the **same semantics the frontend uses today** (`eventFilters.ts:15-42`):
+    - The time range compares `StartedAtUtc` against now minus the range.
+    - Search is a case-insensitive substring match on title, summary, category (raw and display form), status, location display name and region.
+    - Search and time range combine with AND, within the selected scope (All Events or one Watchlist).
+  - The native side returns at most **2,000** matching Events (PROPOSED cap), newest `StartedAtUtc` first with ties broken by Id, plus the total match count. Source counts are computed only for the returned Events.
+  - The frontend keeps a single visible collection that drives both the list and the map markers. It requests a new window whenever range, search or scope changes (debounced for typing) and after every refresh. It still runs its existing client-side filter over the returned window, so behavior stays identical when fewer than 2,000 Events match.
+  - Selection clears when the selected Event is not in the returned window, as it already does when an Event is filtered out. Clearing filters does not reselect it.
+  - **ALL keeps its meaning** ("no time limit") and stays the startup default, but it is bounded by the cap. When more Events match than are returned, the panel shows "Showing the newest 2,000 of N Events. Narrow the time range or search to see older Events."
+  - Older Events are never hidden from search. A search runs natively over all Events in scope, so any older Event can be found by searching or by choosing a narrower scope.
+  - The selected Event's Details still load by ID through `events.get`, unaffected by the window.
+- **Non-goals:** infinite scrolling or page-by-page browsing; map clustering; changes to Watchlist limits; fuzzy or ranked search.
+- **Tests:**
+  - Store tests showing that each range, search, scope and AND combination returns the same Events the current frontend filter would, over a seeded set larger than the cap.
+  - Cap and total count, including a tie on `StartedAtUtc`.
+  - Bridge schema tests that reject an unknown range, an over-long query, unknown fields and a malformed Watchlist id.
+  - Frontend tests confirming list and map use the same collection, selection clears when the selected Event leaves the window, and the "Showing the newest …" notice appears only when the total exceeds the cap.
+  - A performance test that listing with 20,000 Events in the database stays under an agreed time budget.
+- **Manual acceptance:**
+  - Launch; ALL is selected and the list and map match.
+  - Seed more than 2,000 test Events in a scratch database; the notice shows the correct total.
+  - Search for an old Event's title and find it.
+  - Switch to 24H, and the list and map shrink together.
+  - Select an Event, then pick a range that excludes it; the selection clears and does not come back when the range is cleared.
+  - Choose a Watchlist scope, and search and range still apply within it.
+
 ### Slice 3: UCDP Candidate provider
 
+- **Prerequisite:** Slice 2B (Event list windowing).
 - **Scope:**
   - Release discovery: try the expected monthly file name, then the previous month.
   - CSV client with caps, parser, normalization per 5.1.
@@ -536,7 +576,7 @@ The suggested order is kept, with demo removal moved after UCDP. Each slice is i
   - Citation UI and a `THIRD_PARTY_NOTICES.md` entry.
 - **Non-goals:** the API route unless the CSV route fails; deduplication.
 - **Tests:** a parser fixture with representative rows (including `Check` statuses, `where_prec` 5–7 and `best` = 0); idempotent re-import of the same release; a later release updates the Event; an earlier release is ignored; ownership collision; size and row caps; release-name discovery.
-- **Manual acceptance:** UCDP Events appear after a few minutes, marked Unverified and "UCDP Candidate"; Details shows fatalities, code status, citation and severity explanation; a restart re-imports nothing.
+- **Manual acceptance:** UCDP Events appear after a few minutes, marked Unverified and "UCDP Candidate"; Details shows fatalities, code status, citation and severity explanation; the status strip labels UCDP as "monthly release"; a restart re-imports nothing.
 
 ### Slice 4: Demo data removal
 
@@ -547,7 +587,7 @@ The suggested order is kept, with demo removal moved after UCDP. Each slice is i
 
 ### Slice 5: GDELT provider under strict rules
 
-- **Prerequisite:** native time-window filtering or paging for the Event list (section 11).
+- **Depends on:** Slice 2B (Event list windowing), which is already required before Slice 3.
 - **Scope:**
   - `lastupdate.txt` client that rewrites to https and validates host and path.
   - Zip and CSV parser with caps.
@@ -575,22 +615,22 @@ The suggested order is kept, with demo removal moved after UCDP. Each slice is i
 
 ---
 
-## 14. Open questions for the owner
+## 14. Owner decisions (2026-09-30)
 
-| # | Question | Recommended answer |
-| :- | :- | :- |
-| Q1 | Approve the severity thresholds in 4.2, including the Catastrophic bar? | Approve as written, and revisit after two weeks of real data. |
-| Q2 | Remove demo data before or after UCDP is live? | After UCDP (slice order above). |
-| Q3 | GDELT automatic refresh on by default? | Off by default, with a clear toggle, until the thresholds are tuned on real data. |
-| Q4 | Refresh intervals in 3.2? | Approve: GDACS 30 min, UCDP 6 h check, GDELT 15 min. |
-| Q5 | Skip UCDP records with `best` = 0? | Yes, for volume; revisit if coverage looks thin. |
-| Q6 | Category for UCDP one-sided violence (type 3)? | Security. MilitaryConflict is kept for state-based and non-state fighting. |
-| Q7 | GDELT creation bar (`NumSources` ≥ 3, `NumArticles` ≥ 5, roots 18–20, city-level)? | Approve as the starting bar. |
-| Q8 | When a GDELT Event is superseded, move its Watchlist memberships to the UCDP Event? | No automatic move; show a notice in Details and let the user decide. |
-| Q9 | Should severity changes from GDACS or UCDP create Alerts for watched Events? | Yes (`SeverityIncreased`, slice 7). |
-| Q10 | Clickable source links through a typed `links.openExternal`? | Defer. Keep text-only now, and review the ReliefWeb `target="_blank"` link separately. |
-| Q11 | Approve a new `--catastrophic` color token? | Yes; a dark magenta, pending a visual check on the dark theme. |
-| Q12 | Use the UCDP API route if CSV downloads need a login? | Only if needed, with a token from an environment variable, as with FIRMS. |
+| # | Question | Recommended answer | Decision |
+| :- | :- | :- | :- |
+| Q1 | Approve the severity thresholds in 4.2, including the Catastrophic bar? | Approve as written, and revisit after two weeks of real data. | Approved as written; revisit after about two weeks of real data. |
+| Q2 | Remove demo data before or after UCDP is live? | After UCDP (slice order above). | After UCDP is live. |
+| Q3 | GDELT automatic refresh on by default? | Off by default, with a clear toggle, until the thresholds are tuned on real data. | Off by default; the owner switches it on after the thresholds are tuned. |
+| Q4 | Refresh intervals in 3.2? | Approve: GDACS 30 min, UCDP 6 h check, GDELT 15 min. | Approved. |
+| Q5 | Skip UCDP records with `best` = 0? | Yes, for volume; revisit if coverage looks thin. | Yes, skip `best` = 0. |
+| Q6 | Category for UCDP one-sided violence (type 3)? | Security. MilitaryConflict is kept for state-based and non-state fighting. | Security. |
+| Q7 | GDELT creation bar (`NumSources` ≥ 3, `NumArticles` ≥ 5, roots 18–20, city-level)? | Approve as the starting bar. | Approved with a revision: root 18 is limited to the bombing and assassination subset (section 5.2 rule 1). |
+| Q8 | When a GDELT Event is superseded, move its Watchlist memberships to the UCDP Event? | No automatic move; show a notice in Details and let the user decide. | No automatic move. |
+| Q9 | Should severity changes from GDACS or UCDP create Alerts for watched Events? | Yes (`SeverityIncreased`, slice 7). | Yes. |
+| Q10 | Clickable source links through a typed `links.openExternal`? | Defer. Keep text-only now, and review the ReliefWeb `target="_blank"` link separately. | Deferred. |
+| Q11 | Approve a new `--catastrophic` color token? | Yes; a dark magenta, pending a visual check on the dark theme. | Yes; dark magenta, pending a visual check. |
+| Q12 | Use the UCDP API route if CSV downloads need a login? | Only if needed, with a token from an environment variable, as with FIRMS. | Only if the CSV route fails. |
 
 ---
 
@@ -602,7 +642,7 @@ The suggested order is kept, with demo removal moved after UCDP. Each slice is i
 - GDELT's first-window `NumSources` bar may be too strict (few Events) or too loose in busy news cycles. Tuning is expected.
 - Machine-coded GDELT geolocation can be wrong: city centroids, and places named in the story rather than where the incident happened. The Unverified label and the High cap limit the damage but do not remove it.
 - Rule-based deduplication will produce both false splits and occasional false links.
-- The event list and map currently scale linearly with the number of Events. The slice 5 prerequisite addresses the list, not the map.
+- The event list and map currently scale linearly with the number of Events. Slice 2B bounds what the list and map receive but does not change how the map renders dense areas.
 - Timer refreshes make the UI change without user action. The status strip and unchanged selection behavior must keep that calm.
 - Accuracy of provider data is outside the app's control. It must never be presented as verified.
 
