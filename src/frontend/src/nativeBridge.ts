@@ -1,4 +1,4 @@
-import type { NativeEvent, NativeSourceItem, NativeEventCategory, NativeEventStatus, NativeSourceType, ReliefWebReportCandidate } from './types/events';
+import type { NativeEvent, NativeSourceItem, NativeEventCategory, NativeEventProvider, NativeEventSeverity, NativeEventStatus, NativeSourceType, ReliefWebReportCandidate } from './types/events';
 import type { Accent } from './types/mock';
 
 export const nativeAccentValues = ['Orange', 'Blue', 'Red', 'Green', 'Yellow'] as const;
@@ -306,6 +306,12 @@ const nativeToAccent: Record<NativeAccentValue, Accent> = {
 
 const eventCategories: NativeEventCategory[] = ['MilitaryConflict', 'Security', 'PoliticalDiplomatic', 'CivilUnrest', 'Infrastructure', 'Humanitarian', 'NaturalDisaster', 'Economic', 'Other'];
 const eventStatuses: NativeEventStatus[] = ['Developing', 'Active', 'Resolved', 'Unverified'];
+const eventSeverityValues: NativeEventSeverity[] = ['Low', 'Medium', 'High', 'Critical', 'Catastrophic'];
+const eventProviders: NativeEventProvider[] = ['Gdacs', 'UcdpCandidate', 'Gdelt', 'Demo', 'Manual'];
+const nativeEventKeys = [
+  'id', 'title', 'summary', 'category', 'status', 'startedAtUtc', 'lastUpdatedAtUtc', 'location', 'createdAtUtc', 'updatedAtUtc', 'sourceCount',
+  'severity', 'severityRule', 'severityInputs', 'provider',
+] as const;
 const sourceTypes: NativeSourceType[] = ['XPost', 'NewsArticle', 'OfficialStatement', 'DatasetRecord', 'Other'];
 
 export function accentToNativeValue(accent: Accent): NativeAccentValue {
@@ -859,9 +865,14 @@ function hasExactKeys(value: object, expected: readonly string[]) {
 }
 
 function isNativeEvent(value: unknown): value is NativeEvent {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== 'object' || !hasExactKeys(value, nativeEventKeys)) return false;
   const item = value as Partial<NativeEvent>;
-  return typeof item.id === 'string' && typeof item.title === 'string' && typeof item.summary === 'string' && isOneOf(item.category, eventCategories) && isOneOf(item.status, eventStatuses) && typeof item.startedAtUtc === 'string' && typeof item.lastUpdatedAtUtc === 'string' && isNativeLocation(item.location) && typeof item.createdAtUtc === 'string' && typeof item.updatedAtUtc === 'string' && typeof item.sourceCount === 'number';
+  return typeof item.id === 'string' && typeof item.title === 'string' && typeof item.summary === 'string' && isOneOf(item.category, eventCategories) && isOneOf(item.status, eventStatuses) && typeof item.startedAtUtc === 'string' && typeof item.lastUpdatedAtUtc === 'string' && isNativeLocation(item.location) && typeof item.createdAtUtc === 'string' && typeof item.updatedAtUtc === 'string' && typeof item.sourceCount === 'number'
+    && isOneOf(item.severity, eventSeverityValues) && isBoundedText(item.severityRule, 64) && isBoundedText(item.severityInputs, 256) && isOneOf(item.provider, eventProviders);
+}
+
+function isBoundedText(value: unknown, maximumLength: number): value is string {
+  return typeof value === 'string' && value.trim().length > 0 && value.length <= maximumLength;
 }
 
 function isNativeSourceItem(value: unknown): value is NativeSourceItem {

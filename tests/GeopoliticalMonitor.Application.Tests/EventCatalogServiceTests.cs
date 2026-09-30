@@ -114,7 +114,7 @@ public class EventCatalogServiceTests
     private static Event CreateEvent(string id)
     {
         var timestamp = new DateTimeOffset(2026, 9, 17, 10, 0, 0, TimeSpan.Zero);
-        return Event.Create(new EventId(id), "Demo event", "Summary", EventCategory.Security, EventStatus.Active, timestamp, timestamp, new Location(1, 2, "Demo"), timestamp, timestamp);
+        return Event.Create(new EventId(id), "Demo event", "Summary", EventCategory.Security, EventStatus.Active, timestamp, timestamp, new Location(1, 2, "Demo"), timestamp, timestamp, new EventSeverityAssessment(EventSeverity.High, EventSeverityAssessment.ManualRule, "test"), new EventProvenance(EventProvider.Manual));
     }
 
     private static SourceItem CreateSource(string id, SourceType sourceType)

@@ -304,7 +304,7 @@ public sealed class SqliteEventStoreTests : IDisposable
     private static Event CreateEvent(string id, double latitude, double longitude, EventCategory category, EventStatus status)
     {
         var timestamp = new DateTimeOffset(2026, 9, 17, 10, 0, 0, TimeSpan.Zero);
-        return Event.Create(new EventId(id), "Demo event", "Demo summary", category, status, timestamp, timestamp.AddMinutes(5), new Location(latitude, longitude, "Demo place"), timestamp, timestamp.AddMinutes(5));
+        return Event.Create(new EventId(id), "Demo event", "Demo summary", category, status, timestamp, timestamp.AddMinutes(5), new Location(latitude, longitude, "Demo place"), timestamp, timestamp.AddMinutes(5), new EventSeverityAssessment(EventSeverity.Medium, EventSeverityAssessment.ManualRule, "test"), new EventProvenance(EventProvider.Manual));
     }
 
     private static SourceItem CreateSource(string id, SourceType sourceType)

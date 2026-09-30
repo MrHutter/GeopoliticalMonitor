@@ -1,6 +1,21 @@
-import type { NativeEvent } from '../../types/events';
+import { eventSeverities, type NativeEvent } from '../../types/events';
 import type { Accent } from '../../types/mock';
-import { eventsToFeatureCollection, getCategoryColor, getEventCoordinates, mockConflictZones, selectedMarkerPaint } from './mapEvents';
+import {
+  eventsToFeatureCollection,
+  getCategoryColor,
+  getEventCoordinates,
+  mockConflictZones,
+  selectedMarkerPaint,
+  selectedMarkerRadius,
+  severityMarkerRadii,
+  severityRadiusExpression,
+  severityRingColor,
+  severityRingSeverities,
+  severityRingWidth,
+  severityStrokeColorExpression,
+  severityStrokeWidthExpression,
+  severityZoomStops,
+} from './mapEvents';
 
 const nativeEvents: NativeEvent[] = [
   {
@@ -15,6 +30,10 @@ const nativeEvents: NativeEvent[] = [
     createdAtUtc: '2026-09-17T06:00:00Z',
     updatedAtUtc: '2026-09-17T11:38:00Z',
     sourceCount: 3,
+    severity: 'High',
+    severityRule: 'manual',
+    severityInputs: 'demo data',
+    provider: 'Demo',
   },
   {
     id: 'evt-demo-baltic-security',
@@ -28,6 +47,10 @@ const nativeEvents: NativeEvent[] = [
     createdAtUtc: '2026-09-17T06:00:00Z',
     updatedAtUtc: '2026-09-17T11:54:00Z',
     sourceCount: 3,
+    severity: 'High',
+    severityRule: 'manual',
+    severityInputs: 'demo data',
+    provider: 'Demo',
   },
 ];
 
@@ -75,6 +98,35 @@ describe('mapEvents', () => {
     expect(getCategoryColor('MilitaryConflict')).toBe('#d95d62');
     expect(getCategoryColor('Security')).toBe('#6da3d9');
     expect(getCategoryColor('NaturalDisaster')).toBe('#79a86b');
+  });
+
+  it('carries severity into map features', () => {
+    const collection = eventsToFeatureCollection(nativeEvents);
+
+    expect(collection.features.map((feature) => feature.properties.severity)).toEqual(['High', 'High']);
+  });
+
+  it('grows marker radius with severity in five steps and keeps the selected ring larger', () => {
+    severityZoomStops.forEach((_, stopIndex) => {
+      const radii = eventSeverities.map((severity) => severityMarkerRadii[severity][stopIndex]);
+      radii.slice(1).forEach((radius, index) => expect(radius).toBeGreaterThan(radii[index]));
+      expect(radii[radii.length - 1] + severityRingWidth).toBeLessThan(selectedMarkerRadius);
+    });
+
+    expect(severityRadiusExpression.slice(0, 3)).toEqual(['interpolate', ['linear'], ['zoom']]);
+    for (const severity of eventSeverities) {
+      expect(JSON.stringify(severityRadiusExpression)).toContain(`"${severity}"`);
+    }
+  });
+
+  it('adds a light ring only for Critical and Catastrophic, distinct from the accent selection ring', () => {
+    expect(severityRingSeverities).toEqual(['Critical', 'Catastrophic']);
+    expect(severityStrokeColorExpression).toEqual(['match', ['get', 'severity'], ['Critical', 'Catastrophic'], severityRingColor, '#0b1016']);
+    expect(severityStrokeWidthExpression).toEqual(['match', ['get', 'severity'], ['Critical', 'Catastrophic'], severityRingWidth, 1.4]);
+
+    for (const accent of ['orange', 'blue', 'red', 'green', 'yellow'] as Accent[]) {
+      expect(selectedMarkerPaint(accent)['circle-stroke-color']).not.toBe(severityRingColor);
+    }
   });
 
   it('keeps mock conflict zones as bounded regional polygons', () => {

@@ -16,7 +16,11 @@ public sealed record EventDto(
     LocationDto Location,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
-    int SourceCount);
+    int SourceCount,
+    string Severity,
+    string SeverityRule,
+    string SeverityInputs,
+    string Provider);
 
 public sealed record SourceItemDto(
     string Id,
@@ -46,7 +50,11 @@ public static class EventDtoMapper
             ToDto(geopoliticalEvent.Location),
             geopoliticalEvent.CreatedAtUtc,
             geopoliticalEvent.UpdatedAtUtc,
-            sourceCount);
+            sourceCount,
+            geopoliticalEvent.Severity.ToString(),
+            geopoliticalEvent.SeverityRule,
+            geopoliticalEvent.SeverityInputs,
+            geopoliticalEvent.Provider.ToString());
     }
 
     public static SourceItemDto ToDto(SourceItem sourceItem)

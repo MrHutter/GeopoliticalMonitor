@@ -227,7 +227,7 @@ public sealed class AlertPersistenceTests : IDisposable
         {
             Directory.CreateDirectory(temporaryDirectory);
             await db.Database.GetService<IMigrator>().MigrateAsync("20260926183055_AddWatchlistFoundation");
-            db.Events.Add(ToEntity(CreateEvent()));
+            await LegacyEventRows.InsertEventAsync(db, CreateEvent());
             db.Watchlists.Add(new WatchlistEntity { Id = WatchlistId, Name = "Before alerts", NormalizedName = "BEFORE ALERTS" });
             await db.SaveChangesAsync();
         }
@@ -326,7 +326,9 @@ public sealed class AlertPersistenceTests : IDisposable
             Now,
             new Location(1, 2, "Local"),
             Now,
-            Now);
+            Now,
+            new EventSeverityAssessment(EventSeverity.Low, EventSeverityAssessment.ManualRule, "test"),
+            new EventProvenance(EventProvider.Manual));
 
     private static EventEntity ToEntity(Event eventItem) => new()
     {
@@ -344,6 +346,11 @@ public sealed class AlertPersistenceTests : IDisposable
         Region = eventItem.Location.Region,
         CreatedAtUtc = eventItem.CreatedAtUtc,
         UpdatedAtUtc = eventItem.UpdatedAtUtc,
+        Severity = eventItem.Severity.ToString(),
+        SeverityRule = eventItem.SeverityRule,
+        SeverityInputs = eventItem.SeverityInputs,
+        Provider = eventItem.Provider.ToString(),
+        ProviderKey = eventItem.ProviderKey,
     };
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider

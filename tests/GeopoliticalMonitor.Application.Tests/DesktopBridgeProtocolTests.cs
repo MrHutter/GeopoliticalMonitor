@@ -227,12 +227,21 @@ public class DesktopBridgeProtocolTests
     public void CreatesEventResponses()
     {
         var location = new LocationDto(57.4, 24.8, "Northern corridor", "DE", "Baltic demo region");
-        var eventDto = new EventDto("evt-demo", "Demo event", "Demo summary", "Security", "Active", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, location, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, 2);
+        var eventDto = new EventDto("evt-demo", "Demo event", "Demo summary", "Security", "Active", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, location, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, 2, "High", "gdacs-eq-v1", "alert=Orange; magnitude=6.4", "Gdacs");
         var sourceDto = new SourceItemDto("src-demo", "XPost", "src-demo", "Demo source", "Demo text", null, "Demo Author", "@demo", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null);
 
         using var eventsDocument = JsonDocument.Parse(DesktopBridgeProtocol.CreateEventsListResultResponseJson([eventDto]));
         Assert.Equal(DesktopBridgeProtocol.EventsListResultMessageType, eventsDocument.RootElement.GetProperty("type").GetString());
-        Assert.Equal("evt-demo", eventsDocument.RootElement.GetProperty("payload").GetProperty("events")[0].GetProperty("id").GetString());
+        var listedEvent = eventsDocument.RootElement.GetProperty("payload").GetProperty("events")[0];
+        Assert.Equal("evt-demo", listedEvent.GetProperty("id").GetString());
+        Assert.Equal("High", listedEvent.GetProperty("severity").GetString());
+        Assert.Equal("gdacs-eq-v1", listedEvent.GetProperty("severityRule").GetString());
+        Assert.Equal("alert=Orange; magnitude=6.4", listedEvent.GetProperty("severityInputs").GetString());
+        Assert.Equal("Gdacs", listedEvent.GetProperty("provider").GetString());
+        Assert.False(listedEvent.TryGetProperty("providerKey", out _));
+
+        using var eventDocument = JsonDocument.Parse(DesktopBridgeProtocol.CreateEventGetResultResponseJson(eventDto));
+        Assert.Equal("High", eventDocument.RootElement.GetProperty("payload").GetProperty("eventItem").GetProperty("severity").GetString());
 
         using var sourcesDocument = JsonDocument.Parse(DesktopBridgeProtocol.CreateEventSourcesResultResponseJson("evt-demo", [sourceDto]));
         Assert.Equal(DesktopBridgeProtocol.EventSourcesResultMessageType, sourcesDocument.RootElement.GetProperty("type").GetString());

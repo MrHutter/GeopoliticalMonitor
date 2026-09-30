@@ -4,7 +4,7 @@ import { AlertsPanel } from './features/alerts/AlertsPanel';
 import { DetailTab, EventDetailsPanel, type XPostAttachmentFeedback } from './features/event-details/EventDetailsPanel';
 import type { ReliefWebDiscoveryState } from './features/event-details/ReliefWebDiscovery';
 import { EventPanel } from './features/events/EventPanel';
-import { filterEvents, type EventTimeRange } from './features/events/eventFilters';
+import { filterEvents, filterEventsByMinimumSeverity, type EventTimeRange, type MinimumSeverity } from './features/events/eventFilters';
 import { MapWorkspace } from './features/map/MapWorkspace';
 import { filterFirmsObservations, type FirmsDisplayMode } from './features/map/firmsMap';
 import { SettingsPanel } from './features/settings/SettingsPanel';
@@ -111,6 +111,7 @@ export function App() {
   const [alertStatus, setAlertStatus] = useState<{ kind: 'info' | 'error'; message: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRange, setSelectedRange] = useState<EventTimeRange>('ALL');
+  const [minimumSeverity, setMinimumSeverity] = useState<MinimumSeverity>('All');
   const [events, setEvents] = useState<NativeEvent[]>([]);
   const [watchlists, setWatchlists] = useState<WatchlistSummary[]>([]);
   const [activeWatchlistId, setActiveWatchlistId] = useState<string | null>(null);
@@ -543,8 +544,8 @@ export function App() {
     [activeMemberships, activeWatchlistId, events],
   );
   const filteredEvents = useMemo(
-    () => filterEvents(scopedEvents, searchQuery, selectedRange),
-    [scopedEvents, searchQuery, selectedRange],
+    () => filterEventsByMinimumSeverity(filterEvents(scopedEvents, searchQuery, selectedRange), minimumSeverity),
+    [minimumSeverity, scopedEvents, searchQuery, selectedRange],
   );
   const eventsById = useMemo(() => new Map(filteredEvents.map((event) => [event.id, event])), [filteredEvents]);
   const selectedEvent = selectedEventId ? eventsById.get(selectedEventId) ?? null : null;
@@ -656,6 +657,7 @@ export function App() {
     setActiveWatchlistId(null);
     setSearchQuery('');
     setSelectedRange('ALL');
+    setMinimumSeverity('All');
     setSelectedEventId(alert.eventId);
     setActiveTab('Overview');
     locateRequestIdRef.current += 1;
@@ -753,12 +755,14 @@ export function App() {
           loadError={eventLoadError}
           watchlists={watchlists}
           activeWatchlistId={activeWatchlistId}
+          minimumSeverity={minimumSeverity}
           emptyMessage={activeWatchlist ? (activeWatchlist.eventCount === 0 ? 'No events in this watchlist.' : 'No watchlist events match the active filters.') : 'No events match the active filters.'}
           manageButtonRef={watchlistManageButtonRef}
           gdacsRefresh={gdacsRefresh}
           onRefreshGdacs={refreshGdacs}
           onSelectEvent={setSelectedEventId}
           onSelectWatchlist={selectWatchlist}
+          onMinimumSeverityChange={setMinimumSeverity}
           onManageWatchlists={() => setWatchlistManagerOpen(true)}
         />
         <MapWorkspace

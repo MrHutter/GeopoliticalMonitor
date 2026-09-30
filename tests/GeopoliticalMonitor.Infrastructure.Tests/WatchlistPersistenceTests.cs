@@ -194,8 +194,7 @@ public sealed class WatchlistPersistenceTests : IDisposable
         {
             Directory.CreateDirectory(temporaryDirectory);
             await db.Database.GetService<IMigrator>().MigrateAsync("20260917010000_AddEventAndSourceFoundation");
-            db.Events.Add(ToEntity(CreateEvent("evt-before-watchlists")));
-            await db.SaveChangesAsync();
+            await LegacyEventRows.InsertEventAsync(db, CreateEvent("evt-before-watchlists"));
         }
 
         await initializer.InitializeAsync();
@@ -234,7 +233,9 @@ public sealed class WatchlistPersistenceTests : IDisposable
             timestamp,
             new Location(1, 2, "Local"),
             timestamp,
-            timestamp);
+            timestamp,
+            new EventSeverityAssessment(EventSeverity.Low, EventSeverityAssessment.ManualRule, "test"),
+            new EventProvenance(EventProvider.Manual));
     }
 
     private static SourceItem CreateSource(string id)
@@ -273,6 +274,11 @@ public sealed class WatchlistPersistenceTests : IDisposable
             Region = geopoliticalEvent.Location.Region,
             CreatedAtUtc = geopoliticalEvent.CreatedAtUtc,
             UpdatedAtUtc = geopoliticalEvent.UpdatedAtUtc,
+            Severity = geopoliticalEvent.Severity.ToString(),
+            SeverityRule = geopoliticalEvent.SeverityRule,
+            SeverityInputs = geopoliticalEvent.SeverityInputs,
+            Provider = geopoliticalEvent.Provider.ToString(),
+            ProviderKey = geopoliticalEvent.ProviderKey,
         };
     }
 }

@@ -114,6 +114,10 @@ public sealed class GdacsPersistenceTests : IDisposable
                 LocationDisplayName = "Local",
                 CreatedAtUtc = CreatedAt,
                 UpdatedAtUtc = CreatedAt,
+                Severity = EventSeverity.Low.ToString(),
+                SeverityRule = EventSeverityAssessment.ManualRule,
+                SeverityInputs = "local",
+                Provider = EventProvider.Manual.ToString(),
             });
             await db.SaveChangesAsync();
         }
@@ -320,6 +324,111 @@ public sealed class GdacsPersistenceTests : IDisposable
         Assert.Single(await final.AlertOccurrences.ToListAsync());
     }
 
+    [Fact]
+    public async Task PersistsComputedSeverityAndProvenanceForNewGdacsEvents()
+    {
+        var (initializer, store) = await CreateStoreAsync();
+
+        await store.PersistGdacsEarthquakesAsync([CreateImport(alertLevel: "Red", magnitude: 7.8)], CreatedAt);
+
+        await using var db = initializer.CreateDbContext();
+        var persisted = await db.Events.SingleAsync();
+        Assert.Equal("Catastrophic", persisted.Severity);
+        Assert.Equal(GdacsSeverityRule.RuleId, persisted.SeverityRule);
+        Assert.Equal("alert=Red; magnitude=7.8", persisted.SeverityInputs);
+        Assert.Equal("Gdacs", persisted.Provider);
+        Assert.Equal("1500811", persisted.ProviderKey);
+    }
+
+    [Fact]
+    public async Task EqualRevisionRefreshUpgradesLegacyDefaultSeverityWithoutConflictTimestampChangeOrAlert()
+    {
+        var (initializer, store) = await CreateStoreAsync();
+        var original = CreateImport();
+        await store.PersistGdacsEarthquakesAsync([original], CreatedAt);
+        await AddMonitoringContextAsync(initializer, 1);
+        await MarkSeverityAsLegacyDefaultAsync(initializer);
+        var before = await ReadSingleEventAsync(initializer);
+
+        var result = await store.PersistGdacsEarthquakesAsync([CreateImport()], CreatedAt.AddHours(3));
+
+        Assert.Equal(0, result.Conflicts);
+        Assert.Equal(0, result.NewAlerts);
+        Assert.Equal(1, result.UpdatedEvents);
+        Assert.Equal(GdacsEventPersistenceDisposition.SeverityOnlyUpdated, Assert.Single(result.EventOutcomes).Disposition);
+        var after = await ReadSingleEventAsync(initializer);
+        Assert.Equal("High", after.Severity);
+        Assert.Equal(GdacsSeverityRule.RuleId, after.SeverityRule);
+        Assert.Equal("alert=Orange; magnitude=6.4", after.SeverityInputs);
+        Assert.Equal(before.LastUpdatedAtUtc, after.LastUpdatedAtUtc);
+        Assert.Equal(before.UpdatedAtUtc, after.UpdatedAtUtc);
+        Assert.Equal(before.CreatedAtUtc, after.CreatedAtUtc);
+        Assert.Equal(before.Title, after.Title);
+        await using var db = initializer.CreateDbContext();
+        Assert.Empty(await db.AlertOccurrences.ToListAsync());
+
+        var repeat = await store.PersistGdacsEarthquakesAsync([CreateImport()], CreatedAt.AddHours(4));
+
+        Assert.Equal(0, repeat.UpdatedEvents);
+        Assert.Equal(0, repeat.UpdatedSources);
+        Assert.Equal(1, repeat.UnchangedRecords);
+        Assert.Equal(GdacsEventPersistenceDisposition.Unchanged, Assert.Single(repeat.EventOutcomes).Disposition);
+        var unchanged = await ReadSingleEventAsync(initializer);
+        Assert.Equal(after.Severity, unchanged.Severity);
+        Assert.Equal(after.UpdatedAtUtc, unchanged.UpdatedAtUtc);
+    }
+
+    [Fact]
+    public async Task EqualRevisionMaterialDifferenceOnLegacyDefaultRowIsStillAConflict()
+    {
+        var (initializer, store) = await CreateStoreAsync();
+        await store.PersistGdacsEarthquakesAsync([CreateImport()], CreatedAt);
+        await MarkSeverityAsLegacyDefaultAsync(initializer);
+
+        var result = await store.PersistGdacsEarthquakesAsync([CreateImport(title: "Conflicting title")], CreatedAt);
+
+        Assert.Equal(1, result.Conflicts);
+        var persisted = await ReadSingleEventAsync(initializer);
+        Assert.Equal("Earthquake in Russia", persisted.Title);
+        Assert.Equal(EventSeverityAssessment.LegacyDefaultRule, persisted.SeverityRule);
+        Assert.Equal("Low", persisted.Severity);
+    }
+
+    [Fact]
+    public async Task EqualRevisionSeverityDifferenceOnComputedRowIsNeitherConflictNorOverwrite()
+    {
+        var (initializer, store) = await CreateStoreAsync();
+        await store.PersistGdacsEarthquakesAsync([CreateImport(alertLevel: "Orange")], CreatedAt);
+
+        var result = await store.PersistGdacsEarthquakesAsync([CreateImport(alertLevel: "Red")], CreatedAt);
+
+        Assert.Equal(0, result.Conflicts);
+        Assert.Equal(GdacsEventPersistenceDisposition.Unchanged, Assert.Single(result.EventOutcomes).Disposition);
+        Assert.Equal("High", (await ReadSingleEventAsync(initializer)).Severity);
+    }
+
+    [Fact]
+    public async Task NewerSeverityOnlyChangeUpdatesSeverityWithoutCreatingAnAlert()
+    {
+        var (initializer, store) = await CreateStoreAsync();
+        var original = CreateImport(alertLevel: "Orange");
+        await store.PersistGdacsEarthquakesAsync([original], CreatedAt);
+        await AddMonitoringContextAsync(initializer, 1);
+
+        var newer = CreateImport(providerUpdatedAt: original.Event.LastUpdatedAtUtc.AddHours(1), alertLevel: "Red", magnitude: 7.9);
+        var result = await store.PersistGdacsEarthquakesAsync([newer], CreatedAt);
+
+        Assert.Equal(1, result.UpdatedEvents);
+        Assert.Equal(0, result.NewAlerts);
+        Assert.Equal(GdacsEventPersistenceDisposition.RevisionOnlyUpdated, Assert.Single(result.EventOutcomes).Disposition);
+        var persisted = await ReadSingleEventAsync(initializer);
+        Assert.Equal("Catastrophic", persisted.Severity);
+        Assert.Equal("alert=Red; magnitude=7.9", persisted.SeverityInputs);
+        Assert.Equal(newer.Event.LastUpdatedAtUtc, persisted.LastUpdatedAtUtc);
+        await using var db = initializer.CreateDbContext();
+        Assert.Empty(await db.AlertOccurrences.ToListAsync());
+    }
+
     public void Dispose()
     {
         SqliteConnection.ClearAllPools();
@@ -360,11 +469,29 @@ public sealed class GdacsPersistenceTests : IDisposable
         return watchlistId;
     }
 
+    private static async Task MarkSeverityAsLegacyDefaultAsync(LocalDatabaseInitializer initializer)
+    {
+        await using var db = initializer.CreateDbContext();
+        var entity = await db.Events.SingleAsync();
+        entity.Severity = EventSeverity.Low.ToString();
+        entity.SeverityRule = EventSeverityAssessment.LegacyDefaultRule;
+        entity.SeverityInputs = GdacsSeverityRule.BackfillUnavailableInputs;
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task<EventEntity> ReadSingleEventAsync(LocalDatabaseInitializer initializer)
+    {
+        await using var db = initializer.CreateDbContext();
+        return await db.Events.AsNoTracking().SingleAsync();
+    }
+
     private static GdacsEarthquakeImport CreateImport(
         long episodeId = 1661062,
         DateTimeOffset? providerUpdatedAt = null,
         string title = "Earthquake in Russia",
-        double latitude = 53.1928)
+        double latitude = 53.1928,
+        string alertLevel = "Orange",
+        double? magnitude = 6.4)
     {
         var updated = providerUpdatedAt ?? DateTimeOffset.Parse("2025-09-19T20:01:59Z");
         var location = new Location(latitude, 160.5129, "Russia", "RUS");
@@ -378,7 +505,9 @@ public sealed class GdacsPersistenceTests : IDisposable
             updated,
             location,
             CreatedAt,
-            CreatedAt);
+            CreatedAt,
+            GdacsSeverityRule.Assess(alertLevel, magnitude),
+            new EventProvenance(EventProvider.Gdacs, "1500811"));
         var source = SourceItem.Create(
             new SourceItemId($"src-gdacs-eq-1500811-{episodeId}"),
             SourceType.DatasetRecord,

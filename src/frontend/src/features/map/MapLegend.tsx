@@ -1,3 +1,5 @@
+import { eventSeverities } from '../../types/events';
+
 const legendItems = [
   { label: 'Conflict', className: 'legend-conflict' },
   { label: 'Security', className: 'legend-security' },
@@ -27,6 +29,14 @@ export function MapLegend({ firmsVisible, firmsHasObservations }: MapLegendProps
             {item.label}
           </span>
         ))}
+      </div>
+      <div className="legend severity-size-legend" aria-label="Marker size shows severity, from Low to Catastrophic; Critical and Catastrophic markers have a light ring">
+        <strong>Size = severity</strong>
+        <span>Low</span>
+        {eventSeverities.map((severity) => (
+          <i key={severity} className={`severity-size severity-size-${severity.toLowerCase()}`} title={severity} aria-hidden="true" />
+        ))}
+        <span>Catastrophic</span>
       </div>
       {firmsVisible && firmsHasObservations ? (
         <div className="legend firms-age-legend" aria-label="FIRMS detection age legend">

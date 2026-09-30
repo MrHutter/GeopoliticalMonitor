@@ -33,6 +33,7 @@ public enum GdacsEventPersistenceDisposition
     Created,
     MateriallyUpdated,
     RevisionOnlyUpdated,
+    SeverityOnlyUpdated,
     Unchanged,
     Conflict,
 }

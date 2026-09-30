@@ -71,7 +71,8 @@ public sealed class ReliefWebBridgeHandlerTests
     {
         private static readonly Event ExistingEvent = Event.Create(
             new EventId("evt-demo"), "Flood", "Summary", EventCategory.Humanitarian, EventStatus.Active,
-            DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, new Location(1, 2, "Example"), DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, new Location(1, 2, "Example"), DateTimeOffset.UtcNow, DateTimeOffset.UtcNow,
+            new EventSeverityAssessment(EventSeverity.Low, EventSeverityAssessment.ManualRule, "test"), new EventProvenance(EventProvider.Manual));
 
         public Task<Event?> GetEventByIdAsync(EventId eventId, CancellationToken cancellationToken = default) => Task.FromResult<Event?>(ExistingEvent);
         public Task<ReliefWebAttachmentStoreResult> AttachReliefWebSourceAsync(EventId eventId, SourceItem sourceItem, CancellationToken cancellationToken = default)

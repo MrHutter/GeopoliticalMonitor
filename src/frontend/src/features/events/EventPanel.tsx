@@ -1,7 +1,8 @@
 import type { RefObject } from 'react';
 import type { WatchlistSummary } from '../../nativeBridge';
-import { formatCategory, formatEventTime, NativeEvent, NativeEventStatus } from '../../types/events';
+import { formatCategory, formatEventTime, formatProviderLabel, NativeEvent, NativeEventStatus } from '../../types/events';
 import { getCategoryColor } from '../map/mapEvents';
+import { minimumSeverityLabels, minimumSeverityOptions, sortEventsForList, type MinimumSeverity } from './eventFilters';
 
 export type GdacsRefreshFeedback = {
   kind: 'idle' | 'pending' | 'success' | 'error';
@@ -15,20 +16,21 @@ type EventPanelProps = {
   loadError: string | null;
   watchlists: WatchlistSummary[];
   activeWatchlistId: string | null;
+  minimumSeverity: MinimumSeverity;
   emptyMessage: string;
   manageButtonRef: RefObject<HTMLButtonElement | null>;
   gdacsRefresh: GdacsRefreshFeedback;
   onRefreshGdacs: () => void;
   onSelectEvent: (eventId: string) => void;
   onSelectWatchlist: (watchlistId: string | null) => void;
+  onMinimumSeverityChange: (minimumSeverity: MinimumSeverity) => void;
   onManageWatchlists: () => void;
 };
 
-const statusRank: Record<NativeEventStatus, number> = { Active: 4, Developing: 3, Unverified: 2, Resolved: 1 };
 const statusDotClass: Record<NativeEventStatus, string> = { Active: 'active', Developing: 'developing', Unverified: 'unverified', Resolved: 'resolved' };
 
-export function EventPanel({ events, selectedEventId, selectedRange, loadError, watchlists, activeWatchlistId, emptyMessage, manageButtonRef, gdacsRefresh, onRefreshGdacs, onSelectEvent, onSelectWatchlist, onManageWatchlists }: EventPanelProps) {
-  const orderedEvents = [...events].sort((left, right) => statusRank[right.status] - statusRank[left.status]);
+export function EventPanel({ events, selectedEventId, selectedRange, loadError, watchlists, activeWatchlistId, minimumSeverity, emptyMessage, manageButtonRef, gdacsRefresh, onRefreshGdacs, onSelectEvent, onSelectWatchlist, onMinimumSeverityChange, onManageWatchlists }: EventPanelProps) {
+  const orderedEvents = sortEventsForList(events);
 
   return (
     <aside className="event-panel panel" aria-labelledby="event-panel-title">
@@ -41,6 +43,12 @@ export function EventPanel({ events, selectedEventId, selectedRange, loadError, 
             <select value={activeWatchlistId ?? ''} onChange={(event) => onSelectWatchlist(event.target.value || null)}>
               <option value="">All Events</option>
               {watchlists.map((watchlist) => <option key={watchlist.id} value={watchlist.id}>{watchlist.name}</option>)}
+            </select>
+          </label>
+          <label className="event-scope-control event-severity-control">
+            <span className="sr-only">Minimum severity</span>
+            <select value={minimumSeverity} onChange={(event) => onMinimumSeverityChange(event.target.value as MinimumSeverity)}>
+              {minimumSeverityOptions.map((option) => <option key={option} value={option}>{minimumSeverityLabels[option]}</option>)}
             </select>
           </label>
         </div>
@@ -75,6 +83,11 @@ export function EventPanel({ events, selectedEventId, selectedRange, loadError, 
                   <span>{event.location.region ?? event.location.displayName}</span>
                 </span>
                 <strong>{event.title}</strong>
+                <span className="event-row-badges">
+                  <span className={`event-badge severity-badge severity-${event.severity.toLowerCase()}`}>{event.severity}</span>
+                  {event.status === 'Unverified' ? <span className="event-badge unverified-badge">Unverified</span> : null}
+                  {formatProviderLabel(event.provider) ? <span className="event-provider-label">{formatProviderLabel(event.provider)}</span> : null}
+                </span>
                 <span className="event-row-footer">
                   <span>{event.sourceCount} sources</span>
                   <span>{formatCategory(event.category)}</span>

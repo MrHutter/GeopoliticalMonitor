@@ -40,6 +40,25 @@ public sealed class GdacsRefreshServiceTests
     }
 
     [Fact]
+    public async Task NormalizationAssignsGdacsSeverityAndProvenanceFromStructuredFields()
+    {
+        var store = new RecordingStore();
+        var service = new GdacsRefreshService(new RecordingFeed([CreateRecord()]), store, new FixedTimeProvider(Now));
+
+        await service.RefreshAsync();
+
+        var import = Assert.Single(store.Imports!);
+        Assert.Equal(EventSeverity.High, import.Event.Severity);
+        Assert.Equal(GdacsSeverityRule.RuleId, import.Event.SeverityRule);
+        Assert.Equal("alert=Orange; magnitude=7.8", import.Event.SeverityInputs);
+        Assert.Equal(EventProvider.Gdacs, import.Event.Provider);
+        Assert.Equal("1500811", import.Event.ProviderKey);
+
+        Assert.True(GdacsSeverityRule.TryAssessFromProvenanceText(import.Source.Text, out var fromText));
+        Assert.Equal(import.Event.SeverityAssessment, fromText);
+    }
+
+    [Fact]
     public async Task ReportsMalformedCountAndMapsFeedFailureWithoutPersisting()
     {
         var store = new RecordingStore();

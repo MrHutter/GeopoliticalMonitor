@@ -11,6 +11,10 @@ export type NativeEventCategory =
 
 export type NativeEventStatus = 'Developing' | 'Active' | 'Resolved' | 'Unverified';
 
+export type NativeEventSeverity = 'Low' | 'Medium' | 'High' | 'Critical' | 'Catastrophic';
+
+export type NativeEventProvider = 'Gdacs' | 'UcdpCandidate' | 'Gdelt' | 'Demo' | 'Manual';
+
 export type NativeSourceType = 'XPost' | 'NewsArticle' | 'OfficialStatement' | 'DatasetRecord' | 'Other';
 
 export type NativeLocation = {
@@ -33,6 +37,10 @@ export type NativeEvent = {
   createdAtUtc: string;
   updatedAtUtc: string;
   sourceCount: number;
+  severity: NativeEventSeverity;
+  severityRule: string;
+  severityInputs: string;
+  provider: NativeEventProvider;
 };
 
 export type NativeSourceItem = {
@@ -80,6 +88,49 @@ export function formatCategory(category: NativeEventCategory) {
       return 'Natural Disaster';
     default:
       return category;
+  }
+}
+
+export const eventSeverities: readonly NativeEventSeverity[] = ['Low', 'Medium', 'High', 'Critical', 'Catastrophic'];
+
+export function severityRank(severity: NativeEventSeverity) {
+  return eventSeverities.indexOf(severity);
+}
+
+export function formatProviderLabel(provider: NativeEventProvider): string | null {
+  switch (provider) {
+    case 'Gdacs':
+      return 'GDACS';
+    case 'UcdpCandidate':
+      return 'UCDP Candidate';
+    case 'Gdelt':
+      return 'GDELT · machine-coded';
+    case 'Demo':
+      return 'Demo';
+    default:
+      return null;
+  }
+}
+
+export type SeverityExplanation = {
+  rule: string;
+  derivedFromProvider: boolean;
+};
+
+export function explainSeverity(event: Pick<NativeEvent, 'severity' | 'severityRule' | 'severityInputs'>): SeverityExplanation {
+  switch (event.severityRule) {
+    case 'gdacs-eq-v1': {
+      const alert = /(?:^|;\s*)alert=([A-Za-z]+)/.exec(event.severityInputs)?.[1];
+      const magnitude = /(?:^|;\s*)magnitude=([0-9.]+)/.exec(event.severityInputs)?.[1];
+      const alertText = alert ? `GDACS ${alert} alert` : 'GDACS alert';
+      return { rule: `${alertText}${magnitude ? `, magnitude ${magnitude}` : ''}, ${event.severity}`, derivedFromProvider: true };
+    }
+    case 'manual':
+      return { rule: `Set manually, not derived from provider data (${event.severityInputs}).`, derivedFromProvider: false };
+    case 'legacy-default':
+      return { rule: 'Legacy default: no provider data was available to derive a severity when this Event was upgraded.', derivedFromProvider: false };
+    default:
+      return { rule: `Rule ${event.severityRule}, ${event.severity}`, derivedFromProvider: true };
   }
 }
 

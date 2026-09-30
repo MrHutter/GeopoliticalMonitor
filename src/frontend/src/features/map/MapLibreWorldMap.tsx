@@ -16,6 +16,9 @@ import {
 } from './firmsMap';
 import {
   categoryColorExpression,
+  severityRadiusExpression,
+  severityStrokeColorExpression,
+  severityStrokeWidthExpression,
   conflictZoneLayerId,
   conflictZoneSourceId,
   defaultMapView,
@@ -197,10 +200,10 @@ export function MapLibreWorldMap({
         source: eventSourceId,
         paint: {
           'circle-color': categoryColorExpression as never,
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 0, 4.5, 4, 6.5, 7, 8],
+          'circle-radius': severityRadiusExpression as never,
           'circle-opacity': 0.88,
-          'circle-stroke-color': '#0b1016',
-          'circle-stroke-width': 1.4,
+          'circle-stroke-color': severityStrokeColorExpression as never,
+          'circle-stroke-width': severityStrokeWidthExpression as never,
         },
       });
       map.addLayer({

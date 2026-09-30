@@ -106,7 +106,9 @@ public sealed class GdacsRefreshService
             record.ProviderUpdatedAtUtc,
             location,
             retrievedAtUtc,
-            retrievedAtUtc);
+            retrievedAtUtc,
+            GdacsSeverityRule.Assess(record.AlertLevel, record.Magnitude),
+            new EventProvenance(EventProvider.Gdacs, record.EventId.ToString(CultureInfo.InvariantCulture)));
 
         var source = SourceItem.Create(
             sourceId,

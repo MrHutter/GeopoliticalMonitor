@@ -1,5 +1,5 @@
-import { filterEvents, type EventTimeRange } from './eventFilters';
-import type { NativeEvent } from '../../types/events';
+import { filterEvents, filterEventsByMinimumSeverity, sortEventsForList, type EventTimeRange, type MinimumSeverity } from './eventFilters';
+import { eventSeverities, type NativeEvent } from '../../types/events';
 
 const now = Date.parse('2026-09-17T12:00:00Z');
 
@@ -21,6 +21,10 @@ function event(overrides: Partial<NativeEvent> = {}): NativeEvent {
     createdAtUtc: '2026-09-17T10:00:00Z',
     updatedAtUtc: '2026-09-17T11:30:00Z',
     sourceCount: 3,
+    severity: 'Medium',
+    severityRule: 'manual',
+    severityInputs: 'test',
+    provider: 'Manual',
     ...overrides,
   };
 }
@@ -83,6 +87,47 @@ describe('filterEvents', () => {
     const invalid = event({ id: 'invalid', startedAtUtc: 'not-a-timestamp' });
 
     expect(filterEvents([sameInstant, invalid], '', '24H', now)).toEqual([sameInstant]);
+  });
+
+  it('matches severity words in search', () => {
+    const critical = event({ id: 'critical', severity: 'Critical' });
+    const low = event({ id: 'low', severity: 'Low' });
+
+    expect(filterEvents([critical, low], 'CRITICAL', 'ALL', now)).toEqual([critical]);
+  });
+
+  it.each([
+    ['All', ['low', 'medium', 'high', 'critical', 'catastrophic']],
+    ['Medium', ['medium', 'high', 'critical', 'catastrophic']],
+    ['High', ['high', 'critical', 'catastrophic']],
+    ['Critical', ['critical', 'catastrophic']],
+  ] satisfies Array<[MinimumSeverity, string[]]>)('keeps %s and above for the minimum severity filter', (minimum, expectedIds) => {
+    const levels = eventSeverities.map((severity) => event({ id: severity.toLowerCase(), severity }));
+
+    expect(filterEventsByMinimumSeverity(levels, minimum).map((item) => item.id)).toEqual(expectedIds);
+  });
+
+  it('combines minimum severity with search and time range using AND semantics', () => {
+    const recentHigh = event({ id: 'recent-high', severity: 'High' });
+    const recentLow = event({ id: 'recent-low', severity: 'Low' });
+    const oldHigh = event({ id: 'old-high', severity: 'High', startedAtUtc: '2026-09-01T00:00:00Z' });
+    const recentHighOtherTopic = event({ id: 'recent-high-economic', severity: 'High', category: 'Economic', title: 'Market update', summary: 'Prices' });
+
+    const visible = filterEventsByMinimumSeverity(filterEvents([recentHigh, recentLow, oldHigh, recentHighOtherTopic], 'security', '7D', now), 'High');
+
+    expect(visible).toEqual([recentHigh]);
+  });
+
+  it('sorts by severity descending, then by last update descending, with invalid timestamps last', () => {
+    const lowNewest = event({ id: 'low-newest', severity: 'Low', lastUpdatedAtUtc: '2026-09-17T11:59:00Z' });
+    const highOld = event({ id: 'high-old', severity: 'High', lastUpdatedAtUtc: '2026-09-10T00:00:00Z' });
+    const highNew = event({ id: 'high-new', severity: 'High', lastUpdatedAtUtc: '2026-09-17T11:00:00Z' });
+    const highInvalid = event({ id: 'high-invalid', severity: 'High', lastUpdatedAtUtc: 'not-a-timestamp' });
+    const catastrophic = event({ id: 'catastrophic', severity: 'Catastrophic', lastUpdatedAtUtc: '2026-09-01T00:00:00Z' });
+    const input = [lowNewest, highInvalid, highOld, catastrophic, highNew];
+
+    expect(sortEventsForList(input).map((item) => item.id)).toEqual(['catastrophic', 'high-new', 'high-old', 'high-invalid', 'low-newest']);
+    expect(input.map((item) => item.id)).toEqual(['low-newest', 'high-invalid', 'high-old', 'catastrophic', 'high-new']);
   });
 
   it('combines search and time-range filters with AND semantics', () => {

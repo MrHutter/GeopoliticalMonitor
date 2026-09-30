@@ -14,7 +14,9 @@ public sealed class Event
         DateTimeOffset lastUpdatedAtUtc,
         Location location,
         DateTimeOffset createdAtUtc,
-        DateTimeOffset updatedAtUtc)
+        DateTimeOffset updatedAtUtc,
+        EventSeverityAssessment severity,
+        EventProvenance provenance)
     {
         Id = id;
         Title = title;
@@ -26,6 +28,8 @@ public sealed class Event
         Location = location;
         CreatedAtUtc = createdAtUtc;
         UpdatedAtUtc = updatedAtUtc;
+        SeverityAssessment = severity;
+        Provenance = provenance;
     }
 
     public EventId Id { get; }
@@ -38,6 +42,13 @@ public sealed class Event
     public Location Location { get; }
     public DateTimeOffset CreatedAtUtc { get; }
     public DateTimeOffset UpdatedAtUtc { get; }
+    public EventSeverityAssessment SeverityAssessment { get; }
+    public EventProvenance Provenance { get; }
+    public EventSeverity Severity => SeverityAssessment.Level;
+    public string SeverityRule => SeverityAssessment.Rule;
+    public string SeverityInputs => SeverityAssessment.Inputs;
+    public EventProvider Provider => Provenance.Provider;
+    public string? ProviderKey => Provenance.ProviderKey;
 
     public static Event Create(
         EventId id,
@@ -49,7 +60,9 @@ public sealed class Event
         DateTimeOffset lastUpdatedAtUtc,
         Location location,
         DateTimeOffset createdAtUtc,
-        DateTimeOffset updatedAtUtc)
+        DateTimeOffset updatedAtUtc,
+        EventSeverityAssessment severity,
+        EventProvenance provenance)
     {
         if (string.IsNullOrWhiteSpace(title))
         {
@@ -61,6 +74,9 @@ public sealed class Event
             throw new ArgumentException("Event summary is required.", nameof(summary));
         }
 
-        return new Event(id, title, summary, category, status, startedAtUtc, lastUpdatedAtUtc, location, createdAtUtc, updatedAtUtc);
+        ArgumentNullException.ThrowIfNull(severity);
+        ArgumentNullException.ThrowIfNull(provenance);
+
+        return new Event(id, title, summary, category, status, startedAtUtc, lastUpdatedAtUtc, location, createdAtUtc, updatedAtUtc, severity, provenance);
     }
 }

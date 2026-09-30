@@ -11,7 +11,8 @@ public sealed class ReliefWebReportDiscoveryServiceTests
     private static readonly DateTimeOffset Now = new(2026, 9, 24, 12, 0, 0, TimeSpan.Zero);
     private static readonly Event ExistingEvent = Event.Create(
         new EventId("evt-demo"), "Flood response", "Summary", EventCategory.Humanitarian,
-        EventStatus.Active, Now.AddDays(-2), Now, new Location(1, 2, "Example", "EXA", null), Now, Now);
+        EventStatus.Active, Now.AddDays(-2), Now, new Location(1, 2, "Example", "EXA", null), Now, Now,
+        new EventSeverityAssessment(EventSeverity.Low, EventSeverityAssessment.ManualRule, "test"), new EventProvenance(EventProvider.Manual));
 
     [Theory]
     [InlineData(null, "flood", "2026-09-01T00:00:00Z", "2026-09-02T00:00:00Z", null, ReliefWebSearchStatus.InvalidEventId)]

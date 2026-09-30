@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { formatCategory, formatCoordinates, formatEventTime, formatSourceType, NativeEvent, NativeSourceItem } from '../../types/events';
+import { explainSeverity, formatCategory, formatCoordinates, formatEventTime, formatProviderLabel, formatSourceType, NativeEvent, NativeSourceItem } from '../../types/events';
 import { MockXPost } from '../../types/mock';
 import type { WatchlistSummary } from '../../nativeBridge';
 import { ReliefWebDiscovery, type ReliefWebDiscoveryState } from './ReliefWebDiscovery';
@@ -13,6 +13,25 @@ export type XPostAttachmentFeedback = {
 };
 
 const detailTabs: DetailTab[] = ['Overview', 'Timeline', 'Sources', 'X', 'Related', 'Location'];
+
+function SeverityBlock({ event }: { event: NativeEvent }) {
+  const explanation = explainSeverity(event);
+  const providerLabel = formatProviderLabel(event.provider);
+  return (
+    <section className="severity-block" aria-label="Severity">
+      <div className="severity-block-heading">
+        <span className="eyebrow">Severity</span>
+        <span className={`event-badge severity-badge severity-${event.severity.toLowerCase()}`}>{event.severity}</span>
+        {providerLabel ? <span className="event-provider-label">{providerLabel}</span> : null}
+      </div>
+      <p className="severity-rule">{explanation.rule}</p>
+      <p className="severity-inputs">Inputs: {event.severityInputs}</p>
+      {explanation.derivedFromProvider
+        ? <p className="severity-note">Severity is derived automatically from provider data and is not an independent assessment.</p>
+        : null}
+    </section>
+  );
+}
 
 type EventDetailsPanelProps = {
   event: NativeEvent | null;
@@ -118,6 +137,7 @@ export function EventDetailsPanel({ event, sources, activeTab, relatedPosts, att
                 <span>{event.status}</span>
               </div>
             </div>
+            <SeverityBlock event={event} />
           </>
         )}
 

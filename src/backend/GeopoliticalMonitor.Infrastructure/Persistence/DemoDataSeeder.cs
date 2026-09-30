@@ -76,7 +76,12 @@ public sealed class DemoDataSeeder(EventCatalogService eventCatalogService)
     private static Event CreateEvent(string id, string title, string summary, EventCategory category, EventStatus status, double latitude, double longitude, string displayName, string? countryCode, string region, int minutesOffset)
     {
         var timestamp = BaseTime.AddMinutes(minutesOffset);
-        return Event.Create(new EventId(id), title, summary, category, status, timestamp, timestamp.AddMinutes(6), new Location(latitude, longitude, displayName, countryCode, region), BaseTime.AddHours(-6), timestamp.AddMinutes(6));
+        if (!DemoEventSeverities.TryGetAssessment(id, out var severity))
+        {
+            throw new InvalidOperationException($"Demo event '{id}' has no severity assignment.");
+        }
+
+        return Event.Create(new EventId(id), title, summary, category, status, timestamp, timestamp.AddMinutes(6), new Location(latitude, longitude, displayName, countryCode, region), BaseTime.AddHours(-6), timestamp.AddMinutes(6), severity!, DemoEventSeverities.Provenance);
     }
 
     private static SourceItem CreateSource(string id, SourceType type, string? title, string text, string? authorDisplayName, string? authorHandle, int minutesOffset, double? latitude, double? longitude, string? displayName)

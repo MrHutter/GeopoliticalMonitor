@@ -144,8 +144,32 @@ namespace GeopoliticalMonitor.Infrastructure.Persistence.Migrations
                     b.Property<double>("Longitude")
                         .HasColumnType("REAL");
 
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProviderKey")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Region")
                         .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SeverityInputs")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SeverityRule")
+                        .IsRequired()
+                        .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset>("StartedAtUtc")
@@ -170,6 +194,9 @@ namespace GeopoliticalMonitor.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Provider", "ProviderKey")
+                        .IsUnique();
 
                     b.ToTable("Events", (string)null);
                 });

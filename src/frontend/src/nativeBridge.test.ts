@@ -89,6 +89,48 @@ describe('nativeBridge', () => {
     expect(isXPaneSideValueMessage({ type: 'xPane.side.value', payload: { value: 'Right' } })).toBe(true);
   });
 
+  it('strictly validates event severity, provider and field set', () => {
+    const valid = {
+      id: 'evt-gdacs-eq-1',
+      title: 'Earthquake',
+      summary: 'Summary',
+      category: 'NaturalDisaster',
+      status: 'Unverified',
+      startedAtUtc: '2026-09-17T10:00:00Z',
+      lastUpdatedAtUtc: '2026-09-17T10:05:00Z',
+      location: { latitude: 1, longitude: 2, displayName: 'Place', countryCode: null, region: null },
+      createdAtUtc: '2026-09-17T09:00:00Z',
+      updatedAtUtc: '2026-09-17T10:05:00Z',
+      sourceCount: 1,
+      severity: 'Catastrophic',
+      severityRule: 'gdacs-eq-v1',
+      severityInputs: 'alert=Red; magnitude=7.8',
+      provider: 'Gdacs',
+    };
+    const accepts = (event: unknown) => isEventsListResultMessage({ type: 'events.list.result', payload: { events: [event] } });
+    const missingSeverity: Record<string, unknown> = { ...valid };
+    delete missingSeverity.severity;
+
+    expect(accepts(valid)).toBe(true);
+    for (const severity of ['Low', 'Medium', 'High', 'Critical', 'Catastrophic']) {
+      expect(accepts({ ...valid, severity })).toBe(true);
+    }
+    for (const provider of ['Gdacs', 'UcdpCandidate', 'Gdelt', 'Demo', 'Manual']) {
+      expect(accepts({ ...valid, provider })).toBe(true);
+    }
+    expect(accepts({ ...valid, severity: 'Severe' })).toBe(false);
+    expect(accepts({ ...valid, severity: 'high' })).toBe(false);
+    expect(accepts({ ...valid, provider: 'Acled' })).toBe(false);
+    expect(accepts({ ...valid, provider: null })).toBe(false);
+    expect(accepts({ ...valid, providerKey: '1' })).toBe(false);
+    expect(accepts({ ...valid, unexpected: true })).toBe(false);
+    expect(accepts(missingSeverity)).toBe(false);
+    expect(accepts({ ...valid, severityRule: '' })).toBe(false);
+    expect(accepts({ ...valid, severityRule: 'r'.repeat(65) })).toBe(false);
+    expect(accepts({ ...valid, severityInputs: 'i'.repeat(257) })).toBe(false);
+    expect(accepts({ ...valid, severityInputs: 7 })).toBe(false);
+  });
+
   it('accepts typed event and source payloads', () => {
     const eventPayload = {
       id: 'evt-demo',
@@ -102,6 +144,10 @@ describe('nativeBridge', () => {
       createdAtUtc: '2026-09-17T09:00:00Z',
       updatedAtUtc: '2026-09-17T10:05:00Z',
       sourceCount: 2,
+      severity: 'High',
+      severityRule: 'gdacs-eq-v1',
+      severityInputs: 'alert=Orange; magnitude=6.4',
+      provider: 'Gdacs',
     };
     const sourcePayload = {
       id: 'src-demo',

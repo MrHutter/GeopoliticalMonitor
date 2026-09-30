@@ -363,6 +363,13 @@ public sealed class SqliteEventStore(Func<GeopoliticalMonitorDbContext> createDb
                     }
                 }
             }
+            else if (eventDecision == UpdateDecision.SeverityOnly)
+            {
+                ApplySeverity(eventEntity, import.Event);
+                updatedEvents++;
+                changed = true;
+                eventOutcome = GdacsEventPersistenceDisposition.SeverityOnlyUpdated;
+            }
 
             if (sourceEntity is null)
             {
@@ -431,7 +438,16 @@ public sealed class SqliteEventStore(Func<GeopoliticalMonitorDbContext> createDb
             return UpdateDecision.Unchanged;
         }
 
-        return EventMateriallyMatches(existing, incoming) ? UpdateDecision.Unchanged : UpdateDecision.Conflict;
+        if (!EventMateriallyMatches(existing, incoming))
+        {
+            return UpdateDecision.Conflict;
+        }
+
+        // Severity fields are derived, not provider data, so they never cause an equal-revision Conflict.
+        // Only a row still carrying the legacy backfill default adopts the computed severity.
+        return existing.SeverityRule == EventSeverityAssessment.LegacyDefaultRule && !SeverityMatches(existing, incoming)
+            ? UpdateDecision.SeverityOnly
+            : UpdateDecision.Unchanged;
     }
 
     private static UpdateDecision DecideSourceUpdate(SourceItemEntity? existing, SourceItem incoming)
@@ -535,6 +551,23 @@ public sealed class SqliteEventStore(Func<GeopoliticalMonitorDbContext> createDb
         existing.CountryCode = incoming.Location.CountryCode;
         existing.Region = incoming.Location.Region;
         existing.UpdatedAtUtc = incoming.UpdatedAtUtc;
+        ApplySeverity(existing, incoming);
+        existing.Provider = incoming.Provider.ToString();
+        existing.ProviderKey = incoming.ProviderKey;
+    }
+
+    private static void ApplySeverity(EventEntity existing, Event incoming)
+    {
+        existing.Severity = incoming.Severity.ToString();
+        existing.SeverityRule = incoming.SeverityRule;
+        existing.SeverityInputs = incoming.SeverityInputs;
+    }
+
+    private static bool SeverityMatches(EventEntity existing, Event incoming)
+    {
+        return existing.Severity == incoming.Severity.ToString()
+            && existing.SeverityRule == incoming.SeverityRule
+            && existing.SeverityInputs == incoming.SeverityInputs;
     }
 
     private static void ApplyProviderSourceUpdate(SourceItemEntity existing, SourceItem incoming)
@@ -557,6 +590,7 @@ public sealed class SqliteEventStore(Func<GeopoliticalMonitorDbContext> createDb
     {
         Create,
         Update,
+        SeverityOnly,
         Unchanged,
         Conflict,
     }
@@ -573,7 +607,9 @@ public sealed class SqliteEventStore(Func<GeopoliticalMonitorDbContext> createDb
             entity.LastUpdatedAtUtc,
             new Location(entity.Latitude, entity.Longitude, entity.LocationDisplayName, entity.CountryCode, entity.Region),
             entity.CreatedAtUtc,
-            entity.UpdatedAtUtc);
+            entity.UpdatedAtUtc,
+            new EventSeverityAssessment(Enum.Parse<EventSeverity>(entity.Severity), entity.SeverityRule, entity.SeverityInputs),
+            new EventProvenance(Enum.Parse<EventProvider>(entity.Provider), entity.ProviderKey));
     }
 
     private static SourceItem ToDomain(SourceItemEntity entity)
@@ -617,6 +653,11 @@ public sealed class SqliteEventStore(Func<GeopoliticalMonitorDbContext> createDb
             Region = geopoliticalEvent.Location.Region,
             CreatedAtUtc = geopoliticalEvent.CreatedAtUtc,
             UpdatedAtUtc = geopoliticalEvent.UpdatedAtUtc,
+            Severity = geopoliticalEvent.Severity.ToString(),
+            SeverityRule = geopoliticalEvent.SeverityRule,
+            SeverityInputs = geopoliticalEvent.SeverityInputs,
+            Provider = geopoliticalEvent.Provider.ToString(),
+            ProviderKey = geopoliticalEvent.ProviderKey,
         };
     }
 

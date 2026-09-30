@@ -14,6 +14,7 @@ public sealed class LocalDatabaseInitializer(string databasePath)
 
         await using var dbContext = CreateDbContext();
         await dbContext.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
+        await EventSeverityBackfill.RunAsync(dbContext, cancellationToken).ConfigureAwait(false);
     }
 
     public GeopoliticalMonitorDbContext CreateDbContext()

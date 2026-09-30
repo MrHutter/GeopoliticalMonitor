@@ -112,6 +112,10 @@ const nativeEvents: NativeEvent[] = [
     createdAtUtc: '2026-09-17T06:00:00Z',
     updatedAtUtc: '2026-09-17T11:54:00Z',
     sourceCount: 3,
+    severity: 'Medium',
+    severityRule: 'manual',
+    severityInputs: 'demo data',
+    provider: 'Demo',
   },
   {
     id: 'evt-demo-red-sea-shipping',
@@ -125,6 +129,10 @@ const nativeEvents: NativeEvent[] = [
     createdAtUtc: '2026-09-17T06:00:00Z',
     updatedAtUtc: '2026-09-17T11:38:00Z',
     sourceCount: 3,
+    severity: 'High',
+    severityRule: 'manual',
+    severityInputs: 'demo data',
+    provider: 'Demo',
   },
 ];
 
@@ -153,6 +161,10 @@ const gdacsEvent: NativeEvent = {
   lastUpdatedAtUtc: '2026-09-17T10:05:00Z',
   location: { latitude: 53.1928, longitude: 160.5129, displayName: 'Russia', countryCode: 'RUS' },
   sourceCount: 1,
+  severity: 'Critical',
+  severityRule: 'gdacs-eq-v1',
+  severityInputs: 'alert=Red; magnitude=7.1',
+  provider: 'Gdacs',
 };
 
 const firmsObservation = {
@@ -665,6 +677,80 @@ describe('App', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'ALL' }));
     expect(screen.getByLabelText('event summary')).toHaveTextContent('3 events');
+  });
+
+  it('shows severity, unverified and provider text in rows and sorts by severity then last update', async () => {
+    const { emit } = renderWithWebView();
+    await latestMap();
+    emitAppInfo(emit);
+    emit({ type: 'events.list.result', payload: { events: [...nativeEvents, gdacsEvent, olderEvent] } });
+
+    await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('4 events'));
+    const rows = within(screen.getByRole('list', { name: 'event list' })).getAllByRole('button');
+    expect(rows.map((row) => row.textContent)).toEqual([
+      expect.stringContaining('Earthquake in Russia'),
+      expect.stringContaining('Commercial shipping disruption'),
+      expect.stringContaining('Reported security activity'),
+      expect.stringContaining('Older economic briefing'),
+    ]);
+    expect(within(rows[0]).getByText('Critical')).toHaveClass('severity-badge', 'severity-critical');
+    expect(within(rows[0]).getByText('Unverified')).toHaveClass('unverified-badge');
+    expect(within(rows[0]).getByText('GDACS')).toBeInTheDocument();
+    expect(within(rows[1]).getByText('High')).toBeInTheDocument();
+    expect(within(rows[1]).queryByText('Unverified')).not.toBeInTheDocument();
+    expect(within(rows[1]).getByText('Demo')).toBeInTheDocument();
+    expect(rows.every((row) => !row.textContent?.toLowerCase().includes('hybrid'))).toBe(true);
+  });
+
+  it('applies the minimum severity filter with search, time range, rows and markers together', async () => {
+    const { emit } = renderWithWebView();
+    const map = await latestMap();
+    emitAppInfo(emit);
+    emit({ type: 'events.list.result', payload: { events: [...nativeEvents, gdacsEvent, olderEvent] } });
+    await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('4 events'));
+    const severityFilter = screen.getByLabelText('Minimum severity');
+
+    fireEvent.change(severityFilter, { target: { value: 'High' } });
+
+    await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('2 events'));
+    expect(screen.queryByRole('button', { name: /Reported security activity/i })).not.toBeInTheDocument();
+    await waitFor(() => expect(map.getSource(eventSourceId)?.data).toMatchObject({ features: [
+      expect.objectContaining({ properties: expect.objectContaining({ severity: 'High' }) }),
+      expect.objectContaining({ properties: expect.objectContaining({ severity: 'Critical' }) }),
+    ] }));
+
+    fireEvent.change(screen.getByPlaceholderText('Search events, locations, keywords...'), { target: { value: 'shipping' } });
+    await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('1 events'));
+
+    fireEvent.change(severityFilter, { target: { value: 'Critical' } });
+    expect(await screen.findByText('No events match the active filters.')).toBeInTheDocument();
+    await waitFor(() => expect(map.getSource(eventSourceId)?.data).toMatchObject({ features: [] }));
+
+    fireEvent.change(screen.getByPlaceholderText('Search events, locations, keywords...'), { target: { value: 'critical' } });
+    await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('1 events'));
+    expect(screen.getByRole('button', { name: /Earthquake in Russia/i })).toBeInTheDocument();
+
+    fireEvent.change(severityFilter, { target: { value: 'All' } });
+    fireEvent.change(screen.getByPlaceholderText('Search events, locations, keywords...'), { target: { value: '' } });
+    await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('4 events'));
+  });
+
+  it('explains provider-derived and manual severity in Details', async () => {
+    const { emit } = renderWithWebView();
+    await latestMap();
+    emitAppInfo(emit);
+    emit({ type: 'events.list.result', payload: { events: [...nativeEvents, gdacsEvent] } });
+
+    fireEvent.click(await screen.findByRole('button', { name: /Earthquake in Russia/i }));
+    const severityBlock = await screen.findByRole('region', { name: 'Severity' });
+    expect(severityBlock).toHaveTextContent('GDACS Red alert, magnitude 7.1, Critical');
+    expect(severityBlock).toHaveTextContent('Inputs: alert=Red; magnitude=7.1');
+    expect(severityBlock).toHaveTextContent('Severity is derived automatically from provider data and is not an independent assessment.');
+
+    fireEvent.click(screen.getByRole('button', { name: /Commercial shipping disruption/i }));
+    const manualBlock = await screen.findByRole('region', { name: 'Severity' });
+    await waitFor(() => expect(manualBlock).toHaveTextContent('Set manually, not derived from provider data (demo data).'));
+    expect(manualBlock).not.toHaveTextContent('derived automatically');
   });
 
   it('preserves visible selection, clears filtered selection, and does not restore it with the filter', async () => {

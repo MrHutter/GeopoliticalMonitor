@@ -41,6 +41,12 @@ public sealed class GeopoliticalMonitorDbContext(DbContextOptions<GeopoliticalMo
             entity.Property(item => item.LastUpdatedAtUtc).IsRequired();
             entity.Property(item => item.CreatedAtUtc).IsRequired();
             entity.Property(item => item.UpdatedAtUtc).IsRequired();
+            entity.Property(item => item.Severity).HasMaxLength(32).IsRequired();
+            entity.Property(item => item.SeverityRule).HasMaxLength(64).IsRequired();
+            entity.Property(item => item.SeverityInputs).HasMaxLength(256).IsRequired();
+            entity.Property(item => item.Provider).HasMaxLength(32).IsRequired();
+            entity.Property(item => item.ProviderKey).HasMaxLength(256);
+            entity.HasIndex(item => new { item.Provider, item.ProviderKey }).IsUnique();
         });
 
         modelBuilder.Entity<SourceItemEntity>((entity) =>

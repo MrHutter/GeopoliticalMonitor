@@ -16,6 +16,11 @@ public sealed class EventEntity
     public string? Region { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; }
+    public string Severity { get; set; } = string.Empty;
+    public string SeverityRule { get; set; } = string.Empty;
+    public string SeverityInputs { get; set; } = string.Empty;
+    public string Provider { get; set; } = string.Empty;
+    public string? ProviderKey { get; set; }
     public ICollection<EventSourceAssociationEntity> SourceAssociations { get; } = new List<EventSourceAssociationEntity>();
     public ICollection<WatchlistEventEntity> WatchlistMemberships { get; } = new List<WatchlistEventEntity>();
     public ICollection<AlertOccurrenceEntity> AlertOccurrences { get; } = new List<AlertOccurrenceEntity>();

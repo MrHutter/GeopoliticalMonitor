@@ -68,6 +68,39 @@ describe('dark palette tokens', () => {
     expect(getCategoryColor('Humanitarian')).toBe('#d9858e');
   });
 
+  it('keeps the severity scale fixed across accent themes and distinct for catastrophic', () => {
+    const root = customPropertiesFor(':root');
+    const severityTokens = ['--low', '--medium', '--high', '--critical', '--catastrophic'];
+
+    expect(root).toMatchObject({
+      '--low': '#78a781',
+      '--medium': '#d3b85f',
+      '--high': '#d67b3d',
+      '--critical': '#e05a5a',
+      '--catastrophic': '#a52a6b',
+    });
+    for (const accent of ['blue', 'red', 'green', 'yellow']) {
+      const properties = customPropertiesFor(`:root[data-accent='${accent}']`);
+      for (const token of severityTokens) {
+        expect(properties).not.toHaveProperty(token);
+      }
+    }
+
+    const catastrophic = root['--catastrophic'].toLowerCase();
+    const reserved = [root['--critical'], '#ff3b4f', getCategoryColor('MilitaryConflict'), '#ff9a3d', '#d77a36', '#9f6040', '#6f4c43']
+      .map((color) => color.toLowerCase());
+    expect(reserved).not.toContain(catastrophic);
+  });
+
+  it('keeps lifecycle status dots off the severity color tokens', () => {
+    for (const selector of ['.status-dot', '.status-unverified,\n.event-row .status-unverified', '.status-active,\n.event-row .status-active', '.status-developing,\n.event-row .status-developing', '.status-resolved,\n.event-row .status-resolved']) {
+      expect(declarationsFor(selector)).not.toMatch(/var\(--(low|medium|high|critical|catastrophic)\)/);
+    }
+
+    expect(declarationsFor('.severity-catastrophic')).toContain('var(--catastrophic)');
+    expect(declarationsFor('.unverified-badge')).not.toMatch(/var\(--(critical|high)\)/);
+  });
+
   it('contains reversible workspace and modal Settings rules', () => {
     expect(css).toContain(".workspace-grid[data-x-pane-side='left']");
     expect(css).toContain(".workspace-grid[data-x-pane-side='right'] .event-row.is-selected");

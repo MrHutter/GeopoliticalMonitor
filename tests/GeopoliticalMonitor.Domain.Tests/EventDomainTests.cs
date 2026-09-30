@@ -7,13 +7,15 @@ public class EventDomainTests
 {
     private static readonly DateTimeOffset Started = new(2026, 9, 17, 10, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset Updated = Started.AddMinutes(12);
+    private static readonly EventSeverityAssessment Severity = new(EventSeverity.Medium, EventSeverityAssessment.ManualRule, "test");
+    private static readonly EventProvenance Provenance = new(EventProvider.Manual);
 
     [Fact]
     public void CreatesValidEvent()
     {
         var location = new Location(57.4, 24.8, "Northern corridor", "DE", "Baltic demo region");
 
-        var geopoliticalEvent = Event.Create(new EventId("evt-demo"), "Title", "Summary", EventCategory.Security, EventStatus.Developing, Started, Updated, location, Started, Updated);
+        var geopoliticalEvent = Event.Create(new EventId("evt-demo"), "Title", "Summary", EventCategory.Security, EventStatus.Developing, Started, Updated, location, Started, Updated, Severity, Provenance);
 
         Assert.Equal("evt-demo", geopoliticalEvent.Id.Value);
         Assert.Equal("Title", geopoliticalEvent.Title);
@@ -28,7 +30,7 @@ public class EventDomainTests
     [Fact]
     public void RejectsBlankTitle()
     {
-        Assert.Throws<ArgumentException>(() => Event.Create(new EventId("evt-demo"), " ", "Summary", EventCategory.Security, EventStatus.Active, Started, Updated, new Location(0, 0, "Demo"), Started, Updated));
+        Assert.Throws<ArgumentException>(() => Event.Create(new EventId("evt-demo"), " ", "Summary", EventCategory.Security, EventStatus.Active, Started, Updated, new Location(0, 0, "Demo"), Started, Updated, Severity, Provenance));
     }
 
     [Theory]
@@ -43,7 +45,7 @@ public class EventDomainTests
     [InlineData(EventCategory.Other)]
     public void AcceptsSupportedCategory(EventCategory category)
     {
-        var geopoliticalEvent = Event.Create(new EventId($"evt-{category}"), "Title", "Summary", category, EventStatus.Active, Started, Updated, new Location(0, 0, "Demo"), Started, Updated);
+        var geopoliticalEvent = Event.Create(new EventId($"evt-{category}"), "Title", "Summary", category, EventStatus.Active, Started, Updated, new Location(0, 0, "Demo"), Started, Updated, Severity, Provenance);
 
         Assert.Equal(category, geopoliticalEvent.Category);
     }
@@ -55,7 +57,7 @@ public class EventDomainTests
     [InlineData(EventStatus.Unverified)]
     public void AcceptsSupportedStatus(EventStatus status)
     {
-        var geopoliticalEvent = Event.Create(new EventId($"evt-{status}"), "Title", "Summary", EventCategory.Other, status, Started, Updated, new Location(0, 0, "Demo"), Started, Updated);
+        var geopoliticalEvent = Event.Create(new EventId($"evt-{status}"), "Title", "Summary", EventCategory.Other, status, Started, Updated, new Location(0, 0, "Demo"), Started, Updated, Severity, Provenance);
 
         Assert.Equal(status, geopoliticalEvent.Status);
     }
