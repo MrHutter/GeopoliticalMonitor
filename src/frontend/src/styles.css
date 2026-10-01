@@ -26,6 +26,7 @@
   --medium: #d3b85f;
   --low: #78a781;
   --catastrophic: #a52a6b;
+  --status-attention: #a8987a;
   --security: #c7a14b;
   --diplomatic: #65a8d7;
   --civil: #a875d5;
@@ -335,6 +336,55 @@ input:focus-visible {
 .gdacs-refresh-button:disabled {
   cursor: wait;
   opacity: 0.58;
+}
+
+/* Provider refresh status: neutral, dense; failed and stale use a restrained attention tone, never severity colors. */
+.provider-status-strip {
+  display: grid;
+  gap: 1px;
+  border-bottom: 1px solid var(--line);
+  background: var(--line);
+}
+
+.provider-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  border-left: 2px solid transparent;
+  background: var(--surface);
+  padding: 6px 12px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+.provider-status-name {
+  color: var(--muted-strong);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.provider-status-state {
+  color: var(--muted-strong);
+}
+
+.provider-status-row .gdacs-refresh-button {
+  margin-left: auto;
+}
+
+.provider-status-row.is-failed,
+.provider-status-row.is-stale {
+  border-left-color: var(--status-attention);
+}
+
+.provider-status-row.is-failed .provider-status-state,
+.provider-status-row.is-stale .provider-status-state {
+  color: var(--status-attention);
+}
+
+.provider-status-row.is-unconfigured .provider-status-state {
+  color: var(--muted);
 }
 
 .gdacs-refresh-status {

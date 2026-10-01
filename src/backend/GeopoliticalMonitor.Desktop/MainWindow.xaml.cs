@@ -7,6 +7,7 @@ using GeopoliticalMonitor.Application.Events;
 using GeopoliticalMonitor.Application.Firms;
 using GeopoliticalMonitor.Application.Gdacs;
 using GeopoliticalMonitor.Application.Preferences;
+using GeopoliticalMonitor.Application.Refresh;
 using GeopoliticalMonitor.Application.ReliefWeb;
 using GeopoliticalMonitor.Application.Watchlists;
 using GeopoliticalMonitor.Application.XBrowser;
@@ -42,6 +43,8 @@ public sealed partial class MainWindow : Window
     private EventCatalogService? eventCatalogService;
     private EventSourceBridgeHandler? eventSourceBridgeHandler;
     private GdacsRefreshBridgeHandler? gdacsRefreshBridgeHandler;
+    private ProviderRefreshScheduler? providerRefreshScheduler;
+    private volatile bool isClosing;
     private HttpClient? gdacsHttpClient;
     private FirmsRefreshBridgeHandler? firmsRefreshBridgeHandler;
     private HttpClient? firmsHttpClient;
@@ -499,7 +502,18 @@ public sealed partial class MainWindow : Window
                 new AlertService(new SqliteAlertStore(databaseInitializer.CreateDbContext)));
             gdacsHttpClient = GdacsEventFeed.CreateProductionHttpClient();
             var gdacsFeed = new GdacsEventFeed(gdacsHttpClient, new GdacsGeoJsonParser());
-            gdacsRefreshBridgeHandler = new GdacsRefreshBridgeHandler(new GdacsRefreshService(gdacsFeed, eventStore));
+
+            // One GdacsRefreshService instance is shared by the manual bridge path and the timer, so its gate
+            // allows exactly one in-flight GDACS refresh regardless of which path started it.
+            var sharedGdacsService = new GdacsRefreshService(gdacsFeed, eventStore);
+            var scheduler = new ProviderRefreshScheduler([new GdacsScheduledProvider(sharedGdacsService)]);
+            scheduler.StatusChanged += OnProviderRefreshStatusChanged;
+            providerRefreshScheduler = scheduler;
+            gdacsRefreshBridgeHandler = new GdacsRefreshBridgeHandler(cancellationToken => scheduler.RefreshManuallyAsync(
+                ScheduledProviderId.Gdacs,
+                sharedGdacsService.RefreshAsync,
+                GdacsScheduledProvider.Classify,
+                cancellationToken));
             reliefWebHttpClient = ReliefWebReportClient.CreateProductionHttpClient();
             var reliefWebClient = new ReliefWebReportClient(
                 reliefWebHttpClient,
@@ -520,6 +534,12 @@ public sealed partial class MainWindow : Window
             eventCatalogService = null;
             eventSourceBridgeHandler = null;
             gdacsRefreshBridgeHandler = null;
+            if (providerRefreshScheduler is not null)
+            {
+                providerRefreshScheduler.StatusChanged -= OnProviderRefreshStatusChanged;
+            }
+
+            providerRefreshScheduler = null;
             reliefWebBridgeHandler = null;
             watchlistBridgeHandler = null;
             alertBridgeHandler = null;
@@ -636,6 +656,10 @@ public sealed partial class MainWindow : Window
         {
             case DesktopBridgeProtocol.AppReadyMessageType:
                 SendAppInfo(sender);
+                StartProviderRefreshScheduler();
+                break;
+            case DesktopBridgeProtocol.ProvidersRefreshStatusGetMessageType:
+                SendProviderRefreshStatus(sender.CoreWebView2);
                 break;
             case DesktopBridgeProtocol.PreferencesGetMessageType:
                 await SendAccentPreferenceAsync(sender);
@@ -801,6 +825,51 @@ public sealed partial class MainWindow : Window
 
         var response = await eventSourceBridgeHandler.AttachXPostAsync(eventId, xPostUrl);
         sender.CoreWebView2.PostWebMessageAsJson(response);
+    }
+
+    private void StartProviderRefreshScheduler()
+    {
+        // Idempotent: a page reload sends app.ready again but never restarts or duplicates the schedule.
+        if (!isClosing && providerRefreshScheduler is { } scheduler)
+        {
+            scheduler.Start(lifetimeCancellation.Token);
+        }
+    }
+
+    private void SendProviderRefreshStatus(CoreWebView2? webView)
+    {
+        if (isClosing || webView is null)
+        {
+            return;
+        }
+
+        var statuses = providerRefreshScheduler?.GetStatuses() ?? [];
+        try
+        {
+            webView.PostWebMessageAsJson(DesktopBridgeProtocol.CreateProvidersRefreshStatusJson(statuses));
+        }
+        catch (Exception exception) when (exception is ObjectDisposedException or System.Runtime.InteropServices.COMException or InvalidOperationException)
+        {
+            // The privileged WebView is closing; status is informational and may be dropped.
+        }
+    }
+
+    private void OnProviderRefreshStatusChanged()
+    {
+        // Raised on the scheduler loop or the UI thread; posting is always marshalled to the UI thread and only
+        // ever targets the privileged application WebView, never the X WebView.
+        if (isClosing)
+        {
+            return;
+        }
+
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (!isClosing)
+            {
+                SendProviderRefreshStatus(AppWebView.CoreWebView2);
+            }
+        });
     }
 
     private async Task RefreshGdacsAsync(WebView2 sender)
@@ -1924,7 +1993,16 @@ public sealed partial class MainWindow : Window
 
     private void OnClosed(object sender, WindowEventArgs args)
     {
+        isClosing = true;
         lifetimeCancellation.Cancel();
+        if (providerRefreshScheduler is { } scheduler)
+        {
+            // Stop the timer loop before the HTTP clients and the lifetime token are disposed. The loop never needs
+            // the UI thread, so this bounded wait cannot deadlock; an in-flight refresh observes cancellation.
+            scheduler.StatusChanged -= OnProviderRefreshStatusChanged;
+            scheduler.Stop(TimeSpan.FromSeconds(2));
+        }
+
         gdacsHttpClient?.Dispose();
         reliefWebHttpClient?.Dispose();
         firmsHttpClient?.Dispose();

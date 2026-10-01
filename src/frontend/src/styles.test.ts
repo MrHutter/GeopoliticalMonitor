@@ -101,6 +101,25 @@ describe('dark palette tokens', () => {
     expect(declarationsFor('.unverified-badge')).not.toMatch(/var\(--(critical|high)\)/);
   });
 
+  it('styles provider status neutrally, with an attention tone that is not a severity or accent token', () => {
+    const root = customPropertiesFor(':root');
+    const attention = root['--status-attention'].toLowerCase();
+    const severityAndAccent = ['--low', '--medium', '--high', '--critical', '--catastrophic', '--accent', '--accent-strong'].map((token) => root[token].toLowerCase());
+
+    expect(attention).toBeTruthy();
+    expect(severityAndAccent).not.toContain(attention);
+    for (const accent of ['blue', 'red', 'green', 'yellow']) {
+      expect(customPropertiesFor(`:root[data-accent='${accent}']`)).not.toHaveProperty('--status-attention');
+    }
+
+    const statusRules = css.match(/\.provider-status-[\s\S]*?\}/g) ?? [];
+    expect(statusRules.length).toBeGreaterThan(4);
+    for (const rule of statusRules) {
+      expect(rule).not.toMatch(/var\(--(low|medium|high|critical|catastrophic|accent[a-z-]*)\)/);
+      expect(rule).not.toMatch(/box-shadow|text-shadow|glow/);
+    }
+  });
+
   it('contains reversible workspace and modal Settings rules', () => {
     expect(css).toContain(".workspace-grid[data-x-pane-side='left']");
     expect(css).toContain(".workspace-grid[data-x-pane-side='right'] .event-row.is-selected");

@@ -2,7 +2,7 @@
 
 Geopolitical Monitor v0.1 is a Windows desktop application for geopolitical situational awareness and OSINT research.
 
-The current repository is a local desktop foundation. It includes a dashboard shell, a bundled local MapLibre world map, SQLite-backed Events and SourceItems, persisted preferences, Watchlists, in-app Alerts for material GDACS updates, explicit manual X status-URL attachment, a no-cost isolated X website pane, manual GDACS earthquake ingestion, explicit ReliefWeb report discovery/attachment, and a transient manually refreshed NASA FIRMS thermal-observation layer. It does not implement X API access, OAuth developer-app login, real X timeline ingestion, automatic provider polling, AI, or installer packaging.
+The current repository is a local desktop foundation. It includes a dashboard shell, a bundled local MapLibre world map, SQLite-backed Events and SourceItems, persisted preferences, Watchlists, in-app Alerts for material GDACS updates, explicit manual X status-URL attachment, a no-cost isolated X website pane, GDACS earthquake ingestion that refreshes on an in-app timer while the app is open (plus a manual refresh action), explicit ReliefWeb report discovery/attachment, and a transient manually refreshed NASA FIRMS thermal-observation layer. It does not implement X API access, OAuth developer-app login, real X timeline ingestion, provider refresh while the app is closed, AI, or installer packaging.
 
 ## Architecture
 
@@ -59,7 +59,7 @@ The current schema persists the `AccentTheme`, `XPaneWidth`, and `XPaneSide` app
 
 ## GDACS Earthquakes
 
-`Refresh GDACS` explicitly requests at most 100 earthquake records for the preceding four days from the official GDACS HTTPS API. Native Infrastructure performs the 15-second, size-bounded request; React has no provider network authority. Valid point epicenters become idempotent `NaturalDisaster` Events with `Unverified` meaning that Geopolitical Monitor has not independently verified the occurrence. Each episode remains separate evidence as a linked `DatasetRecord` SourceItem.
+While the app is open, a native in-process scheduler refreshes GDACS every 30 minutes, first 60 seconds after the UI is ready, with backoff after failures; nothing runs when the app is closed, and there is no service, scheduled task, startup registration, or background process. The Events panel shows each provider's last update, next refresh, and state, and `Refresh GDACS` remains available as a manual action that shares the same single in-flight refresh. Each refresh requests at most 100 earthquake records for the preceding four days from the official GDACS HTTPS API. Native Infrastructure performs the 15-second, size-bounded request; React has no provider network authority. Valid point epicenters become idempotent `NaturalDisaster` Events with `Unverified` meaning that Geopolitical Monitor has not independently verified the occurrence. Each episode remains separate evidence as a linked `DatasetRecord` SourceItem.
 
 Imported data is attributed to the Global Disaster Awareness and Coordination System, GDACS. GDACS alerts and automated impact estimates may be uncertain and are not a substitute for competent-authority information. The canonical GDACS report URL remains visible with each imported source.
 

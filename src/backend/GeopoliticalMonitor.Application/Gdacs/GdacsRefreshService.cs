@@ -29,7 +29,17 @@ public sealed class GdacsRefreshService
 
     public async Task<GdacsRefreshResult> RefreshAsync(CancellationToken cancellationToken = default)
     {
-        if (!await refreshGate.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+        bool entered;
+        try
+        {
+            entered = await refreshGate.WaitAsync(0, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return new GdacsRefreshResult(GdacsRefreshStatus.Cancelled);
+        }
+
+        if (!entered)
         {
             return new GdacsRefreshResult(GdacsRefreshStatus.AlreadyInProgress);
         }

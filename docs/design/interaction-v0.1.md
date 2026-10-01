@@ -14,7 +14,7 @@ Selection should:
 
 Ordinary event selection must not aggressively zoom the map. The Sources tab supports explicit manual X status-URL attachment to the selected Event; automatic import remains absent.
 
-The Events header includes `Refresh GDACS`. Activating it disables the control while one native request is in flight, retains the current list and map, and shows a bounded result or failure. Success reloads the authoritative local Event list and clears cached source views so updated DatasetRecord provenance is requested normally. There is no startup refresh or timer.
+The Events header includes a compact provider status strip. Each provider row shows its name, `Updated N min ago` (or `Not updated yet`), the next refresh time, and its state: refreshing, stale, failed with a fixed short message, or not configured. Relative times update about every 30 seconds. GDACS refreshes on an in-app timer while the app is open, and its row holds the manual `Refresh GDACS` action. Activating it disables the control while one native request is in flight, retains the current list and map, and shows a bounded result or failure; the control is also disabled while a timer-driven refresh runs. A finished refresh, manual or timer, reloads the authoritative local Event list without clearing the selected Event, search, time range, severity filter, Watchlist scope, or open Details.
 
 GDACS earthquake rows participate in the same search and time-range filters as every Event. `Natural Disaster` is searchable display text, markers use the Event epicenter, and selecting an imported Event exposes its `Unverified` status plus the linked canonical GDACS DatasetRecord source.
 
@@ -22,11 +22,11 @@ The selected Event's Sources tab also offers `Find ReliefWeb reports`. Opening t
 
 `Manage` opens the compact Watchlist surface for selection, creation, rename, and confirmed deletion. A newly created empty Watchlist becomes active. Renaming preserves its identity and active scope. Deleting an active Watchlist returns to `All Events`; deleting any Watchlist preserves Events and Sources. The selected Event Overview shows explicit membership checkboxes, supports the same Event in multiple Watchlists, and provides a useful create/manage path when no Watchlists exist. Watchlist selection itself is session-only.
 
-The top-bar Alerts control shows the local unread count, capped visually at `99+`. Startup requests only that summary and performs no provider work. Activating Alerts opens a blocking right-side modal, then loads Watchlist monitoring rules and the newest 200 persistent history rows. Its Monitoring section exposes one `Monitor GDACS updates` toggle per Watchlist. Enabling begins with future qualifying manual refreshes and does not backfill; disabling preserves history.
+The top-bar Alerts control shows the local unread count, capped visually at `99+`. Startup requests only that summary and performs no provider work. Activating Alerts opens a blocking right-side modal, then loads Watchlist monitoring rules and the newest 200 persistent history rows. Its Monitoring section exposes one `Monitor GDACS updates` toggle per Watchlist. Enabling begins with future qualifying refreshes and does not backfill; disabling preserves history.
 
 Alert history distinguishes unread and read entries and provides no acknowledgement, dismiss, delete, snooze, or pagination action. Activating an entry attempts mark-read, closes the modal, returns Event scope to `All Events`, clears search, selects `ALL` time, selects the referenced Event, opens Overview, and explicitly locates it on the Map. Navigation still proceeds if mark-read fails; a removed underlying Event produces a bounded stale-history status. The modal traps focus, supports Escape/backdrop/close dismissal, and returns focus to the Alerts trigger.
 
-Only a manual `Refresh GDACS` can create Alerts. A qualifying material Event update refreshes the unread summary and already-loaded history through coalesced bridge requests. Watchlist deletion warns that its monitoring and history will be removed, while Events and Sources stay; successful deletion reconciles Alert summary, rules, and loaded history. There are no timers, startup refresh, Windows notifications, or app-closed monitoring.
+Only a GDACS refresh, manual or timer-driven, can create Alerts. A qualifying material Event update refreshes the unread summary and already-loaded history through coalesced bridge requests. Watchlist deletion warns that its monitoring and history will be removed, while Events and Sources stay; successful deletion reconciles Alert summary, rules, and loaded history. There are no Windows notifications and no app-closed monitoring; the GDACS timer runs only while the app is open.
 
 ## X Website Pane
 
@@ -50,7 +50,7 @@ External non-X HTTPS links from the X website open in the user's system browser.
 
 Orange, Blue, Red, Green, and Yellow accent preferences are selected in the application Settings panel and persist through the native desktop bridge into the local SQLite `AccentTheme` preference. Browser `localStorage` is not the preference authority. A change applies immediately, and reopening Settings shows the persisted active choice. The selected-marker ring follows the active accent, while semantic event marker colors remain independent from accent choice. The native X pane header and splitter hover/drag state follow the selected accent where practical; x.com itself is not restyled, inspected, or injected.
 
-Do not add cloud sync, external map tiles, automatic provider polling, automatic event correlation, X API access, OAuth developer app requirements, or additional external synchronization without explicit task authority.
+Do not add cloud sync, external map tiles, automatic provider refresh beyond the approved in-app GDACS timer, automatic event correlation, X API access, OAuth developer app requirements, or additional external synchronization without explicit task authority.
 
 Layout contract:
 

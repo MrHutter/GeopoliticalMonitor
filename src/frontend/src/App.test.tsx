@@ -324,6 +324,30 @@ function renderWithWebView() {
   return { postMessage, emit: (data: unknown) => act(() => messageHandler?.({ data })), unmount: rendered.unmount };
 }
 
+function providerStatus(overrides: Partial<{
+  state: 'Idle' | 'Refreshing' | 'Failed' | 'Stale' | 'Unconfigured';
+  lastSuccessAtUtc: string | null;
+  nextRefreshAtUtc: string | null;
+  message: string | null;
+  newAlerts: number;
+}>) {
+  return {
+    type: 'providers.refresh.status',
+    payload: {
+      providers: [{
+        provider: 'Gdacs',
+        displayName: 'GDACS',
+        state: 'Idle',
+        lastSuccessAtUtc: null,
+        nextRefreshAtUtc: null,
+        message: null,
+        newAlerts: 0,
+        ...overrides,
+      }],
+    },
+  };
+}
+
 function emitAppInfo(emit: (data: unknown) => void, xPaneSide: 'Left' | 'Right' = 'Right') {
   emit({ type: 'app.info', payload: { applicationName: productDisplayName, shell: 'WinUI 3', uiHost: 'WebView2 desktop host', persistence: 'SQLite local application data', productionInboundPortsRequired: false, xPaneSide } });
 }
@@ -616,6 +640,124 @@ describe('App', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Existing events were preserved');
     expect(screen.getByRole('button', { name: /Reported security activity/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Refresh GDACS' })).toBeEnabled();
+  });
+
+  it('requests provider status after app.info and shows every provider state in the status strip', async () => {
+    const { postMessage, emit } = renderWithWebView();
+    await latestMap();
+    emitAppInfo(emit);
+    expect(postMessage).toHaveBeenCalledWith({ type: 'providers.refresh.status.get', payload: {} });
+    const row = () => screen.getByLabelText('GDACS refresh status');
+
+    expect(row()).toHaveTextContent('Not updated yet');
+    expect(row()).toHaveTextContent('No refresh scheduled');
+
+    const lastSuccess = new Date(Date.now() - 5 * 60_000).toISOString();
+    emit(providerStatus({ state: 'Idle', lastSuccessAtUtc: lastSuccess, nextRefreshAtUtc: new Date(Date.now() + 25 * 60_000).toISOString(), message: 'Up to date.' }));
+    await waitFor(() => expect(row()).toHaveTextContent('Updated 5 min ago'));
+    expect(row()).toHaveTextContent(/Next \d/);
+    expect(row()).toHaveClass('is-idle');
+
+    emit(providerStatus({ state: 'Refreshing', lastSuccessAtUtc: lastSuccess }));
+    await waitFor(() => expect(row()).toHaveTextContent('Refreshing…'));
+
+    emit(providerStatus({ state: 'Failed', lastSuccessAtUtc: lastSuccess, message: 'Request timed out. Existing events were preserved.' }));
+    await waitFor(() => expect(within(row()).getByRole('alert')).toHaveTextContent('Request timed out. Existing events were preserved.'));
+    expect(row()).toHaveClass('is-failed');
+
+    emit(providerStatus({ state: 'Stale', lastSuccessAtUtc: new Date(Date.now() - 3 * 60 * 60_000).toISOString() }));
+    await waitFor(() => expect(row()).toHaveTextContent('Stale'));
+    expect(row()).toHaveTextContent('Updated 3 h ago');
+
+    emit(providerStatus({ state: 'Unconfigured', message: 'Not configured.' }));
+    await waitFor(() => expect(row()).toHaveTextContent('Not configured'));
+    expect(row()).toHaveClass('is-unconfigured');
+    expect(screen.getByRole('group', { name: 'Provider refresh status' }).textContent?.toLowerCase()).not.toContain('hybrid');
+  });
+
+  it('ignores provider status pushes with unexpected fields or values', async () => {
+    const { emit } = renderWithWebView();
+    await latestMap();
+    emitAppInfo(emit);
+
+    emit({ type: 'providers.refresh.status', payload: { providers: [{ ...providerStatus({ state: 'Refreshing' }).payload.providers[0], url: 'https://example.invalid' }] } });
+    emit({ type: 'providers.refresh.status', payload: { providers: [{ ...providerStatus({}).payload.providers[0], state: 'Exploded' }] } });
+
+    expect(screen.getByLabelText('GDACS refresh status')).not.toHaveTextContent('Refreshing…');
+    expect(screen.getByRole('button', { name: 'Refresh GDACS' })).toBeEnabled();
+  });
+
+  it('disables the manual GDACS action while a timer-driven refresh runs', async () => {
+    const { postMessage, emit } = renderWithWebView();
+    await latestMap();
+    emitAppInfo(emit);
+    emit({ type: 'events.list.result', payload: { events: nativeEvents } });
+
+    emit(providerStatus({ state: 'Refreshing' }));
+    const refresh = await screen.findByRole('button', { name: 'Refresh GDACS' });
+    await waitFor(() => expect(refresh).toBeDisabled());
+    fireEvent.click(refresh);
+    expect(postMessage.mock.calls.filter(([message]) => (message as { type?: string }).type === 'providers.gdacs.refresh')).toHaveLength(0);
+
+    emit(providerStatus({ state: 'Idle', lastSuccessAtUtc: new Date().toISOString() }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh GDACS' })).toBeEnabled());
+  });
+
+  it('reloads Events after a timer-driven refresh without resetting selection, filters or open Details', async () => {
+    const { postMessage, emit } = renderWithWebView();
+    await latestMap();
+    emitAppInfo(emit);
+    emit({ type: 'alerts.summary.result', payload: { unreadCount: 0 } });
+    emit(providerStatus({ state: 'Idle' }));
+    emit({ type: 'events.list.result', payload: { events: [...nativeEvents, gdacsEvent] } });
+
+    fireEvent.click(await screen.findByRole('button', { name: /Commercial shipping disruption/i }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Sources' }));
+    fireEvent.change(screen.getByPlaceholderText('Search events, locations, keywords...'), { target: { value: 'demo' } });
+    fireEvent.change(screen.getByLabelText('Minimum severity'), { target: { value: 'Medium' } });
+    fireEvent.click(screen.getByRole('button', { name: '30D' }));
+    const eventListRequests = () => postMessage.mock.calls.filter(([message]) => (message as { type?: string }).type === 'events.list').length;
+    const summaryRequests = () => postMessage.mock.calls.filter(([message]) => (message as { type?: string }).type === 'alerts.summary').length;
+    const listRequestsBefore = eventListRequests();
+    const summaryRequestsBefore = summaryRequests();
+
+    emit(providerStatus({ state: 'Refreshing' }));
+    expect(eventListRequests()).toBe(listRequestsBefore);
+    emit(providerStatus({ state: 'Idle', lastSuccessAtUtc: new Date().toISOString(), newAlerts: 1 }));
+
+    await waitFor(() => expect(eventListRequests()).toBe(listRequestsBefore + 1));
+    expect(summaryRequests()).toBe(summaryRequestsBefore + 1);
+    expect(postMessage).toHaveBeenCalledWith({ type: 'events.sources.get', payload: { id: nativeEvents[1].id } });
+    const updatedShipping = { ...nativeEvents[1], summary: 'Updated summary from the refreshed list.' };
+    emit({ type: 'events.list.result', payload: { events: [nativeEvents[0], updatedShipping, gdacsEvent] } });
+
+    expect(await screen.findByRole('heading', { name: nativeEvents[1].title })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Sources' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByPlaceholderText('Search events, locations, keywords...')).toHaveValue('demo');
+    expect(screen.getByLabelText('Minimum severity')).toHaveValue('Medium');
+    expect(screen.getByRole('button', { name: '30D' })).toHaveClass('is-active');
+    expect(screen.getByRole('button', { name: /Commercial shipping disruption/i })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('does not select an Event on a timer-driven reload when the selection was cleared', async () => {
+    const { emit } = renderWithWebView();
+    await latestMap();
+    emitAppInfo(emit);
+    emit(providerStatus({ state: 'Idle' }));
+    emit({ type: 'events.list.result', payload: { events: nativeEvents } });
+    await waitFor(() => expect(screen.getByRole('heading', { name: nativeEvents[0].title })).toBeInTheDocument());
+
+    const search = screen.getByPlaceholderText('Search events, locations, keywords...');
+    fireEvent.change(search, { target: { value: 'shipping' } });
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'No event selected' })).toBeInTheDocument());
+    fireEvent.change(search, { target: { value: '' } });
+    expect(screen.getByRole('button', { name: /Reported security activity/i })).toBeInTheDocument();
+
+    emit(providerStatus({ state: 'Idle', lastSuccessAtUtc: new Date().toISOString() }));
+    emit({ type: 'events.list.result', payload: { events: nativeEvents } });
+
+    expect(screen.getByRole('heading', { name: 'No event selected' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Reported security activity/i })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('clicking event row and marker select the same persisted Event', async () => {

@@ -5,6 +5,7 @@ using GeopoliticalMonitor.Application.Events;
 using GeopoliticalMonitor.Application.Firms;
 using GeopoliticalMonitor.Application.Gdacs;
 using GeopoliticalMonitor.Application.Preferences;
+using GeopoliticalMonitor.Application.Refresh;
 using GeopoliticalMonitor.Application.ReliefWeb;
 using GeopoliticalMonitor.Application.Watchlists;
 using GeopoliticalMonitor.Domain.Watchlists;
@@ -40,6 +41,8 @@ public static class DesktopBridgeProtocol
     public const string GdacsRefreshMessageType = "providers.gdacs.refresh";
     public const string GdacsRefreshResultMessageType = "providers.gdacs.refresh.result";
     public const string GdacsRefreshErrorMessageType = "providers.gdacs.refresh.error";
+    public const string ProvidersRefreshStatusMessageType = "providers.refresh.status";
+    public const string ProvidersRefreshStatusGetMessageType = "providers.refresh.status.get";
     public const string FirmsRefreshMessageType = "providers.firms.refresh";
     public const string FirmsRefreshResultMessageType = "providers.firms.refresh.result";
     public const string FirmsRefreshErrorMessageType = "providers.firms.refresh.error";
@@ -93,8 +96,15 @@ public static class DesktopBridgeProtocol
 
             JsonElement? payload = null;
             var hasType = false;
+            var seenNames = new HashSet<string>(StringComparer.Ordinal);
             foreach (var property in document.RootElement.EnumerateObject())
             {
+                if (!seenNames.Add(property.Name))
+                {
+                    error = $"Duplicate field '{property.Name}'.";
+                    return false;
+                }
+
                 switch (property.Name)
                 {
                     case "type":
@@ -131,6 +141,7 @@ public static class DesktopBridgeProtocol
                 AppReadyMessageType => TryCreateEmptyRequest(AppReadyMessageType, payload, "app.ready", out request, out error),
                 EventsListMessageType => TryCreateEmptyRequest(EventsListMessageType, payload, "events.list", out request, out error),
                 GdacsRefreshMessageType => TryCreateEmptyRequest(GdacsRefreshMessageType, payload, "providers.gdacs.refresh", out request, out error),
+                ProvidersRefreshStatusGetMessageType => TryCreateEmptyRequest(ProvidersRefreshStatusGetMessageType, payload, "providers.refresh.status.get", out request, out error),
                 FirmsRefreshMessageType => TryCreateFirmsRefreshRequest(payload, out request, out error),
                 WatchlistsListMessageType => TryCreateEmptyRequest(WatchlistsListMessageType, payload, "watchlists.list", out request, out error),
                 AlertsSummaryMessageType => TryCreateEmptyRequest(AlertsSummaryMessageType, payload, "alerts.summary", out request, out error),
@@ -215,6 +226,28 @@ public static class DesktopBridgeProtocol
         {
             type = XPaneSideValueMessageType,
             payload = new { value = side.ToString() },
+        };
+        return JsonSerializer.Serialize(response, JsonSerializerOptions.Web);
+    }
+
+    public static string CreateProvidersRefreshStatusJson(IReadOnlyList<ProviderRefreshStatus> statuses)
+    {
+        var response = new
+        {
+            type = ProvidersRefreshStatusMessageType,
+            payload = new
+            {
+                providers = statuses.Select(status => new
+                {
+                    provider = status.Provider.ToString(),
+                    displayName = status.DisplayName,
+                    state = status.State.ToString(),
+                    lastSuccessAtUtc = status.LastSuccessAtUtc,
+                    nextRefreshAtUtc = status.NextRefreshAtUtc,
+                    message = ProviderStatusMessages.ToText(status.Message),
+                    newAlerts = status.NewAlerts,
+                }).ToArray(),
+            },
         };
         return JsonSerializer.Serialize(response, JsonSerializerOptions.Web);
     }

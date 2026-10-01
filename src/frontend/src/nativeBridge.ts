@@ -87,6 +87,35 @@ export type GdacsRefreshErrorMessage = {
   payload: { status: string; message: string };
 };
 
+export const scheduledProviderIds = ['Gdacs'] as const;
+export type ScheduledProviderId = (typeof scheduledProviderIds)[number];
+export const providerRefreshStates = ['Idle', 'Refreshing', 'Failed', 'Stale', 'Unconfigured'] as const;
+export type ProviderRefreshState = (typeof providerRefreshStates)[number];
+export const providerStatusMessages = [
+  'Up to date.',
+  'Provider unavailable. Existing events were preserved.',
+  'Request timed out. Existing events were preserved.',
+  'Unsupported provider response. No provider data was changed.',
+  'Provider data could not be saved. Existing events were preserved.',
+  'Not configured.',
+] as const;
+export type ProviderStatusMessage = (typeof providerStatusMessages)[number];
+
+export type ProviderRefreshStatus = {
+  provider: ScheduledProviderId;
+  displayName: string;
+  state: ProviderRefreshState;
+  lastSuccessAtUtc: string | null;
+  nextRefreshAtUtc: string | null;
+  message: ProviderStatusMessage | null;
+  newAlerts: number;
+};
+
+export type ProviderRefreshStatusMessage = {
+  type: 'providers.refresh.status';
+  payload: { providers: ProviderRefreshStatus[] };
+};
+
 export type FirmsViewport = { west: number; south: number; east: number; north: number };
 
 export type FirmsObservation = {
@@ -387,6 +416,38 @@ export function requestEventWatchlistMemberships(eventId: string) {
 
 export function setWatchlistMembership(watchlistId: string, eventId: string, isMember: boolean) {
   return postWatchlistMessage({ type: 'watchlists.members.set', payload: { watchlistId, eventId, isMember } });
+}
+
+export function requestProviderRefreshStatus() {
+  return postNativeMessage({ type: 'providers.refresh.status.get', payload: {} });
+}
+
+export function isProviderRefreshStatusMessage(value: unknown): value is ProviderRefreshStatusMessage {
+  if (!isMessage(value, 'providers.refresh.status', ['providers'])) return false;
+  const providers = value.payload.providers;
+  if (!Array.isArray(providers) || providers.length > scheduledProviderIds.length) return false;
+  const seen = new Set<unknown>();
+  return providers.every((item) => {
+    if (!isProviderRefreshStatus(item) || seen.has(item.provider)) return false;
+    seen.add(item.provider);
+    return true;
+  });
+}
+
+function isProviderRefreshStatus(value: unknown): value is ProviderRefreshStatus {
+  if (!value || typeof value !== 'object' || !hasExactKeys(value, ['provider', 'displayName', 'state', 'lastSuccessAtUtc', 'nextRefreshAtUtc', 'message', 'newAlerts'])) return false;
+  const item = value as Record<string, unknown>;
+  return isOneOf(item.provider, scheduledProviderIds)
+    && isBoundedText(item.displayName, 40)
+    && isOneOf(item.state, providerRefreshStates)
+    && isNullableTimestamp(item.lastSuccessAtUtc)
+    && isNullableTimestamp(item.nextRefreshAtUtc)
+    && (item.message === null || isOneOf(item.message, providerStatusMessages))
+    && typeof item.newAlerts === 'number' && Number.isInteger(item.newAlerts) && item.newAlerts >= 0;
+}
+
+function isNullableTimestamp(value: unknown) {
+  return value === null || (typeof value === 'string' && value.length <= 40 && Number.isFinite(Date.parse(value)));
 }
 
 export function requestGdacsRefresh() {

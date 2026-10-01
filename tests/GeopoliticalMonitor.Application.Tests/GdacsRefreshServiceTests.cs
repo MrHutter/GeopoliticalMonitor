@@ -73,6 +73,23 @@ public sealed class GdacsRefreshServiceTests
     }
 
     [Fact]
+    public async Task PreCancelledTokenReturnsCancelledWithoutCallingTheFeed()
+    {
+        var feed = new RecordingFeed([CreateRecord()]);
+        var store = new RecordingStore();
+        var service = new GdacsRefreshService(feed, store, new FixedTimeProvider(Now));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        var result = await service.RefreshAsync(cancellation.Token);
+
+        Assert.Equal(GdacsRefreshStatus.Cancelled, result.Status);
+        Assert.Equal(default, feed.FromUtc);
+        Assert.Null(store.Imports);
+        Assert.True((await service.RefreshAsync()).IsSuccess);
+    }
+
+    [Fact]
     public async Task AllowsOnlyOneRefreshAtATime()
     {
         var feed = new BlockingFeed();

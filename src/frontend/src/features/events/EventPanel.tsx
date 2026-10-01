@@ -1,8 +1,9 @@
 import type { RefObject } from 'react';
-import type { WatchlistSummary } from '../../nativeBridge';
+import type { ProviderRefreshStatus, WatchlistSummary } from '../../nativeBridge';
 import { formatCategory, formatEventTime, formatProviderLabel, NativeEvent, NativeEventStatus } from '../../types/events';
 import { getCategoryColor } from '../map/mapEvents';
 import { minimumSeverityLabels, minimumSeverityOptions, sortEventsForList, type MinimumSeverity } from './eventFilters';
+import { ProviderStatusStrip } from './ProviderStatusStrip';
 
 export type GdacsRefreshFeedback = {
   kind: 'idle' | 'pending' | 'success' | 'error';
@@ -20,6 +21,7 @@ type EventPanelProps = {
   emptyMessage: string;
   manageButtonRef: RefObject<HTMLButtonElement | null>;
   gdacsRefresh: GdacsRefreshFeedback;
+  providerStatuses: ProviderRefreshStatus[];
   onRefreshGdacs: () => void;
   onSelectEvent: (eventId: string) => void;
   onSelectWatchlist: (watchlistId: string | null) => void;
@@ -29,7 +31,7 @@ type EventPanelProps = {
 
 const statusDotClass: Record<NativeEventStatus, string> = { Active: 'active', Developing: 'developing', Unverified: 'unverified', Resolved: 'resolved' };
 
-export function EventPanel({ events, selectedEventId, selectedRange, loadError, watchlists, activeWatchlistId, minimumSeverity, emptyMessage, manageButtonRef, gdacsRefresh, onRefreshGdacs, onSelectEvent, onSelectWatchlist, onMinimumSeverityChange, onManageWatchlists }: EventPanelProps) {
+export function EventPanel({ events, selectedEventId, selectedRange, loadError, watchlists, activeWatchlistId, minimumSeverity, emptyMessage, manageButtonRef, gdacsRefresh, providerStatuses, onRefreshGdacs, onSelectEvent, onSelectWatchlist, onMinimumSeverityChange, onManageWatchlists }: EventPanelProps) {
   const orderedEvents = sortEventsForList(events);
 
   return (
@@ -55,11 +57,10 @@ export function EventPanel({ events, selectedEventId, selectedRange, loadError, 
         <div className="event-panel-actions">
           <button ref={manageButtonRef} type="button" className="watchlist-manage-button" onClick={onManageWatchlists}>Manage</button>
           <span className="count-pill">{selectedRange}</span>
-          <button type="button" className="gdacs-refresh-button" onClick={onRefreshGdacs} disabled={gdacsRefresh.kind === 'pending'}>
-            {gdacsRefresh.kind === 'pending' ? 'Refreshing...' : 'Refresh GDACS'}
-          </button>
         </div>
       </div>
+
+      <ProviderStatusStrip statuses={providerStatuses} gdacsRefreshPending={gdacsRefresh.kind === 'pending'} onRefreshGdacs={onRefreshGdacs} />
 
       <div className="summary-strip" aria-label="event summary">
         <span>{events.length} events</span>

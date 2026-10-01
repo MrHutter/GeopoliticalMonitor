@@ -17,6 +17,7 @@ import {
   AlertRule,
   FirmsObservation,
   FirmsViewport,
+  ProviderRefreshStatus,
   WatchlistSummary,
   XPaneSide,
   attachXPostSourceToEvent,
@@ -55,6 +56,7 @@ import {
   isWatchlistRenameResultMessage,
   isWatchlistsListResultMessage,
   isXPaneSideValueMessage,
+  isProviderRefreshStatusMessage,
   nativeValueToAccent,
   markAlertRead,
   requestAccentPreference,
@@ -65,6 +67,7 @@ import {
   requestEventsList,
   requestEventWatchlistMemberships,
   requestGdacsRefresh,
+  requestProviderRefreshStatus,
   requestFirmsRefresh,
   requestWatchlistMembers,
   requestWatchlistsList,
@@ -123,6 +126,9 @@ export function App() {
   const [eventSourcesById, setEventSourcesById] = useState<Map<string, NativeSourceItem[]>>(() => new Map());
   const [eventLoadError, setEventLoadError] = useState<string | null>(null);
   const [gdacsRefresh, setGdacsRefresh] = useState<{ kind: 'idle' | 'pending' | 'success' | 'error'; message?: string }>({ kind: 'idle' });
+  const [providerStatuses, setProviderStatuses] = useState<ProviderRefreshStatus[]>([]);
+  const providerLastSuccessRef = useRef<Map<string, string | null> | null>(null);
+  const eventsLoadedRef = useRef(false);
   const [firmsObservations, setFirmsObservations] = useState<FirmsObservation[]>([]);
   const [firmsRefreshedAtUtc, setFirmsRefreshedAtUtc] = useState<string | null>(null);
   const [firmsViewport, setFirmsViewport] = useState<FirmsViewport | null>(null);
@@ -196,6 +202,28 @@ export function App() {
         requestEventsList();
         requestWatchlistsList();
         requestAlertResource('summary');
+        requestProviderRefreshStatus();
+        return;
+      }
+
+      if (isProviderRefreshStatusMessage(event.data)) {
+        const statuses = event.data.payload.providers;
+        const previous = providerLastSuccessRef.current;
+        providerLastSuccessRef.current = new Map(statuses.map((status) => [status.provider, status.lastSuccessAtUtc]));
+        setProviderStatuses(statuses);
+        // The first status only establishes a baseline. Later, a newer last-success time means a manual or
+        // timer refresh finished: reload Events without resetting selection, filters or open Details.
+        const refreshed = previous === null ? [] : statuses.filter((status) => status.lastSuccessAtUtc !== null && status.lastSuccessAtUtc !== previous.get(status.provider));
+        if (refreshed.length > 0) {
+          const selectedId = selectedEventIdRef.current;
+          setEventSourcesById((current) => (selectedId && current.has(selectedId) ? new Map([[selectedId, current.get(selectedId)!]]) : new Map()));
+          requestEventsList();
+          if (selectedId) requestEventSources(selectedId);
+          if (refreshed.some((status) => status.newAlerts > 0)) {
+            requestAlertResource('summary');
+            if (alertsLoadedRef.current || alertsOpenRef.current) requestAlertResource('list');
+          }
+        }
         return;
       }
 
@@ -218,7 +246,10 @@ export function App() {
         const nativeEvents = event.data.payload.events;
         setEvents(nativeEvents);
         setEventLoadError(null);
-        setSelectedEventId((current) => (current && nativeEvents.some((item) => item.id === current) ? current : nativeEvents[0]?.id ?? null));
+        // Only the first non-empty load auto-selects; later reloads (manual or timer) never select a different Event.
+        const isFirstLoad = !eventsLoadedRef.current;
+        if (nativeEvents.length > 0) eventsLoadedRef.current = true;
+        setSelectedEventId((current) => (current && nativeEvents.some((item) => item.id === current) ? current : isFirstLoad ? nativeEvents[0]?.id ?? null : null));
         return;
       }
 
@@ -759,6 +790,7 @@ export function App() {
           emptyMessage={activeWatchlist ? (activeWatchlist.eventCount === 0 ? 'No events in this watchlist.' : 'No watchlist events match the active filters.') : 'No events match the active filters.'}
           manageButtonRef={watchlistManageButtonRef}
           gdacsRefresh={gdacsRefresh}
+          providerStatuses={providerStatuses}
           onRefreshGdacs={refreshGdacs}
           onSelectEvent={setSelectedEventId}
           onSelectWatchlist={selectWatchlist}

@@ -18,6 +18,7 @@ import {
   isEventsErrorMessage,
   isEventsListResultMessage,
   isEventWatchlistMembershipsResultMessage,
+  isProviderRefreshStatusMessage,
   isGdacsRefreshErrorMessage,
   isGdacsRefreshResultMessage,
   isFirmsRefreshErrorMessage,
@@ -49,6 +50,7 @@ import {
   searchReliefWebReports,
   setWatchlistMembership,
   setAlertRuleEnabled,
+  requestProviderRefreshStatus,
 } from './nativeBridge';
 
 describe('nativeBridge', () => {
@@ -87,6 +89,49 @@ describe('nativeBridge', () => {
     expect(isPreferenceErrorMessage({ type: 'preferences.error', payload: { key: 'AccentTheme', message: 'Nope' } })).toBe(true);
     expect(isXPaneSideValueMessage({ type: 'xPane.side.value', payload: { value: 'Left' } })).toBe(true);
     expect(isXPaneSideValueMessage({ type: 'xPane.side.value', payload: { value: 'Right' } })).toBe(true);
+  });
+
+  it('strictly validates provider refresh status pushes', () => {
+    const provider = {
+      provider: 'Gdacs',
+      displayName: 'GDACS',
+      state: 'Failed',
+      lastSuccessAtUtc: '2026-09-30T12:01:00+00:00',
+      nextRefreshAtUtc: '2026-09-30T12:31:00+00:00',
+      message: 'Request timed out. Existing events were preserved.',
+      newAlerts: 0,
+    };
+    const accepts = (providers: unknown, extra: Record<string, unknown> = {}) =>
+      isProviderRefreshStatusMessage({ type: 'providers.refresh.status', payload: { providers, ...extra } });
+
+    expect(accepts([provider])).toBe(true);
+    expect(accepts([])).toBe(true);
+    for (const state of ['Idle', 'Refreshing', 'Failed', 'Stale', 'Unconfigured']) {
+      expect(accepts([{ ...provider, state }])).toBe(true);
+    }
+    expect(accepts([{ ...provider, lastSuccessAtUtc: null, nextRefreshAtUtc: null, message: null }])).toBe(true);
+
+    expect(accepts([{ ...provider, state: 'Paused' }])).toBe(false);
+    expect(accepts([{ ...provider, provider: 'Gdelt' }])).toBe(false);
+    expect(accepts([{ ...provider, message: 'Exception: stack trace at C:\\secret' }])).toBe(false);
+    expect(accepts([{ ...provider, url: 'https://www.gdacs.org' }])).toBe(false);
+    expect(accepts([{ ...provider, newAlerts: -1 }])).toBe(false);
+    expect(accepts([{ ...provider, newAlerts: 1.5 }])).toBe(false);
+    expect(accepts([{ ...provider, lastSuccessAtUtc: 'yesterday' }])).toBe(false);
+    expect(accepts([{ ...provider, displayName: '' }])).toBe(false);
+    expect(accepts([provider, provider])).toBe(false);
+    expect(accepts([provider], { extra: true })).toBe(false);
+    expect(accepts('Gdacs')).toBe(false);
+    expect(isProviderRefreshStatusMessage({ type: 'providers.refresh.status', payload: { providers: [provider] }, extra: 1 })).toBe(false);
+    expect(isProviderRefreshStatusMessage({ type: 'providers.refresh.status.get', payload: { providers: [provider] } })).toBe(false);
+  });
+
+  it('requests provider refresh status with an empty payload', () => {
+    const postMessage = vi.fn();
+    window.chrome = { webview: { postMessage, addEventListener: vi.fn(), removeEventListener: vi.fn() } };
+
+    expect(requestProviderRefreshStatus()).toBe(true);
+    expect(postMessage).toHaveBeenCalledWith({ type: 'providers.refresh.status.get', payload: {} });
   });
 
   it('strictly validates event severity, provider and field set', () => {

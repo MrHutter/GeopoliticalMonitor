@@ -2,11 +2,24 @@ using GeopoliticalMonitor.Application.Gdacs;
 
 namespace GeopoliticalMonitor.Application.DesktopBridge;
 
-public sealed class GdacsRefreshBridgeHandler(GdacsRefreshService refreshService)
+public sealed class GdacsRefreshBridgeHandler
 {
+    private readonly Func<CancellationToken, Task<GdacsRefreshResult>> refresh;
+
+    public GdacsRefreshBridgeHandler(GdacsRefreshService refreshService)
+        : this(refreshService.RefreshAsync)
+    {
+    }
+
+    /// <summary>Uses a refresh delegate, for example one routed through the refresh scheduler's manual tracking.</summary>
+    public GdacsRefreshBridgeHandler(Func<CancellationToken, Task<GdacsRefreshResult>> refresh)
+    {
+        this.refresh = refresh;
+    }
+
     public async Task<string> RefreshAsync(CancellationToken cancellationToken = default)
     {
-        var result = await refreshService.RefreshAsync(cancellationToken).ConfigureAwait(false);
+        var result = await refresh(cancellationToken).ConfigureAwait(false);
         return result.IsSuccess || result.Status == GdacsRefreshStatus.AlreadyInProgress
             ? DesktopBridgeProtocol.CreateGdacsRefreshResultResponseJson(result)
             : DesktopBridgeProtocol.CreateGdacsRefreshErrorResponseJson(result.Status, GetMessage(result.Status));
