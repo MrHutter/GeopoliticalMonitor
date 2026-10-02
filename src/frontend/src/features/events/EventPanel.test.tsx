@@ -80,7 +80,11 @@ describe('EventPanel bounded, incremental list', () => {
     expect(rows()).toHaveLength(eventListPageSize);
     expect(eventListPageSize).toBe(100);
     expect(screen.getByLabelText('event summary')).toHaveTextContent('2000 events');
-    expect(screen.getByText('Newest 2,000 of 5,000 shown. Narrow range or search.')).toBeInTheDocument();
+    const notice = screen.getByRole('status', { name: 'Newest 2,000 of 5,000 shown. Narrow range or search for others.' });
+    expect(notice).toHaveAttribute('title', 'Newest 2,000 of 5,000 shown. Narrow range or search for others.');
+    expect(notice.firstElementChild).toHaveTextContent(/^Newest 2,000 of 5,000 shown\.$/);
+    expect(notice.querySelector('.event-window-notice-advice')).toHaveTextContent('Narrow range or search for others.');
+    expect(screen.getByLabelText('event summary').querySelector('.summary-sources')).toHaveTextContent('2000 sources');
     expect(list().getAttribute('style')).toBeNull();
   });
 
@@ -175,8 +179,9 @@ describe('EventPanel bounded, incremental list', () => {
     expect(rule('.event-panel > :not(.event-list)')).toMatch(/flex:\s*0 0 auto/);
     expect(rule('.workspace-grid')).toMatch(/grid-template-rows:\s*minmax\(0, 1fr\)/);
     expect(rule('.workspace-grid')).toMatch(/min-height:\s*0/);
-    expect(rule('.first-screen')).toMatch(/\n\s*height:\s*max\(calc\(100vh - 10px\), 700px\)/);
-    expect(rule('.first-screen')).toMatch(/grid-template-rows:\s*auto auto minmax\(520px, 1fr\)/);
+    expect(rule('.first-screen')).toMatch(/\n\s*height:\s*max\(calc\(100vh - 10px\), 590px\)/);
+    expect(rule('.first-screen')).toMatch(/grid-template-rows:\s*auto minmax\(520px, 1fr\)/);
+    expect(css).not.toContain('.desktop-status');
     expect(rule('.app-shell')).not.toMatch(/\n\s*(min-)?height:/);
     expect(rule('.panel')).toMatch(/min-height:\s*0/);
   });

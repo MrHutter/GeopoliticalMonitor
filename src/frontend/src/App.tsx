@@ -857,12 +857,6 @@ export function App() {
           onOpenSettings={openSettings}
         />
 
-        <div className="desktop-status" aria-label="desktop bridge status">
-          <span>{appInfo ? `${appInfo.shell} / ${appInfo.uiHost}` : 'Waiting for desktop host'}</span>
-          <span>{appInfo?.persistence ?? 'SQLite local application data'}</span>
-          <span>{appInfo?.productionInboundPortsRequired === false ? 'No inbound ports' : 'Pending host confirmation'}</span>
-        </div>
-
         <div className="workspace-grid" data-x-pane-side={xPaneSide.toLowerCase()} aria-label="map and events workspace">
           <EventPanel
             events={filteredEvents}

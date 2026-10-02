@@ -39,8 +39,16 @@ export function formatNextRefresh(nextRefreshAtUtc: string | null, label = 'Next
   return `${label} ${date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
 }
 
-export function formatDataThrough(dataThrough: string | undefined) {
-  return dataThrough ? `data through ${formatMonthKey(dataThrough)}` : 'no data yet';
+export function formatDataThrough(dataThrough: string | undefined, short = false) {
+  if (!dataThrough) return 'no data yet';
+  const month = formatMonthKey(dataThrough);
+  // The short form ("Aug 2026") keeps the UCDP detail on one line in the narrowest Events panel.
+  return `data through ${short ? month.replace(/^(\w{3})\w*/, '$1') : month}`;
+}
+
+/** Short state for the first line; Failed shows its fixed message on the second line instead. */
+export function formatProviderShortState(status: ProviderRefreshStatus) {
+  return status.state === 'Failed' ? 'Failed' : formatProviderState(status);
 }
 
 export function formatProviderState(status: ProviderRefreshStatus) {
@@ -77,13 +85,28 @@ export function ProviderStatusStrip({ statuses, gdacsRefreshPending, onRefreshGd
         const refreshLabel = isUcdp ? 'Refresh UCDP' : 'Refresh GDACS';
         const refreshPending = isUcdp ? ucdpRefreshPending : gdacsRefreshPending;
         const showRefresh = status.provider === 'Gdacs' || (isUcdp && !!onRefreshUcdp);
+        const shortState = formatProviderShortState(status);
+        const updated = formatUpdated(status.lastSuccessAtUtc, now);
+        const isFailed = status.state === 'Failed';
+        const detail = isUcdp
+          ? `${status.cadenceLabel ?? 'monthly release'}, ${formatDataThrough(status.dataThrough, true)} · ${formatNextRefresh(status.nextRefreshAtUtc, 'Next check')}`
+          : `${updated} · ${formatNextRefresh(status.nextRefreshAtUtc)}`;
+        const fullText = [
+          status.displayName,
+          stateLabel,
+          isUcdp ? updated : null,
+          isUcdp
+            ? `${status.cadenceLabel ?? 'monthly release'}, ${formatDataThrough(status.dataThrough)} · ${formatNextRefresh(status.nextRefreshAtUtc, 'Next check')}`
+            : detail,
+        ].filter(Boolean).join(' · ');
         return (
-          <div key={status.provider} className={`provider-status-row is-${status.state.toLowerCase()}`} aria-label={`${status.displayName} refresh status`}>
+          <div key={status.provider} className={`provider-status-row is-${status.state.toLowerCase()}`} aria-label={`${status.displayName} refresh status`} title={fullText}>
             <div className="provider-status-line">
-              <span className="provider-status-name">{status.displayName}</span>
-              {stateLabel ? <span className="provider-status-state" role={status.state === 'Failed' ? 'alert' : 'status'}>{stateLabel}</span> : null}
-              <span className="provider-status-updated">{formatUpdated(status.lastSuccessAtUtc, now)}</span>
-              {isUcdp ? null : <span className="provider-status-next">{formatNextRefresh(status.nextRefreshAtUtc)}</span>}
+              <span className="provider-status-text">
+                <span className="provider-status-name">{status.displayName}</span>
+                {shortState ? <span className="provider-status-state" role={isFailed ? undefined : 'status'}>{shortState}</span> : null}
+                {isUcdp ? <span className="provider-status-updated">{updated}</span> : null}
+              </span>
               {showRefresh ? (
                 <button
                   type="button"
@@ -96,14 +119,11 @@ export function ProviderStatusStrip({ statuses, gdacsRefreshPending, onRefreshGd
                 </button>
               ) : null}
             </div>
-            {isUcdp ? (
-              <div className="provider-status-detail">
-                <span className="provider-status-cadence">
-                  {status.cadenceLabel ?? 'monthly release'}, {formatDataThrough(status.dataThrough)}
-                </span>
-                <span className="provider-status-next">{formatNextRefresh(status.nextRefreshAtUtc, 'Next check')}</span>
-              </div>
-            ) : null}
+            {isFailed ? (
+              <div className="provider-status-detail provider-status-message" role="alert">{stateLabel}</div>
+            ) : (
+              <div className="provider-status-detail">{detail}</div>
+            )}
           </div>
         );
       })}

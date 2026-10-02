@@ -126,7 +126,8 @@ describe('UCDP Candidate frontend', () => {
     );
 
     const row = screen.getByLabelText('UCDP Candidate refresh status');
-    expect(row).toHaveTextContent('monthly release, data through August 2026');
+    expect(row).toHaveTextContent('monthly release, data through Aug 2026');
+    expect(row).toHaveAttribute('title', expect.stringContaining('monthly release, data through August 2026'));
     expect(row).toHaveTextContent('Updated just now');
     expect(row).toHaveTextContent('No new release');
     fireEvent.click(within(row).getByRole('button', { name: 'Refresh UCDP' }));

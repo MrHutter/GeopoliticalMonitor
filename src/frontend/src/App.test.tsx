@@ -432,7 +432,10 @@ describe('App', () => {
 
     emitAppInfo(emit);
 
-    await waitFor(() => expect(screen.getByText('No inbound ports')).toBeInTheDocument());
+    await waitFor(() => expect(postMessage).toHaveBeenCalledWith({ type: 'events.list', payload: expect.objectContaining({ range: 'ALL' }) }));
+    expect(screen.queryByLabelText('desktop bridge status')).not.toBeInTheDocument();
+    expect(screen.queryByText('No inbound ports')).not.toBeInTheDocument();
+    expect(screen.queryByText('Waiting for desktop host')).not.toBeInTheDocument();
     expect(postMessage).toHaveBeenCalledWith({ type: 'events.list', payload: expect.objectContaining({ range: 'ALL', search: '', minimumSeverity: 'All' }) });
   });
 
@@ -840,7 +843,8 @@ describe('App', () => {
 
     await waitFor(() => expect(eventListRequests()).toBe(listRequestsBefore + 1));
     expect(await screen.findByText('UCDP import complete: 3 new, 1 updated, 0 unchanged, 0 conflicts. Data through August 2026.')).toBeInTheDocument();
-    expect(ucdpRow()).toHaveTextContent('monthly release, data through August 2026');
+    expect(ucdpRow()).toHaveTextContent('monthly release, data through Aug 2026');
+    expect(ucdpRow()).toHaveAttribute('title', expect.stringContaining('data through August 2026'));
     expect(ucdpRow()).toHaveTextContent(/Next check \d/);
     expect(within(ucdpRow()).getByRole('button', { name: 'Refresh UCDP' })).toBeEnabled();
     expect(screen.getByRole('heading', { name: nativeEvents[1].title })).toBeInTheDocument();
@@ -934,7 +938,9 @@ describe('App', () => {
     emitAppInfo(emit);
     emit({ type: 'events.list.result', payload: { events: [...nativeEvents, olderEvent] } });
 
-    expect(await screen.findByText('Newest 2 of 3 shown. Narrow range or search.')).toBeInTheDocument();
+    const notice = await screen.findByRole('status', { name: 'Newest 2 of 3 shown. Narrow range or search for others.' });
+    expect(notice).toHaveAttribute('title', 'Newest 2 of 3 shown. Narrow range or search for others.');
+    expect(notice.firstElementChild).toHaveTextContent('Newest 2 of 3 shown.');
     expect(screen.getByLabelText('event summary')).toHaveTextContent('2 events');
     const rowTitles = within(screen.getByRole('list', { name: 'event list' })).getAllByRole('button').map((row) => row.textContent);
     expect(rowTitles.some((text) => text?.includes(olderEvent.title))).toBe(false);

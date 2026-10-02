@@ -134,7 +134,7 @@ describe('dark palette tokens', () => {
     const workspace = declarationsFor('.workspace-grid');
     const leftWorkspace = declarationsFor(".workspace-grid[data-x-pane-side='left']");
 
-    expect(workspace).toContain('--events-panel-width: clamp(250px, 28%, 320px);');
+    expect(workspace).toContain('--events-panel-width: clamp(300px, 28%, 320px);');
     expect(workspace).toContain('grid-template-columns: var(--events-panel-width) minmax(0, 1fr);');
     expect(leftWorkspace).toContain('grid-template-columns: minmax(0, 1fr) var(--events-panel-width);');
     expect(css).not.toContain('grid-template-columns: minmax(0, 1fr);');

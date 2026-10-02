@@ -45,14 +45,23 @@ function roundUpToPage(count: number) {
 
 const countFormatter = new Intl.NumberFormat('en-US');
 
+/** Short capped-results text that fits one line in the narrowest Events panel. */
+export function formatCappedNoticeShort(shown: number, total: number) {
+  return `Newest ${countFormatter.format(shown)} of ${countFormatter.format(total)} shown.`;
+}
+
+export const cappedNoticeAdvice = 'Narrow range or search for others.';
+
+/** Complete capped-results sentence, used for the title and accessible name. */
 export function formatCappedNotice(shown: number, total: number) {
-  return `Newest ${countFormatter.format(shown)} of ${countFormatter.format(total)} shown. Narrow range or search.`;
+  return `${formatCappedNoticeShort(shown, total)} ${cappedNoticeAdvice}`;
 }
 
 const statusDotClass: Record<NativeEventStatus, string> = { Active: 'active', Developing: 'developing', Unverified: 'unverified', Resolved: 'resolved' };
 
 export function EventPanel({ events, selectedEventId, selectedRange, loadError, watchlists, activeWatchlistId, minimumSeverity, eventWindow, emptyMessage, manageButtonRef, gdacsRefresh, providerStatuses, onRefreshGdacs, ucdpRefresh = { kind: 'idle' }, onRefreshUcdp, onSelectEvent, onSelectWatchlist, onMinimumSeverityChange, onManageWatchlists, criteriaKey = '' }: EventPanelProps) {
   const orderedEvents = useMemo(() => sortEventsForList(events), [events]);
+  const activeWatchlist = activeWatchlistId ? watchlists.find((watchlist) => watchlist.id === activeWatchlistId) : undefined;
   const listRef = useRef<HTMLDivElement>(null);
   const [renderedCount, setRenderedCount] = useState(eventListPageSize);
   const appliedCriteriaKeyRef = useRef(criteriaKey);
@@ -106,7 +115,8 @@ export function EventPanel({ events, selectedEventId, selectedRange, loadError, 
           <h2 id="event-panel-title" className="sr-only">Event scope</h2>
           <div className="summary-strip" aria-label="event summary">
             <span>{events.length} events</span>
-            <span>{events.reduce((total, event) => total + event.sourceCount, 0)} sources</span>
+            {/* Sources are visually hidden in a narrow panel (never cut off) and stay available to assistive technology. */}
+            <span className="summary-sources">{events.reduce((total, event) => total + event.sourceCount, 0)} sources</span>
           </div>
           <div className="event-panel-actions">
             <button ref={manageButtonRef} type="button" className="watchlist-manage-button" onClick={onManageWatchlists}>Manage</button>
@@ -116,14 +126,14 @@ export function EventPanel({ events, selectedEventId, selectedRange, loadError, 
         <div className="event-filter-row">
           <label className="event-scope-control">
             <span className="sr-only">Event scope</span>
-            <select value={activeWatchlistId ?? ''} onChange={(event) => onSelectWatchlist(event.target.value || null)}>
+            <select value={activeWatchlistId ?? ''} title={activeWatchlist?.name ?? 'All Events'} onChange={(event) => onSelectWatchlist(event.target.value || null)}>
               <option value="">All Events</option>
               {watchlists.map((watchlist) => <option key={watchlist.id} value={watchlist.id}>{watchlist.name}</option>)}
             </select>
           </label>
           <label className="event-scope-control event-severity-control">
             <span className="sr-only">Minimum severity</span>
-            <select value={minimumSeverity} onChange={(event) => onMinimumSeverityChange(event.target.value as MinimumSeverity)}>
+            <select value={minimumSeverity} title={minimumSeverityLabels[minimumSeverity]} onChange={(event) => onMinimumSeverityChange(event.target.value as MinimumSeverity)}>
               {minimumSeverityOptions.map((option) => <option key={option} value={option}>{minimumSeverityLabels[option]}</option>)}
             </select>
           </label>
@@ -139,7 +149,15 @@ export function EventPanel({ events, selectedEventId, selectedRange, loadError, 
       />
 
       {eventWindow.capped ? (
-        <p className="event-window-notice" role="status">{formatCappedNotice(events.length, eventWindow.totalCount)}</p>
+        <p
+          className="event-window-notice"
+          role="status"
+          title={formatCappedNotice(events.length, eventWindow.totalCount)}
+          aria-label={formatCappedNotice(events.length, eventWindow.totalCount)}
+        >
+          <span>{formatCappedNoticeShort(events.length, eventWindow.totalCount)}</span>
+          <span className="event-window-notice-advice"> {cappedNoticeAdvice}</span>
+        </p>
       ) : null}
 
       {loadError ? <p className="demo-note" role="alert">{loadError}</p> : null}

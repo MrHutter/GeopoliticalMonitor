@@ -61,7 +61,7 @@ describe('ProviderStatusStrip', () => {
     expect(screen.getByRole('button', { name: 'Refreshing...' })).toBeDisabled();
   });
 
-  it('puts each provider on one compact line, with UCDP details on a small second line', () => {
+  it('shows each provider in at most two lines: name, state and an inline Refresh button, then a muted detail line', () => {
     vi.useFakeTimers();
     vi.setSystemTime(now);
     const ucdp = status({
@@ -84,35 +84,48 @@ describe('ProviderStatusStrip', () => {
     );
 
     const gdacs = screen.getByLabelText('GDACS refresh status');
-    const gdacsLines = gdacs.querySelectorAll(':scope > div');
-    expect(gdacsLines).toHaveLength(1);
-    expect(gdacsLines[0]).toHaveTextContent(/^GDACSUpdated 12 min agoNext \d{2}:\d{2}Refresh$/);
-    expect(within(gdacs).getByRole('button', { name: 'Refresh GDACS' })).toHaveTextContent('Refresh');
+    const [gdacsLine, gdacsDetail] = Array.from(gdacs.querySelectorAll<HTMLElement>(':scope > div'));
+    expect(gdacs.querySelectorAll(':scope > div')).toHaveLength(2);
+    expect(gdacsLine.lastElementChild).toBe(within(gdacs).getByRole('button', { name: 'Refresh GDACS' }));
+    expect(gdacsLine).toHaveTextContent(/^GDACSRefresh$/);
+    expect(gdacsDetail).toHaveClass('provider-status-detail');
+    expect(gdacsDetail).toHaveTextContent(/^Updated 12 min ago · Next \d{2}:\d{2}$/);
+    expect(gdacs).toHaveAttribute('title', expect.stringMatching(/^GDACS · Updated 12 min ago · Next \d{2}:\d{2}$/));
 
     const row = screen.getByLabelText('UCDP Candidate refresh status');
     const [line, detail] = Array.from(row.querySelectorAll<HTMLElement>(':scope > div'));
+    expect(row.querySelectorAll(':scope > div')).toHaveLength(2);
     expect(line).toHaveTextContent(/^UCDP CandidateNo new releaseUpdated 3 min agoRefresh$/);
+    expect(line.querySelector('.provider-status-text')).not.toContainElement(within(line).getByRole('button'));
     expect(within(line).getByRole('status')).toHaveTextContent('No new release');
-    expect(detail).toHaveClass('provider-status-detail');
-    expect(detail).toHaveTextContent(/^monthly release, data through August 2026Next check \d{2}:\d{2}$/);
+    expect(detail).toHaveTextContent(/^monthly release, data through Aug 2026 · Next check \d{2}:\d{2}$/);
+    expect(row).toHaveAttribute('title', expect.stringContaining('monthly release, data through August 2026'));
     fireEvent.click(within(row).getByRole('button', { name: 'Refresh UCDP' }));
     expect(onRefreshUcdp).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps every state in the compact line with the restrained warning treatment', () => {
-    const states: Array<[ProviderRefreshStatus['state'], ProviderRefreshStatus['message'], string, 'alert' | 'status']> = [
-      ['Refreshing', null, 'Refreshing…', 'status'],
-      ['Stale', null, 'Stale', 'status'],
-      ['Failed', 'Request timed out. Existing events were preserved.', 'Request timed out. Existing events were preserved.', 'alert'],
-      ['Unconfigured', 'Not configured.', 'Not configured', 'status'],
+  it('keeps every state: short text on line 1, the fixed failure message on line 2, and the warning treatment', () => {
+    const states: Array<[ProviderRefreshStatus['state'], ProviderRefreshStatus['message'], string]> = [
+      ['Refreshing', null, 'Refreshing…'],
+      ['Stale', null, 'Stale'],
+      ['Unconfigured', 'Not configured.', 'Not configured'],
     ];
-    for (const [state, message, label, role] of states) {
+    for (const [state, message, label] of states) {
       const { unmount } = render(<ProviderStatusStrip statuses={[status({ state, message })]} gdacsRefreshPending={false} onRefreshGdacs={() => undefined} />);
       const row = screen.getByLabelText('GDACS refresh status');
       expect(row).toHaveClass(`is-${state.toLowerCase()}`);
-      expect(within(row.querySelector('.provider-status-line') as HTMLElement).getByRole(role)).toHaveTextContent(label);
+      expect(within(row.querySelector('.provider-status-line') as HTMLElement).getByRole('status')).toHaveTextContent(label);
       expect(within(row).getByRole('button', { name: 'Refresh GDACS' })).toHaveProperty('disabled', state === 'Refreshing');
       unmount();
     }
+
+    render(<ProviderStatusStrip statuses={[status({ state: 'Failed', message: 'Request timed out. Existing events were preserved.' })]} gdacsRefreshPending={false} onRefreshGdacs={() => undefined} />);
+    const failed = screen.getByLabelText('GDACS refresh status');
+    expect(failed).toHaveClass('is-failed');
+    expect(failed.querySelector('.provider-status-line')).toHaveTextContent(/^GDACSFailedRefresh$/);
+    const alert = within(failed).getByRole('alert');
+    expect(alert).toHaveClass('provider-status-detail', 'provider-status-message');
+    expect(alert).toHaveTextContent('Request timed out. Existing events were preserved.');
+    expect(within(failed).getByRole('button', { name: 'Refresh GDACS' })).toBeEnabled();
   });
 });
