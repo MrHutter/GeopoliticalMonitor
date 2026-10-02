@@ -116,6 +116,7 @@ describe('responsive layout', () => {
   it('lets the layer toggles fill each toolbar row and keeps the FIRMS controls on a row of their own', () => {
     expect(block('.map-toolbar {')).toContain('justify-content: space-between;');
     expect(block('.map-toolbar {')).toContain('flex-wrap: wrap;');
+    expect(block('.map-toolbar {')).toContain('gap: 5px 6px;');
     expect(block('.map-layer-controls,')).toContain('display: contents;');
     expect(block('.map-title {')).toContain('flex: 0 0 auto;');
     const toggle = block('.layer-toggles label {');

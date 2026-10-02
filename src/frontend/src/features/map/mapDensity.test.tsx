@@ -87,7 +87,7 @@ describe('map legend', () => {
     const { rerender } = render(<MapLegend firmsVisible={false} firmsHasObservations={false} conflictZonesVisible tensionVisible />);
     const legend = screen.getByLabelText('semantic legend');
 
-    expect(legend.querySelector('[data-reference-layer="conflict-zones"]')).toHaveTextContent('Armed conflict (approximate area)');
+    expect(legend.querySelector('[data-reference-layer="conflict-zones"]')).toHaveTextContent('Armed conflict (approx.)');
     expect(legend.querySelector('[data-reference-layer="tension"]')).toHaveTextContent('Elevated tension');
     rerender(<MapLegend firmsVisible={false} firmsHasObservations={false} conflictZonesVisible={false} tensionVisible />);
     expect(legend.querySelector('[data-reference-layer="conflict-zones"]')).toBeNull();

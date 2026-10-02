@@ -47,11 +47,11 @@ export const conflictTensionEntries = conflictTensionFile.entries;
 
 /** ISO 3166-1 alpha-3 to the numeric ids the bundled Natural Earth (world-atlas) countries carry. */
 export const countryNumericIds: Readonly<Record<string, string>> = {
-  AFG: '004', ALB: '008', BGR: '100', CHN: '156', CZE: '203', DEU: '276', DNK: '208', ESP: '724', EST: '233',
-  FIN: '246', FRA: '250', GBR: '826', GRC: '300', IND: '356', IRN: '364', ISR: '376', ITA: '380', KOR: '410',
-  LBN: '422', LTU: '440', LVA: '428', MDA: '498', MMR: '104', NLD: '528', NOR: '578', PAK: '586', POL: '616',
-  PRK: '408', PSE: '275', ROU: '642', RUS: '643', SAU: '682', SDN: '729', SVK: '703', SWE: '752', TWN: '158',
-  UKR: '804', USA: '840', YEM: '887',
+  AFG: '004', ALB: '008', ARE: '784', BGR: '100', BLR: '112', CHN: '156', CZE: '203', DEU: '276', DNK: '208',
+  ESP: '724', EST: '233', FIN: '246', FRA: '250', GBR: '826', GRC: '300', IND: '356', IRN: '364', ISR: '376',
+  ITA: '380', JOR: '400', KOR: '410', KWT: '414', LBN: '422', LTU: '440', LVA: '428', MDA: '498', MMR: '104',
+  NLD: '528', NOR: '578', OMN: '512', PAK: '586', POL: '616', PRK: '408', PSE: '275', QAT: '634', ROU: '642',
+  RUS: '643', SAU: '682', SDN: '729', SVK: '703', SWE: '752', TWN: '158', UKR: '804', USA: '840', YEM: '887',
 };
 
 export const conflictZoneSourceId = 'conflict-zones';
@@ -81,7 +81,7 @@ export const tensionFillPaint: FillLayerSpecification['paint'] = {
   'fill-opacity': 0.12,
 };
 
-export const conflictLegendLabel = 'Armed conflict (approximate area)';
+export const conflictLegendLabel = 'Armed conflict (approx.)';
 export const tensionLegendLabel = 'Elevated tension';
 
 export function isConflictEntry(entry: ConflictTensionEntry): entry is ConflictEntry {

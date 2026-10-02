@@ -1039,7 +1039,7 @@ describe('App', () => {
     it('hides each reference layer with its own toggle and drops its legend swatch', async () => {
       renderWithWebView();
       const map = await latestMap();
-      expect(screen.getByText('Armed conflict (approximate area)')).toBeInTheDocument();
+      expect(screen.getByText('Armed conflict (approx.)')).toBeInTheDocument();
       expect(screen.getByText('Elevated tension')).toBeInTheDocument();
 
       fireEvent.click(screen.getByLabelText(/^Tension/));
@@ -1048,7 +1048,7 @@ describe('App', () => {
       fireEvent.click(screen.getByLabelText(/Conflict zones/));
       expect(map.setLayoutProperty).toHaveBeenCalledWith('conflict-zones-fill', 'visibility', 'none');
       expect(map.setLayoutProperty).toHaveBeenCalledWith('conflict-zones-outline', 'visibility', 'none');
-      expect(screen.queryByText('Armed conflict (approximate area)')).not.toBeInTheDocument();
+      expect(screen.queryByText('Armed conflict (approx.)')).not.toBeInTheDocument();
     });
 
     it('opens one popup listing each entry under the pointer, without selecting an Event', async () => {

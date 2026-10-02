@@ -91,11 +91,13 @@ describe('conflict and tension data file', () => {
 
   it('contains the starting set from the design document', () => {
     expect(conflicts.map((item) => item.name)).toEqual([
-      'Russia-Ukraine', 'Iran with the Gulf states, Jordan and the US', 'Yemen with Saudi Arabia', 'Israel with Lebanon and Hamas', 'Myanmar', 'Sudan',
+      'Russia-Ukraine war', 'Iran with the Gulf states, Jordan and the US', 'Yemen with Saudi Arabia', 'Israel with Lebanon and Hamas', 'Myanmar', 'Sudan',
     ]);
     expect(tensions.map((item) => item.name)).toEqual([
       'Russian attacks on Europe', 'India-Pakistan', 'Pakistan-Afghanistan', 'Israel-Iran', 'China-Taiwan', 'North Korea and South Korea',
+      'Belarus with the EU and NATO', 'Gulf states and Jordan with Iran and the Houthis',
     ]);
+    expect(conflictTensionFile.fileVersion).toBe(2);
   });
 
   it('keeps every armed_conflict polygon approximate, valid and small', () => {
@@ -143,6 +145,37 @@ describe('conflict and tension data file', () => {
     expect(rawFile).not.toMatch(/https?:|www\./i);
   });
 
+  it('tints the Belarus and Gulf entries, with Saudi Arabia outside every armed_conflict entry', () => {
+    const tinted = tintedTensionCountries(conflictTensionEntries);
+    for (const code of ['BLR', 'SAU', 'ARE', 'KWT', 'QAT', 'OMN', 'JOR', 'POL', 'LTU', 'LVA']) expect(tinted.has(code), code).toBe(true);
+    expect(conflicts.some((item) => item.countryCodes.includes('SAU'))).toBe(false);
+    expect(conflicts.find((item) => item.id === 'yemen-saudi-arabia')?.countryCodes).toEqual(['YEM']);
+    // Bahrain has no shape in the bundled 110m basemap: it is named in the Gulf entry but not shaded.
+    const gulf = tensions.find((item) => item.id === 'gulf-iran-houthi-tension');
+    expect(gulf?.parties).toContain('Bahrain');
+    expect(gulf?.geometry).not.toContain('BHR');
+    expect(tensions.find((item) => item.id === 'belarus-eu-nato-tension')?.geometry).toEqual(['BLR', 'POL', 'LTU', 'LVA']);
+  });
+
+  it('never tints Russia or Ukraine and lists Ukraine in no tension entry', () => {
+    expect(tensions.some((item) => item.geometry.includes('UKR'))).toBe(false);
+    const tinted = tintedTensionCountries(conflictTensionEntries);
+    expect(tinted.has('UKR')).toBe(false);
+    expect(tinted.has('RUS')).toBe(false);
+  });
+
+  it('extends the single Russia-Ukraine polygon to the Urals within the vertex limit', () => {
+    const russiaUkraine = conflicts.find((item) => item.id === 'russia-ukraine');
+    expect(russiaUkraine?.geometry.type).toBe('Polygon');
+    expect(russiaUkraine?.countryCodes).toEqual(['UKR', 'RUS']);
+    const ring = rings(russiaUkraine!)[0];
+    const longitudes = ring.map(([longitude]) => longitude);
+    expect(ring.length - 1).toBeLessThanOrEqual(30);
+    expect(Math.max(...longitudes)).toBeGreaterThanOrEqual(59.5);
+    expect(Math.min(...longitudes)).toBeLessThan(33);
+    expect(russiaUkraine?.basis).toMatch(/not ground fighting everywhere/);
+  });
+
   it('never lists Ukraine in the sabotage entry', () => {
     const sabotage = tensions.find((item) => item.id === 'russian-attacks-on-europe');
     expect(sabotage?.geometry).toContain('MDA');
@@ -172,9 +205,12 @@ describe('conflict over tension precedence', () => {
     expect(tinted.has('IRN')).toBe(false);
     expect(tinted.has('UKR')).toBe(false);
     expect([...tinted.keys()].sort()).toEqual([
-      'AFG', 'ALB', 'BGR', 'CHN', 'CZE', 'DEU', 'DNK', 'ESP', 'EST', 'FIN', 'FRA', 'GBR', 'GRC', 'IND', 'ITA', 'KOR', 'LTU',
-      'LVA', 'MDA', 'NLD', 'NOR', 'PAK', 'POL', 'PRK', 'ROU', 'SVK', 'SWE', 'TWN', 'USA',
+      'AFG', 'ALB', 'ARE', 'BGR', 'BLR', 'CHN', 'CZE', 'DEU', 'DNK', 'ESP', 'EST', 'FIN', 'FRA', 'GBR', 'GRC', 'IND', 'ITA', 'JOR',
+      'KOR', 'KWT', 'LTU', 'LVA', 'MDA', 'NLD', 'NOR', 'OMN', 'PAK', 'POL', 'PRK', 'QAT', 'ROU', 'SAU', 'SVK', 'SWE', 'TWN', 'USA',
     ]);
+    expect(tinted.has('RUS')).toBe(false);
+    expect(tinted.get('POL')).toEqual(['russian-attacks-on-europe', 'belarus-eu-nato-tension']);
+    expect(tinted.get('SAU')).toEqual(['gulf-iran-houthi-tension']);
     expect(tinted.get('PAK')).toEqual(['india-pakistan', 'pakistan-afghanistan']);
   });
 });
@@ -210,10 +246,11 @@ describe('conflict and tension popup', () => {
   it('shows every field and the draft status for an unreviewed polygon', () => {
     const html = conflictTensionPopupHtml([conflicts[0]]);
 
-    expect(html).toContain('<strong>Russia-Ukraine</strong>');
+    expect(html).toContain('<strong>Russia-Ukraine war</strong>');
     expect(html).toContain('Armed conflict · approximate');
     expect(html).toContain('Parties: Russia, Ukraine');
-    expect(html).toContain(conflicts[0].basis);
+    // The popup escapes text; the Russia-Ukraine basis contains an apostrophe.
+    expect(html).toContain(conflicts[0].basis.replaceAll("'", '&#39;'));
     expect(html).toContain('As of 2026-10-02');
     expect(html).toContain('Draft, not yet reviewed by the owner');
     expect(html).not.toMatch(/verified|ground truth/i);

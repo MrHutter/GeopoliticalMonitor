@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "fileVersion": 1,
+  "fileVersion": 2,
   "updated": "2026-10-02",
   "entries": [
     {
       "id": "russia-ukraine",
-      "name": "Russia-Ukraine",
+      "name": "Russia-Ukraine war",
       "class": "armed_conflict",
       "parties": [
         "Russia",
@@ -20,72 +20,120 @@
               46.3
             ],
             [
-              33.5,
-              46.0
-            ],
-            [
-              35.5,
-              46.6
-            ],
-            [
-              37.5,
-              47.0
-            ],
-            [
-              38.8,
-              47.6
-            ],
-            [
-              40.0,
-              48.6
-            ],
-            [
-              40.2,
-              50.0
-            ],
-            [
-              38.6,
-              51.3
+              33.6,
+              45.9
             ],
             [
               36.6,
-              51.9
+              45.2
             ],
             [
-              34.8,
-              51.9
+              39.8,
+              43.5
+            ],
+            [
+              48.4,
+              41.9
+            ],
+            [
+              47.0,
+              44.5
+            ],
+            [
+              49.0,
+              46.4
+            ],
+            [
+              46.8,
+              48.6
+            ],
+            [
+              50.5,
+              51.4
+            ],
+            [
+              55.0,
+              51.0
+            ],
+            [
+              59.5,
+              50.8
+            ],
+            [
+              61.6,
+              54.5
+            ],
+            [
+              61.0,
+              57.5
+            ],
+            [
+              60.0,
+              63.0
+            ],
+            [
+              59.5,
+              68.2
+            ],
+            [
+              44.0,
+              68.0
+            ],
+            [
+              36.0,
+              69.2
+            ],
+            [
+              31.0,
+              69.6
+            ],
+            [
+              30.0,
+              67.0
+            ],
+            [
+              31.0,
+              63.5
+            ],
+            [
+              28.0,
+              60.2
+            ],
+            [
+              28.4,
+              59.4
+            ],
+            [
+              27.9,
+              57.5
+            ],
+            [
+              28.3,
+              56.2
+            ],
+            [
+              31.0,
+              55.7
+            ],
+            [
+              31.8,
+              52.1
             ],
             [
               34.0,
               51.3
-            ],
-            [
-              35.0,
-              50.4
             ],
             [
               36.0,
               49.7
             ],
             [
-              36.8,
-              49.0
-            ],
-            [
-              35.8,
-              48.0
+              36.5,
+              48.6
             ],
             [
               35.0,
-              47.6
-            ],
-            [
-              34.0,
-              47.4
-            ],
-            [
-              33.3,
-              46.9
+              47.5
             ],
             [
               32.0,
@@ -99,7 +147,7 @@
         "UKR",
         "RUS"
       ],
-      "basis": "Draft polygon drawn by an AI assistant for owner review from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used.",
+      "basis": "Draft polygon drawn by an AI assistant for owner review from general geographic knowledge, covering the front area of heavy armed clashes, Russia's border regions and European Russia east to the Urals where long-range Ukrainian strikes are recorded (Kyiv Post on drone strikes on Yekaterinburg and Chelyabinsk in April 2026 and The War Zone on the deeper Novy Urengoy strike in September 2026, read on 2 October 2026), not ground fighting everywhere in it; no third-party dataset or tracker geometry was used.",
       "asOf": "2026-10-02",
       "ownerReviewed": false
     },
@@ -261,8 +309,7 @@
       },
       "approximate": true,
       "countryCodes": [
-        "YEM",
-        "SAU"
+        "YEM"
       ],
       "basis": "Draft polygon drawn by an AI assistant for owner review from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used.",
       "asOf": "2026-10-02",
@@ -612,6 +659,55 @@
         "KOR"
       ],
       "basis": "Listed in the owner's starting set of elevated tensions (North Korea and South Korea); not yet reviewed against current reporting.",
+      "asOf": "2026-10-02",
+      "ownerReviewed": false
+    },
+    {
+      "id": "belarus-eu-nato-tension",
+      "name": "Belarus with the EU and NATO",
+      "class": "elevated_tension",
+      "parties": [
+        "Belarus",
+        "Poland",
+        "Lithuania",
+        "Latvia",
+        "European Union",
+        "NATO"
+      ],
+      "geometry": [
+        "BLR",
+        "POL",
+        "LTU",
+        "LVA"
+      ],
+      "basis": "Border and airspace incidents between Belarus and its EU and NATO neighbours, as read on 2 October 2026 in Euronews reports on Lithuania closing its border crossings with Belarus over smuggling balloons (November 2025) and on migrant-crossing pressure at Latvia's border with Belarus (August 2026), and a United24 Media report on balloons from Belarus entering Polish airspace (February 2026).",
+      "asOf": "2026-10-02",
+      "ownerReviewed": false
+    },
+    {
+      "id": "gulf-iran-houthi-tension",
+      "name": "Gulf states and Jordan with Iran and the Houthis",
+      "class": "elevated_tension",
+      "parties": [
+        "Saudi Arabia",
+        "United Arab Emirates",
+        "Kuwait",
+        "Qatar",
+        "Bahrain",
+        "Oman",
+        "Jordan",
+        "Iran",
+        "Houthi movement"
+      ],
+      "geometry": [
+        "SAU",
+        "ARE",
+        "KWT",
+        "QAT",
+        "OMN",
+        "JOR"
+      ],
+      "basis": "Iranian missile and drone attacks on Qatar, the United Arab Emirates, Bahrain, Kuwait, Jordan and Oman (Al Jazeera and Euronews, July 2026) and Houthi attacks on southern Saudi cities and energy sites (Al Jazeera, September 2026), as read on 2 October 2026; Bahrain is named but not shaded because the bundled 110m basemap has no Bahrain shape.",
       "asOf": "2026-10-02",
       "ownerReviewed": false
     }
