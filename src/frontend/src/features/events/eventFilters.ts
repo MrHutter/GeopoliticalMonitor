@@ -62,10 +62,16 @@ export function filterEventsByMinimumSeverity(events: NativeEvent[], minimumSeve
   return events.filter((event) => severityRank(event.severity) >= minimumRank);
 }
 
+/** Newest first: last update descending, then id ascending (ordinal), the same order the native window query uses. */
 export function sortEventsForList(events: NativeEvent[]) {
   return [...events].sort((left, right) =>
-    severityRank(right.severity) - severityRank(left.severity)
-    || compareNewestFirst(left.lastUpdatedAtUtc, right.lastUpdatedAtUtc));
+    compareNewestFirst(left.lastUpdatedAtUtc, right.lastUpdatedAtUtc)
+    || compareOrdinal(left.id, right.id));
+}
+
+function compareOrdinal(left: string, right: string) {
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
 }
 
 function compareNewestFirst(left: string, right: string) {

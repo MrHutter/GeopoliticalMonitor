@@ -871,6 +871,7 @@ export function App() {
           watchlists={watchlists}
           activeWatchlistId={activeWatchlistId}
           minimumSeverity={minimumSeverity}
+          criteriaKey={`${activeWatchlistId ?? ''}|${selectedRange}|${debouncedSearch}|${minimumSeverity}`}
           eventWindow={eventWindow}
           emptyMessage={activeWatchlist ? (activeWatchlist.eventCount === 0 ? 'No events in this watchlist.' : 'No watchlist events match the active filters.') : 'No events match the active filters.'}
           manageButtonRef={watchlistManageButtonRef}

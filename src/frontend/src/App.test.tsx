@@ -1072,7 +1072,7 @@ describe('App', () => {
     expect(screen.getByLabelText('event summary')).toHaveTextContent('3 events');
   });
 
-  it('shows severity, unverified and provider text in rows and sorts by severity then last update', async () => {
+  it('shows severity, unverified and provider text in rows and lists the newest Events first', async () => {
     const { emit } = renderWithWebView();
     await latestMap();
     emitAppInfo(emit);
@@ -1081,18 +1081,46 @@ describe('App', () => {
     await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('4 events'));
     const rows = within(screen.getByRole('list', { name: 'event list' })).getAllByRole('button');
     expect(rows.map((row) => row.textContent)).toEqual([
-      expect.stringContaining('Earthquake in Russia'),
-      expect.stringContaining('Commercial shipping disruption'),
       expect.stringContaining('Reported security activity'),
+      expect.stringContaining('Commercial shipping disruption'),
+      expect.stringContaining('Earthquake in Russia'),
       expect.stringContaining('Older economic briefing'),
     ]);
-    expect(within(rows[0]).getByText('Critical')).toHaveClass('severity-badge', 'severity-critical');
-    expect(within(rows[0]).getByText('Unverified')).toHaveClass('unverified-badge');
-    expect(within(rows[0]).getByText('GDACS')).toBeInTheDocument();
+    expect(within(rows[2]).getByText('Critical')).toHaveClass('severity-badge', 'severity-critical');
+    expect(within(rows[2]).getByText('Unverified')).toHaveClass('unverified-badge');
+    expect(within(rows[2]).getByText('GDACS')).toBeInTheDocument();
     expect(within(rows[1]).getByText('High')).toBeInTheDocument();
     expect(within(rows[1]).queryByText('Unverified')).not.toBeInTheDocument();
     expect(within(rows[1]).getByText('Demo')).toBeInTheDocument();
     expect(rows.every((row) => !row.textContent?.toLowerCase().includes('hybrid'))).toBe(true);
+  });
+
+  it('feeds the map the whole collection while the list renders incrementally and reveals a map-selected row', async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const { emit } = renderWithWebView();
+    const map = await latestMap();
+    emitAppInfo(emit);
+    const many: NativeEvent[] = Array.from({ length: 250 }, (_, index) => ({
+      ...nativeEvents[0],
+      id: `evt-bulk-${String(index).padStart(4, '0')}`,
+      title: `Bulk event ${index}`,
+      lastUpdatedAtUtc: new Date(Date.parse('2026-09-17T12:00:00Z') - index * 60_000).toISOString(),
+    }));
+    emit({ type: 'events.list.result', payload: { events: many } });
+
+    await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('250 events'));
+    const listItems = () => screen.getByRole('list', { name: 'event list' }).querySelectorAll('[role="listitem"]');
+    expect(listItems()).toHaveLength(100);
+    await waitFor(() => expect((map.getSource(eventSourceId)?.data as { features: unknown[] }).features).toHaveLength(250));
+
+    map.triggerLayer('click', eventLayerId, { features: [{ properties: { id: 'evt-bulk-0220' } }], lngLat: { lng: 24.8, lat: 57.4 } });
+
+    await waitFor(() => expect(listItems()).toHaveLength(250));
+    const revealed = screen.getByRole('list', { name: 'event list' }).querySelector('[data-event-id="evt-bulk-0220"]');
+    expect(revealed?.querySelector('button')).toHaveAttribute('aria-pressed', 'true');
+    expect(scrollIntoView.mock.contexts).toContain(revealed);
+    expect(screen.getByLabelText('event summary')).toHaveTextContent('250 events');
   });
 
   it('applies the minimum severity filter with search, time range, rows and markers together', async () => {

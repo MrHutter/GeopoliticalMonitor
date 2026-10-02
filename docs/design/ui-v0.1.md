@@ -55,6 +55,8 @@ The map remains visually between X and Events. The selected-event details panel 
 
 Responsive desktop rule: the main app has priority over X width. The native host clamps X before the main application falls below 940 px. Inside the main app, Events uses a bounded side-panel column of roughly 250-320 px while Map is `minmax(0, 1fr)`. No desktop breakpoint may switch the Events + Map workspace to one column.
 
+Bounded workspace: the application grid has a definite height (`max(100vh, 880px)`), so the Events + Map row (at least 520 px) never takes its height from the Event list. The Events panel is a flex column whose header, provider status strip and notices keep their natural height while only the list scrolls (`min-height: 0`, `overflow-y: auto`). The Map column flexes with the row and MapLibre resizes through a ResizeObserver on its canvas. Below 880 px of window height the page scrolls to reach Details instead of squeezing the Map.
+
 Compact top bar: at reduced main-app width, the header reflows deliberately rather than hiding required controls. Brand and action groups stay on the first row, Search moves to a full-width second row, and the compact Settings button remains available. The base palette is neutral black/charcoal, not navy.
 
 Alerts surface: the top bar places a compact Alerts control beside Settings. Its unread badge uses the active accent and displays `99+` above 99 without changing the semantic Event colors. Alerts opens a blocking right-side modal using the Settings interaction language: initial focus on Close, explicit forward/reverse focus containment, Escape and backdrop dismissal, and focus return to the trigger. It is mounted only while open; normal startup requests only the unread summary.

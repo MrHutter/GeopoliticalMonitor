@@ -118,16 +118,17 @@ describe('filterEvents', () => {
     expect(visible).toEqual([recentHigh]);
   });
 
-  it('sorts by severity descending, then by last update descending, with invalid timestamps last', () => {
+  it('sorts newest first by last update, then by id ascending, ignoring severity, with invalid timestamps last', () => {
     const lowNewest = event({ id: 'low-newest', severity: 'Low', lastUpdatedAtUtc: '2026-09-17T11:59:00Z' });
     const highOld = event({ id: 'high-old', severity: 'High', lastUpdatedAtUtc: '2026-09-10T00:00:00Z' });
     const highNew = event({ id: 'high-new', severity: 'High', lastUpdatedAtUtc: '2026-09-17T11:00:00Z' });
+    const tieB = event({ id: 'tie-b', severity: 'Medium', lastUpdatedAtUtc: '2026-09-17T11:00:00Z' });
     const highInvalid = event({ id: 'high-invalid', severity: 'High', lastUpdatedAtUtc: 'not-a-timestamp' });
     const catastrophic = event({ id: 'catastrophic', severity: 'Catastrophic', lastUpdatedAtUtc: '2026-09-01T00:00:00Z' });
-    const input = [lowNewest, highInvalid, highOld, catastrophic, highNew];
+    const input = [lowNewest, tieB, highInvalid, highOld, catastrophic, highNew];
 
-    expect(sortEventsForList(input).map((item) => item.id)).toEqual(['catastrophic', 'high-new', 'high-old', 'high-invalid', 'low-newest']);
-    expect(input.map((item) => item.id)).toEqual(['low-newest', 'high-invalid', 'high-old', 'catastrophic', 'high-new']);
+    expect(sortEventsForList(input).map((item) => item.id)).toEqual(['low-newest', 'high-new', 'tie-b', 'high-old', 'catastrophic', 'high-invalid']);
+    expect(input.map((item) => item.id)).toEqual(['low-newest', 'tie-b', 'high-invalid', 'high-old', 'catastrophic', 'high-new']);
   });
 
   it('combines search and time-range filters with AND semantics', () => {

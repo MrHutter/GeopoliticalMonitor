@@ -119,9 +119,11 @@ input:focus-visible {
 }
 
 .app-shell {
-  min-height: 100vh;
+  /* A definite height (never derived from content) keeps the Map + Events row independent of the Event count.
+     Below 880px of viewport height the page scrolls to reach Details instead of squeezing the map. */
+  height: max(100vh, 880px);
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) minmax(230px, 30vh);
+  grid-template-rows: auto auto minmax(520px, 1fr) minmax(230px, 30vh);
   gap: 8px;
   padding: 10px;
   background:
@@ -906,7 +908,9 @@ input:focus-visible {
 
 .workspace-grid {
   min-height: 0;
+  min-width: 0;
   display: grid;
+  grid-template-rows: minmax(0, 1fr);
   --events-panel-width: clamp(250px, 28%, 320px);
   grid-template-columns: var(--events-panel-width) minmax(0, 1fr);
   gap: 8px;
@@ -1014,6 +1018,24 @@ h2 {
 .detail-content {
   min-height: 0;
   overflow: auto;
+}
+
+/* The Events panel is a bounded column: header, status strip and notices keep their natural height and only the
+   list scrolls, so the number of Events never changes the size of the panel or the map. */
+.event-panel > :not(.event-list) {
+  flex: 0 0 auto;
+}
+
+.event-panel > .event-list {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.map-workspace > .map-canvas-wrap {
+  min-height: 0;
 }
 
 .event-row {

@@ -1,4 +1,4 @@
-import type { RefObject } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject, type UIEvent } from 'react';
 import type { ProviderRefreshStatus, WatchlistSummary } from '../../nativeBridge';
 import { formatCategory, formatEventTime, formatProviderLabel, NativeEvent, NativeEventStatus } from '../../types/events';
 import { getCategoryColor } from '../map/mapEvents';
@@ -30,7 +30,18 @@ type EventPanelProps = {
   onSelectWatchlist: (watchlistId: string | null) => void;
   onMinimumSeverityChange: (minimumSeverity: MinimumSeverity) => void;
   onManageWatchlists: () => void;
+  /** Changes whenever the list criteria change (scope, range, search, severity); resets the rendered window. */
+  criteriaKey?: string;
 };
+
+/** Rows rendered at first and added per step; the list grows incrementally instead of rendering every Event. */
+export const eventListPageSize = 100;
+/** Distance from the end of the list, in pixels, at which the next page is rendered. */
+export const eventListLoadMoreThreshold = 400;
+
+function roundUpToPage(count: number) {
+  return Math.ceil(count / eventListPageSize) * eventListPageSize;
+}
 
 const countFormatter = new Intl.NumberFormat('en-US');
 
@@ -40,8 +51,52 @@ export function formatCappedNotice(shown: number, total: number) {
 
 const statusDotClass: Record<NativeEventStatus, string> = { Active: 'active', Developing: 'developing', Unverified: 'unverified', Resolved: 'resolved' };
 
-export function EventPanel({ events, selectedEventId, selectedRange, loadError, watchlists, activeWatchlistId, minimumSeverity, eventWindow, emptyMessage, manageButtonRef, gdacsRefresh, providerStatuses, onRefreshGdacs, ucdpRefresh = { kind: 'idle' }, onRefreshUcdp, onSelectEvent, onSelectWatchlist, onMinimumSeverityChange, onManageWatchlists }: EventPanelProps) {
-  const orderedEvents = sortEventsForList(events);
+export function EventPanel({ events, selectedEventId, selectedRange, loadError, watchlists, activeWatchlistId, minimumSeverity, eventWindow, emptyMessage, manageButtonRef, gdacsRefresh, providerStatuses, onRefreshGdacs, ucdpRefresh = { kind: 'idle' }, onRefreshUcdp, onSelectEvent, onSelectWatchlist, onMinimumSeverityChange, onManageWatchlists, criteriaKey = '' }: EventPanelProps) {
+  const orderedEvents = useMemo(() => sortEventsForList(events), [events]);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [renderedCount, setRenderedCount] = useState(eventListPageSize);
+  const appliedCriteriaKeyRef = useRef(criteriaKey);
+  const revealedSelectionRef = useRef<string | null>(null);
+  const selectedIndex = selectedEventId ? orderedEvents.findIndex((event) => event.id === selectedEventId) : -1;
+  // The selected Event's row is always rendered, even when it lies beyond the incrementally rendered window.
+  const visibleCount = Math.max(renderedCount, selectedIndex >= 0 ? roundUpToPage(selectedIndex + 1) : 0);
+  const renderedEvents = orderedEvents.slice(0, visibleCount);
+
+  // New criteria start again at the top with the first page; reloads with unchanged criteria keep both.
+  useLayoutEffect(() => {
+    if (appliedCriteriaKeyRef.current === criteriaKey) return;
+    appliedCriteriaKeyRef.current = criteriaKey;
+    setRenderedCount(eventListPageSize);
+    if (listRef.current) listRef.current.scrollTop = 0;
+  }, [criteriaKey]);
+
+  // Keep an extended window once the selection required it, so later selections do not shrink the list.
+  useEffect(() => {
+    if (visibleCount > renderedCount) setRenderedCount(visibleCount);
+  }, [renderedCount, visibleCount]);
+
+  // Reveal a newly selected Event once (map click, Alert or kept selection); timer reloads do not scroll again.
+  useEffect(() => {
+    if (!selectedEventId) {
+      revealedSelectionRef.current = null;
+      return;
+    }
+
+    if (revealedSelectionRef.current === selectedEventId || selectedIndex < 0) return;
+    const row = Array.from(listRef.current?.querySelectorAll<HTMLElement>('[data-event-id]') ?? [])
+      .find((element) => element.dataset.eventId === selectedEventId);
+    if (!row) return;
+    revealedSelectionRef.current = selectedEventId;
+    row.scrollIntoView?.({ block: 'nearest' });
+  }, [selectedEventId, selectedIndex, renderedEvents.length]);
+
+  const handleListScroll = (scrollEvent: UIEvent<HTMLDivElement>) => {
+    const list = scrollEvent.currentTarget;
+    if (visibleCount >= orderedEvents.length) return;
+    if (list.scrollTop + list.clientHeight >= list.scrollHeight - eventListLoadMoreThreshold) {
+      setRenderedCount(Math.min(roundUpToPage(visibleCount + 1), roundUpToPage(orderedEvents.length)));
+    }
+  };
 
   return (
     <aside className="event-panel panel" aria-labelledby="event-panel-title">
@@ -89,12 +144,12 @@ export function EventPanel({ events, selectedEventId, selectedRange, loadError, 
       {gdacsRefresh.message ? <p className={`gdacs-refresh-status is-${gdacsRefresh.kind}`} role={gdacsRefresh.kind === 'error' ? 'alert' : 'status'}>{gdacsRefresh.message}</p> : null}
       {ucdpRefresh.message ? <p className={`gdacs-refresh-status is-${ucdpRefresh.kind}`} role={ucdpRefresh.kind === 'error' ? 'alert' : 'status'}>{ucdpRefresh.message}</p> : null}
 
-      <div className="event-list" role="list" aria-label="event list">
+      <div ref={listRef} className="event-list" role="list" aria-label="event list" onScroll={handleListScroll}>
         {!loadError && eventWindow.settled && orderedEvents.length === 0 ? (
           <p className="event-empty-state" role="status">{emptyMessage}</p>
         ) : null}
-        {orderedEvents.map((event) => (
-          <div key={event.id} role="listitem">
+        {renderedEvents.map((event) => (
+          <div key={event.id} role="listitem" data-event-id={event.id}>
             <button type="button" className={`event-row ${event.id === selectedEventId ? 'is-selected' : ''}`} style={{ borderLeftColor: getCategoryColor(event.category) }} onClick={() => onSelectEvent(event.id)} aria-pressed={event.id === selectedEventId}>
               <span className={`status-dot status-${statusDotClass[event.status]}`} aria-hidden="true" />
               <span className="event-row-main">

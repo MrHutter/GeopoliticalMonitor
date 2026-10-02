@@ -527,6 +527,7 @@ The suggested order is kept, with demo removal moved after UCDP and Slice 2B (Ev
   - UI: severity badge, Unverified badge and provider label on rows; a Severity block in Details; a minimum-severity filter; severity-first sort; status dots moved off severity colors; map radius by severity; a `--catastrophic` token.
 - **Non-goals:** timers, new providers, Alerts.
 - **Tests:** domain enum and rule mapping at the boundary values in 4.2; migration up on a copy of an existing database; backfill parsing; bridge schema that rejects unknown severity values; filter and sort unit tests; styles test that severity tokens do not follow the accent.
+- **As built (later change, owner decision 2026-10-02):** the severity-first list sort was replaced by newest first (last update descending, then id ascending, the native window order). The severity badge and the minimum-severity filter are unchanged.
 - **Manual acceptance:** launch on an existing database; GDACS Events show a sensible level with its explanation; demo Events show their levels; the filter works together with search and time range; switching the accent does not change severity colors; the list shows "Unverified" as text.
 
 ### Slice 2: Shared refresh scheduler, with GDACS on the timer
@@ -585,6 +586,7 @@ Required before Slice 3. The first UCDP import can create up to 5,000 Events, bu
   - Switch to 24H, and the list and map shrink together.
   - Select an Event, then pick a range that excludes it; the selection clears and does not come back when the range is cleared.
   - Choose a Watchlist scope, and search and range still apply within it.
+- **As built (layout fix, 2026-10-02):** with about 2,000 Events the Events panel grew to the full list height and stretched the Map, because the application grid had only a minimum height and its `1fr` row sized to content. The grid now has a definite height, the Events panel is a bounded flex column whose list scrolls, and the list renders 100 rows at a time as the user scrolls (the selected row is always rendered and revealed). The 2,000-Event cap, its notice, the native query and the shared list/map collection are unchanged.
 
 ### Slice 3: UCDP Candidate provider
 
