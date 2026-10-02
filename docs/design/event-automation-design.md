@@ -4,11 +4,22 @@ Status: design approved by the owner on 2026-09-30, with the changes recorded in
 
 Values marked **PROPOSED** are approved as starting values and will be revisited after about two weeks of real data. File and line references are to the baseline commit.
 
+## Implementation status (2026-10-02)
+
+| Slice | Status | Commit |
+| :- | :- | :- |
+| Slice 1: Severity field and display | Implemented | `46db700` |
+| Slice 2: Shared refresh scheduler, with GDACS on the timer | Implemented | `0dba536` |
+| Slice 2B: Event list windowing | Implemented | `ee5d89d` |
+| Slices 3 to 7 | Not started | — |
+
+The status line above ("implementation not started") and the findings in section 2 describe the baseline. Line numbers in section 2 refer to `e30d955` and have since moved, so use the file names. **As built** notes mark where the implementation differs from the text. Owner decisions, thresholds and later slices are unchanged.
+
 ---
 
 ## 1. Summary and scope
 
-Geopolitical Monitor currently fills its Event list from local demo seeds plus a manual "Refresh GDACS" button. This design makes Event ingestion automatic **while the app is open**, adds a severity level to every Event, and adds two new Event routes.
+Geopolitical Monitor currently fills its Event list from local demo seeds plus a manual "Refresh GDACS" button. This design makes Event ingestion automatic **while the app is open**, adds a severity level to every Event, and adds two new Event routes. (**As built:** since Slice 2, GDACS also refreshes on the in-process timer; the manual "Refresh GDACS" button remains, in the provider status strip.)
 
 What changes for the user:
 
@@ -63,7 +74,7 @@ Out of scope: any service, scheduled task, startup registration or hidden proces
 - Provider updates overwrite Title, Summary, times and location, but never Status or Category (`SqliteEventStore.cs:526-538`).
 - Alerts: rules for `GdacsEventMateriallyUpdated` are joined with Watchlist memberships (`SqliteEventStore.cs:265-275`). An occurrence is added only for a strictly newer, materially changed update (`SqliteEventStore.cs:333-364`; material fields at `500-510`). Everything, alerts included, is saved in one transaction (`SqliteEventStore.cs:237, 404-405`).
 - **Timer hook point:** `GdacsRefreshService.RefreshAsync`. A scheduler calls the same service instance the bridge handler uses, so the existing gate (`GdacsRefreshService.cs:15, 32-35`) enforces a single in-flight refresh across manual and timer calls.
-- Nothing in the store checks whether a refresh was manual. The "Alerts only on manual refresh" rule is enforced purely by there being no other caller.
+- Nothing in the store checks whether a refresh was manual. The "Alerts only on manual refresh" rule is enforced purely by there being no other caller. (**As built:** Slice 2 added `ProviderRefreshScheduler`, through `GdacsScheduledProvider`, as a second caller of the same `GdacsRefreshService` instance, so Alerts now also evaluate on timer refreshes.)
 
 **Lifetime and shutdown today**
 
@@ -71,7 +82,7 @@ Out of scope: any service, scheduled task, startup registration or hidden proces
 - `OnClosed` cancels it, disposes the HTTP clients, disposes the token source and closes both WebViews (`MainWindow.xaml.cs:1925-1934`).
 - Persistence and GDACS are composed in `InitializePersistenceAsync` (`MainWindow.xaml.cs:481-510`).
 - In-flight transactions that never reach `CommitAsync` are rolled back when disposed or when the process ends, and SQLite's journal handles an abrupt exit.
-- Minor: `refreshGate.WaitAsync(0, cancellationToken)` sits outside the try block in GDACS (`GdacsRefreshService.cs:32`), so an already-cancelled token throws instead of returning `Cancelled`. FIRMS handles this case (`Application/Firms/FirmsRefreshService.cs:31-44`). A scheduler must tolerate both.
+- Minor: `refreshGate.WaitAsync(0, cancellationToken)` sits outside the try block in GDACS (`GdacsRefreshService.cs:32`), so an already-cancelled token throws instead of returning `Cancelled`. FIRMS handles this case (`Application/Firms/FirmsRefreshService.cs:31-44`). A scheduler must tolerate both. (**As built:** fixed in Slice 2. The gate wait now sits inside a try block in `GdacsRefreshService.cs`, and an already-cancelled token returns `Cancelled`.)
 
 **Seeded demo data**
 
@@ -107,7 +118,7 @@ Out of scope: any service, scheduled task, startup registration or hidden proces
 
 **Other observations**
 
-- `GetEventsAsync` loads every Event without paging and sorts in memory (`SqliteEventStore.cs:15-23`). The frontend renders all of them. This matters for volume (section 11).
+- `GetEventsAsync` loads every Event without paging and sorts in memory (`SqliteEventStore.cs:15-23`). The frontend renders all of them. This matters for volume (section 11). (**As built:** since Slice 2B, `events.list` uses the windowed native query (`EventWindowService` and `SqliteEventStore.QueryEventWindowAsync`), capped at 2,000 Events, and the selected Event is kept in the window when it matches the criteria. `GetEventsAsync` remains, but only tests call it.)
 - The FIRMS key is read from the process environment variable `GEOPOLITICALMONITOR_FIRMS_MAP_KEY` (`MainWindow.xaml.cs:111`).
 
 ### 2.2 Differences between the handoff doc and the code
@@ -118,14 +129,14 @@ The code is treated as the authority. References are to sections of `docs/Geopol
 | :- | :- |
 | §14 lists categories with Economic before NaturalDisaster | Enum order is NaturalDisaster, Economic (`EventCategory.cs:11-12`). Stored as strings, so no functional impact. |
 | §18 and §21 imply provider identity is a modelled concept | Identity exists only as ID and ExternalId string prefixes; there are no provider columns. |
-| §21: Alerts evaluate only during explicit manual GDACS refresh | Alert evaluation is inside the store and applies to any caller. "Manual only" holds only because no other caller exists. |
+| §21: Alerts evaluate only during explicit manual GDACS refresh | Alert evaluation is inside the store and applies to any caller. "Manual only" holds only because no other caller exists. **As built:** since Slice 2 the timer is a second caller, so Alerts evaluate on manual and timer refreshes. |
 | §21: Alert state is unread/read only | Matches (`Domain/Alerts/AlertOccurrence.cs:23-29`). |
 | §8 lists bridge capabilities | Also includes the unsolicited native push `xPane.side.value`, which is not listed. |
 | §48: demo data should be removed or disabled later | The seeder re-inserts demo rows on every launch, so deleting them by hand is not durable. |
 | §14: provider-ingested Unverified means not independently verified | Matches for GDACS. However, the list UI shows Unverified only as a red dot with no text. |
 | Not mentioned | Status dots use the `--critical`/`--high`/`--medium`/`--low` tokens, so status already looks like severity. |
 | Not mentioned | The map legend includes "Maritime" and omits three real categories. |
-| AGENTS.md "Persistence" lists preferences and demo Event data only | Watchlists and Alerts are also persisted (migrations `AddWatchlistFoundation`, `AddAlertsFoundation`). AGENTS.md is out of date here; it is not edited in this task. |
+| AGENTS.md "Persistence" lists preferences and demo Event data only | Watchlists and Alerts are also persisted (migrations `AddWatchlistFoundation`, `AddAlertsFoundation`). AGENTS.md is out of date here; it is not edited in this task. **As built:** AGENTS.md was updated in the 2026-10-02 docs sync. |
 
 ### 2.3 External sources (Part B)
 
@@ -198,7 +209,7 @@ Design:
 
 Required fixes:
 
-- The scheduler must catch `OperationCanceledException` and `ObjectDisposedException`, because `OnClosed` disposes the token source immediately (`MainWindow.xaml.cs:1931`).
+- The scheduler must catch `OperationCanceledException` and `ObjectDisposedException`, because `OnClosed` disposes the token source immediately (`MainWindow.xaml.cs`).
 - The scheduler must not post to a closed WebView.
 - `OnClosed` should stop the scheduler (cancel, then stop its timer) before disposing the HTTP clients.
 
@@ -211,7 +222,7 @@ Nothing waits on shutdown and nothing outlives the window.
 - Configuration problems (for example a missing UCDP token when the API route is chosen) mark the provider `Unconfigured`. It stops being scheduled until restart, making zero requests, as ReliefWeb does without an appname.
 - There are no retry storms: at most one attempt per provider per due time, one provider at a time, and no queued retries.
 - **Stale rule (PROPOSED):** a provider is stale when its last success is older than 3 × its interval, or for UCDP when the newest imported release is more than 45 days old.
-- **What the UI shows:** a compact provider status strip in the Events panel header. Each provider shows its name, "Updated 12 min ago", the next refresh time, and a state of refreshing, stale, failed with a fixed short message, or not configured. UCDP carries the label "monthly release", because its data is released monthly and is up to about a month old; the 24H and 7D filters will show few UCDP Events. The existing "Refresh GDACS" button becomes one Refresh action per provider, disabled while that provider is refreshing.
+- **What the UI shows:** a compact provider status strip in the Events panel header. Each provider shows its name, "Updated 12 min ago", the next refresh time, and a state of refreshing, stale, failed with a fixed short message, or not configured. UCDP carries the label "monthly release", because its data is released monthly and is up to about a month old; the 24H and 7D filters will show few UCDP Events. The existing "Refresh GDACS" button becomes one Refresh action per provider, disabled while that provider is refreshing. (**As built:** the strip is `ProviderStatusStrip.tsx`, and with GDACS as the only scheduled provider it holds the "Refresh GDACS" action.)
 
 ### 3.5 Permanent rules versus relaxed slice rules
 
@@ -279,9 +290,9 @@ Root-18 subset Events (bombings and assassinations) stay Medium in this rule ver
 
 ### 4.3 Display, filters, Watchlists
 
-- **Row:** a text badge with the severity word (for example "High"), with color as a secondary cue. The badge sits beside an "Unverified" text badge and the provider label (section 5.3). The list is sorted by severity (descending), then by last update, replacing the current status-rank sort (`EventPanel.tsx:31`).
-- **Map:** keep the category fill. Show severity through circle radius (five steps) and, for Critical and Catastrophic, a light outer ring. Severity is **not** mapped to fill color: the category palette (`mapEvents.ts:14-24`), the FIRMS ramp and the red accent theme leave no room for five more distinct fills.
-- **Color scale:** reuse `--low`, `--medium`, `--high` and `--critical` (`styles.css:24-27`), and add a `--catastrophic` token. The new token must be distinct from `--critical`, the accent red `#ff3b4f`, MilitaryConflict `#d95d62` and the FIRMS oranges; a dark magenta is suggested and needs design sign-off. Like the other semantic colors, it must not change with the accent theme.
+- **Row:** a text badge with the severity word (for example "High"), with color as a secondary cue. The badge sits beside an "Unverified" text badge and the provider label (section 5.3). The list is sorted by severity (descending), then by last update, replacing the current status-rank sort (`EventPanel.tsx`).
+- **Map:** keep the category fill. Show severity through circle radius (five steps) and, for Critical and Catastrophic, a light outer ring. Severity is **not** mapped to fill color: the category palette (`mapEvents.ts`), the FIRMS ramp and the red accent theme leave no room for five more distinct fills.
+- **Color scale:** reuse `--low`, `--medium`, `--high` and `--critical` (`styles.css`), and add a `--catastrophic` token. The new token must be distinct from `--critical`, the accent red `#ff3b4f`, MilitaryConflict `#d95d62` and the FIRMS oranges; a dark magenta is suggested and needs design sign-off. Like the other semantic colors, it must not change with the accent theme.
 - **Status dots must stop using severity tokens.** Move status to neutral styling or text only, so red means severity alone.
 - **Details:** a "Severity" block showing the level, the rule in plain words (for example "GDACS Orange alert → High"), the inputs, and the sentence "Severity is derived automatically from provider data and is not an independent assessment."
 - **Filters:** add a minimum-severity filter (All, Medium+, High+, Critical+) combined with AND alongside search and time range. Add severity words to search.
@@ -420,11 +431,11 @@ The approach is rule-based and deterministic. GDACS is excluded, because natural
 4. **GDELT never creates Alerts** in this design; the data is too noisy.
 5. Still no Alerts for new Events, supersession, source-only updates, membership changes, or disabled rules. Alerts for new Events in a watched area would need dynamic Watchlist criteria, which are out of scope.
 
-**Atomicity:** Alert occurrences are written in the same transaction as the Event update (unchanged pattern, `SqliteEventStore.cs:343-364, 404-405`).
+**Atomicity:** Alert occurrences are written in the same transaction as the Event update (unchanged pattern, `SqliteEventStore.cs`).
 
 **Partial failure:** any exception rolls back the whole refresh batch, so no Events and no Alerts are written. Because the stored revision did not advance, the next successful refresh sees the same update as newer and creates the Alert then, exactly once, guaranteed by the unique index. A refresh cancelled on app close behaves the same way.
 
-**UI:** after any refresh that created Alerts, the status push (section 3.4) includes `newAlerts`, and the UI refreshes the Alert summary as it does today (`App.tsx:388-391`).
+**UI:** after any refresh that created Alerts, the status push (section 3.4) includes `newAlerts`, and the UI refreshes the Alert summary as it does today (`App.tsx`).
 
 ---
 
@@ -440,7 +451,7 @@ The approach is rule-based and deterministic. GDACS is excluded, because natural
 
 ## 10. Demo data plan
 
-1. Stop calling `DemoDataSeeder` in normal startup (`MainWindow.xaml.cs:510`). Keep the class, because the three tests that run it (section 2.1) still use it.
+1. Stop calling `DemoDataSeeder` in normal startup (`MainWindow.xaml.cs`). Keep the class, because the three tests that run it (section 2.1) still use it.
 2. Delete existing demo rows once, in one transaction: Events with ID prefix `evt-demo-` and SourceItems with `src-demo-`.
    - Cascades remove their associations, Watchlist memberships and Alert occurrences.
    - Removing demo Events therefore also deletes their Watchlist memberships and Alert history. A Watchlist that held only demo Events becomes empty but is not deleted.
@@ -464,7 +475,7 @@ The approach is rule-based and deterministic. GDACS is excluded, because natural
 
 **Database growth:** roughly 3 KB per Event with one SourceItem, so 20,000 Events is about 60 MB. That is acceptable for local SQLite.
 
-**Known pressure point:** `GetEventsAsync` loads every Event (`SqliteEventStore.cs:15-23`), and the frontend renders every marker. Native windowing of the Event list is handled by Slice 2B, which is required before Slice 3 because the first UCDP import can create up to 5,000 Events.
+**Known pressure point:** `GetEventsAsync` loads every Event (`SqliteEventStore.cs:15-23`), and the frontend renders every marker. Native windowing of the Event list is handled by Slice 2B, which is required before Slice 3 because the first UCDP import can create up to 5,000 Events. (**As built:** Slice 2B is implemented. The Event list is a native window capped at 2,000 Events, with the selected Event kept when it matches, so the list and the markers render at most 2,000 Events.)
 
 **Marker density:** no clustering now. **Revisit trigger:** more than 2,000 markers visible in the default view, or more than 20,000 Events in the table.
 
@@ -486,9 +497,9 @@ The approach is rule-based and deterministic. GDACS is excluded, because natural
 
 **URLs**
 
-- Store only absolute `http` or `https` URLs, and display them as text (`EventDetailsPanel.tsx:169-171` pattern).
+- Store only absolute `http` or `https` URLs, and display them as text (`EventDetailsPanel.tsx` pattern).
 - If clickable links are wanted later, add one typed operation `links.openExternal` that accepts only an Event-attached SourceItem ID. The native side looks the URL up and opens it in the system browser; it never accepts a raw URL from JavaScript.
-- Separate finding to verify: the ReliefWeb `<a target="_blank">` (`ReliefWebDiscovery.tsx:128`), given that the app WebView has no `NewWindowRequested` handler.
+- Separate finding to verify: the ReliefWeb `<a target="_blank">` (`ReliefWebDiscovery.tsx`), given that the app WebView has no `NewWindowRequested` handler.
 
 **Licensing and attribution UI**
 
@@ -535,13 +546,21 @@ The suggested order is kept, with demo removal moved after UCDP and Slice 2B (Ev
 
 Required before Slice 3. The first UCDP import can create up to 5,000 Events, but `GetEventsAsync` loads every Event (`SqliteEventStore.cs:15-23`) and the UI starts on the ALL time range.
 
+**As built (`ee5d89d`):**
+
+- The request text field is named `search`, not `query` (at most 200 characters). The request also carries `minimumSeverity`, `keepEventId` and a `requestId`. Unknown fields and values are still rejected.
+- Ordering is newest by `LastUpdatedAtUtc`, then by Id, not newest `StartedAtUtc`. The time range still compares `StartedAtUtc`.
+- `keepEventId`: the selected Event stays in the window when it matches the criteria. At the cap it replaces the oldest returned Event, so the window never exceeds 2,000.
+- The native query reproduces the frontend filter semantics through the shared rule class `EventWindowRules` (`EventWindow.cs`). Search also matches severity. A shared parity fixture (`tests/fixtures/event-window-parity.json`) is checked by both the native tests and the frontend reference filter (`eventFilters.ts`).
+- The frontend renders the returned window directly. It debounces typing and discards responses that are not for its latest `requestId`. The notice reads "Showing the newest 2,000 of N matching Events. Narrow the time range or search to see others."
+
 - **Scope (PROPOSED):**
   - `events.list` gains typed, validated request fields:
     - `range`: one of `24H`, `7D`, `30D`, `90D` or `ALL`.
     - `query`: an optional string of at most 200 characters.
     - `watchlistId`: optional.
     - Unknown fields and values are rejected, as today. This is a fixed Event query, not a generic query capability.
-  - The native store applies scope, time range and search in SQL, with the **same semantics the frontend uses today** (`eventFilters.ts:15-42`):
+  - The native store applies scope, time range and search in SQL, with the **same semantics the frontend uses today** (`eventFilters.ts`):
     - The time range compares `StartedAtUtc` against now minus the range.
     - Search is a case-insensitive substring match on title, summary, category (raw and display form), status, location display name and region.
     - Search and time range combine with AND, within the selected scope (All Events or one Watchlist).

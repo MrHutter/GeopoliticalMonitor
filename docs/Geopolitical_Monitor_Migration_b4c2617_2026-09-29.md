@@ -1,5 +1,12 @@
 # PROJECT MIGRATION HANDOFF — GEOPOLITICAL MONITOR
 
+### Updates since this handoff (2026-10-02)
+
+- Repository `C:\Dev\GeopoliticalMonitor-github` has a private GitHub remote (`origin`, MrHutter/GeopoliticalMonitor). Its fresh history begins at the single initial commit `1222d52`; `b4c2617` and earlier history exist only in the owner's local archive repository.
+- Event automation Slice 1 `46db700` (Event severity Low/Medium/High/Critical/Catastrophic; `Provider` and `ProviderKey`), Slice 2 `0dba536` (in-process GDACS refresh scheduler, every 30 min while the app is open; provider status strip) and Slice 2B `ee5d89d` (native Event list windowing, cap 2,000) are implemented.
+- Design, slice plan and owner decisions: `docs/design/event-automation-design.md`.
+- Statements below that these changes contradict carry a "[Superseded 2026-10-02: ...]" note. The original text is kept.
+
 Generated after local checkpoint commit:
 
 `b4c2617`
@@ -23,7 +30,7 @@ Branch:
 
 Current accepted local commit:
 
-`b4c2617`
+`b4c2617` [Superseded 2026-10-02: HEAD has moved on; see "Updates since this handoff" at the top.]
 
 Subject:
 
@@ -43,11 +50,11 @@ The exact full SHA was not supplied in chat, only short SHA `b4c2617`.
 
 IMPORTANT:
 
-- No GitHub remote has been created yet.
-- Nothing has been pushed.
+- No GitHub remote has been created yet. [Superseded 2026-10-02: a private GitHub remote exists (`origin`, MrHutter/GeopoliticalMonitor).]
+- Nothing has been pushed. [Superseded 2026-10-02: the fresh history has been pushed to the private remote.]
 - The repository has not yet completed publication-hygiene remediation.
 - The repository is not yet intended to be public.
-- The next immediate phase is repository/publication hygiene and re-audit, NOT another major feature.
+- The next immediate phase is repository/publication hygiene and re-audit, NOT another major feature. [Superseded 2026-10-02: event automation is in progress; next planned slice is Slice 3 (UCDP Candidate) per `docs/design/event-automation-design.md`.]
 
 Before any new coding task, recover fresh repository truth.
 
@@ -536,7 +543,7 @@ Event categories:
 - NaturalDisaster
 - Other
 
-Statuses:
+Statuses: [Superseded 2026-10-02: status values are unchanged; Slice 1 added a separate `Severity` (Low, Medium, High, Critical, Catastrophic) with `SeverityRule` and `SeverityInputs`, plus provider identity fields `Provider` and `ProviderKey`.]
 
 - Developing
 - Active
@@ -574,14 +581,14 @@ Implemented:
 
 - Event search;
 - case-insensitive matching;
-- search across title/summary/category/status/location fields;
+- search across title/summary/category/status/location fields; [Superseded 2026-10-02: search also matches severity; a minimum-severity filter (All, Medium+, High+, Critical+) combines with AND.]
 - time ranges:
   - ALL
   - 24H
   - 7D
   - 30D
   - 90D
-- ALL startup default;
+- ALL startup default; [Superseded 2026-10-02: ALL stays the startup default, but the list is now queried natively and capped at the 2,000 newest Events by last update (the selected Event is kept when it matches), with a notice when more match.]
 - search + time range use AND semantics;
 - Event rows + Map markers use same visible collection;
 - selection clears when filtered out;
@@ -652,13 +659,13 @@ Accepted GDACS behavior:
 
 - earthquakes only;
 - event type EQ;
-- manual refresh;
+- manual refresh; [Superseded 2026-10-02: GDACS also refreshes on an in-process timer every 30 min while the app is open; manual refresh remains.]
 - preceding four-day window;
 - max 100;
 - no paging;
-- no startup refresh;
-- no polling;
-- no background task;
+- no startup refresh; [Superseded 2026-10-02: the first automatic refresh runs 60 s after the UI signals `app.ready`.]
+- no polling; [Superseded 2026-10-02: timer refresh every 30 min while the app is open, with backoff after failures.]
+- no background task; [Superseded 2026-10-02: an in-process scheduler task runs while the main window is open and stops when it closes; nothing runs when the app is closed.]
 - point epicenter only.
 
 GDACS Events:
@@ -673,7 +680,7 @@ Networking:
 - cancellation;
 - 1 MiB response cap;
 - no retries;
-- no startup networking.
+- no startup networking. [Superseded 2026-10-02: GDACS networking starts 60 s after `app.ready`, never before the window exists.]
 
 Persistence:
 
@@ -816,9 +823,9 @@ No Windows notifications.
 
 No app-closed monitoring.
 
-No polling/background worker.
+No polling/background worker. [Superseded 2026-10-02: Alerts evaluate inside timer-driven GDACS refreshes run by the in-process scheduler while the app is open.]
 
-Alerts evaluate only during explicit manual GDACS refresh.
+Alerts evaluate only during explicit manual GDACS refresh. [Superseded 2026-10-02: Alerts evaluate on every accepted GDACS refresh, manual or timer.]
 
 ---
 
@@ -1491,9 +1498,9 @@ Subject:
 
 `Add FIRMS external layers and harden AdBlock trust`
 
-No GitHub remote yet.
+No GitHub remote yet. [Superseded 2026-10-02: a private GitHub remote exists (`origin`, MrHutter/GeopoliticalMonitor).]
 
-Nothing pushed.
+Nothing pushed. [Superseded 2026-10-02: the fresh history has been pushed to the private remote.]
 
 Before next task:
 
@@ -1527,7 +1534,7 @@ It should address:
 8. dependency/data attribution and NOTICE review;
 9. re-run publication audit.
 
-Do NOT create GitHub remote yet unless owner explicitly changes order.
+Do NOT create GitHub remote yet unless owner explicitly changes order. [Superseded 2026-10-02: the private remote has been created.]
 
 ---
 
@@ -1662,7 +1669,7 @@ After publication hygiene / private GitHub setup, the likely next MAJOR product 
 
 **automated Event ingestion / monitoring architecture**
 
-Do NOT implement automatically without a dedicated design pass.
+Do NOT implement automatically without a dedicated design pass. [Superseded 2026-10-02: the design pass is done and approved (`docs/design/event-automation-design.md`); Slices 1, 2 and 2B are implemented.]
 
 Future design topics:
 
@@ -1886,11 +1893,11 @@ Through commit `b4c2617`:
 
 Backend:
 
-- 530 passed
+- 530 passed [Superseded 2026-10-02: last reported at `ee5d89d`: Domain 68, Application 459, Infrastructure 184.]
 
 Frontend:
 
-- 109 passed across 9 files
+- 109 passed across 9 files [Superseded 2026-10-02: last reported at `ee5d89d`: 169 passed across 11 files.]
 
 ### PUBLICATION STATUS
 
@@ -1927,7 +1934,7 @@ Report:
 
 Do not immediately implement new features.
 
-Then proceed to the repository/publication hygiene remediation.
+Then proceed to the repository/publication hygiene remediation. [Superseded 2026-10-02: reconcile against current HEAD instead; the next planned work is Slice 3 (UCDP Candidate).]
 
 ---
 
@@ -1954,7 +1961,7 @@ Current local checkpoint:
 
 NEXT:
 
-**Repository/publication hygiene remediation**
+**Repository/publication hygiene remediation** [Superseded 2026-10-02: the private repository with fresh history exists and event automation is in progress; next planned slice is Slice 3 (UCDP Candidate).]
 
 Then:
 

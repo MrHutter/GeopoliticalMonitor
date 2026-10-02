@@ -22,8 +22,9 @@ Windows desktop geopolitical/OSINT situational-awareness app. WinUI 3/.NET deskt
 - `SourceItem != Event`. Don't collapse that distinction to make a task simpler.
 
 ## Current status (verify against fresh repo state — this goes stale fast)
-- Latest local checkpoint as of this writing: commit `b4c2617` "Add FIRMS external layers and harden AdBlock trust" on `main`. No GitHub remote yet; nothing pushed; the repo is not yet intended to be public.
-- Current phase is repository/publication hygiene remediation, not a new feature, unless the owner says otherwise. Known open items include an owner-specific path in a historical test file, personal email in commit history, `.gitignore` hardening, and a stale ignored WebView2 profile under backend `bin`.
+- Working repository: `C:\Dev\GeopoliticalMonitor-github`, branch `main`, with a private GitHub remote (`origin`, MrHutter/GeopoliticalMonitor). History begins at the single initial commit `1222d52`; older history exists only in the owner's local archive repository. The repo is not yet intended to be public.
+- Event automation Slice 1 (`46db700`, severity and provider identity), Slice 2 (`0dba536`, GDACS refresh scheduler and provider status) and Slice 2B (`ee5d89d`, native Event list windowing, cap 2,000) are implemented. Next planned slice: Slice 3 (UCDP Candidate).
+- Event automation design, slice plan and owner decisions: `docs/design/event-automation-design.md`.
 - Full context for anything deeper — Git history, domain model, FIRMS/AdBlock design detail, roadmap, publication audit findings — lives in `docs/Geopolitical_Monitor_Migration_b4c2617_2026-09-29.md`. Read the relevant section when a task actually needs that detail rather than assuming it's all loaded here.
 
 ## Manual testing
