@@ -25,7 +25,7 @@ public sealed class UcdpCandidateFeedTests
         Assert.Equal(HttpMethod.Get, request.Method);
         Assert.Equal("https://ucdp.uu.se/downloads/candidateged/GEDEvent_v26_0_8.csv", request.RequestUri!.AbsoluteUri);
         Assert.Equal("GeopoliticalMonitor/0.1.0", request.Headers.UserAgent.ToString());
-        Assert.Empty(request.Headers.Where(header => header.Key is "Authorization" or "Cookie" or "x-ucdp-access-token"));
+        Assert.DoesNotContain(request.Headers, header => header.Key is "Authorization" or "Cookie" or "x-ucdp-access-token");
     }
 
     [Fact]
