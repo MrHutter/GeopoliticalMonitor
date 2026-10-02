@@ -352,26 +352,11 @@ input:focus-visible {
   }
 }
 
-@container events-panel (min-width: 340px) {
-  .panel-header.event-panel-header {
-    padding: 7px 12px;
-  }
-
-  .provider-status-row {
-    padding-right: 12px;
-  }
-
-  .provider-status-detail {
-    font-size: 0.64rem;
-    line-height: 14px;
-  }
-}
-
 /* Optional header text is visually hidden (same pattern as .sr-only, no negative margins) until the container is wide
    enough for it, so it is never wrapped onto a clipped line. Thresholds, from Segoe UI widths measured in Chromium
    (WebView2) with about 8% or more to spare for font differences:
-   - sources: 24px padding + "EVENTS" 43 + 6 + "2000 events" 58 + " · " 14 + "999999 sources" 75 + 6 + Manage and the
-     range pill 99 = 324px, so the part shows from a 350px container;
+   - sources: 20px padding + "EVENTS" 43 + 6 + "2000 events" 58 + " · " 14 + "999999 sources" 75 + 6 + Manage and the
+     range pill 99 = 321px, so the part shows from a 350px container;
    - advice: 20px padding + "Newest 2,000 of 999,999 shown. Narrow range or search for others." 313 = 333px, so the
      part shows from a 370px container. */
 .summary-strip .summary-sources,

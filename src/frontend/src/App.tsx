@@ -91,7 +91,19 @@ const formatUtcTime = (value: string) => new Intl.DateTimeFormat('en-GB', {
 type AlertResource = 'summary' | 'rules' | 'list';
 type AlertRequestState = Record<AlertResource, { inFlight: boolean; queued: boolean }>;
 
-export function App() {
+/**
+ * When true, activating an Alert also scrolls the page so the Details panel (below the first screen) is in view.
+ * Ships off: while false, Alert activation makes no scroll call at all. Row selection, map clicks, filter changes and
+ * reloads never scroll to Details.
+ */
+export const alertScrollsToDetails = false;
+
+export type AppProps = {
+  /** Defaults to alertScrollsToDetails; tests pass true to exercise the scroll. */
+  scrollAlertToDetails?: boolean;
+};
+
+export function App({ scrollAlertToDetails = alertScrollsToDetails }: AppProps = {}) {
   const [appInfo, setAppInfo] = useState<AppInfoMessage['payload'] | null>(null);
   const [xPaneSide, setXPaneSide] = useState<XPaneSide>('Right');
   const { accent, setAccent, applyPersistedAccent, persistenceError, reportPersistenceError } = useAccentPreference();
@@ -159,6 +171,7 @@ export function App() {
   const [mapLayers, setMapLayers] = useState<MapLayer[]>(initialMapLayers);
   const [locateRequest, setLocateRequest] = useState<{ eventId: string; requestId: number } | null>(null);
   const locateRequestIdRef = useRef(0);
+  const [detailsScrollRequest, setDetailsScrollRequest] = useState(0);
   const attachedPostIds = useMemo(() => new Set<string>(), []);
   const visibleFirmsObservations = useMemo(
     () => filterFirmsObservations(firmsObservations, firmsDisplayMode),
@@ -774,7 +787,15 @@ export function App() {
     setActiveTab('Overview');
     locateRequestIdRef.current += 1;
     setLocateRequest({ eventId: alert.eventId, requestId: locateRequestIdRef.current });
+    if (scrollAlertToDetails) setDetailsScrollRequest((request) => request + 1);
   };
+
+  // Runs after the Alerts modal has closed, so the scroll is not undone by the modal's own focus handling.
+  useEffect(() => {
+    if (detailsScrollRequest === 0) return;
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    document.querySelector<HTMLElement>('.details-panel')?.scrollIntoView?.({ block: 'start', behavior: reducedMotion ? 'auto' : 'smooth' });
+  }, [detailsScrollRequest]);
 
   const toggleMapLayer = (layerId: string) => {
     setMapLayers((layers) => layers.map((layer) => (layer.id === layerId ? { ...layer, enabled: !layer.enabled } : layer)));

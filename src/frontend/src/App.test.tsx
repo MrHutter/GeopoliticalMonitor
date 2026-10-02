@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { App } from './App';
+import { alertScrollsToDetails, App, type AppProps } from './App';
 import { eventLayerId, eventSourceId, getCategoryColor, selectedEventLayerId } from './features/map/mapEvents';
 import { firmsLayerId, firmsSourceId } from './features/map/firmsMap';
 import { productDisplayName, productDisplayNameUpper } from './productIdentity';
@@ -322,7 +322,7 @@ const latestMap = async () => {
  * simulated native Event store and answers the latest windowed request; later `events.list` requests are answered
  * from that store with the shared reference filter, Watchlist membership, the cap and the keep-Event rule.
  */
-function renderWithWebView(options: { cap?: number; autoRespond?: boolean } = {}) {
+function renderWithWebView(options: { cap?: number; autoRespond?: boolean; appProps?: AppProps } = {}) {
   let messageHandler: ((event: { data: unknown }) => void) | undefined;
   let dataset: NativeEvent[] | null = null;
   let lastListRequest: SimulatedEventListRequest | null = null;
@@ -336,7 +336,7 @@ function renderWithWebView(options: { cap?: number; autoRespond?: boolean } = {}
     if (options.autoRespond !== false) answer(lastListRequest);
   });
   window.chrome = { webview: { postMessage, addEventListener: vi.fn((_type, listener) => { messageHandler = listener; }), removeEventListener: vi.fn() } };
-  const rendered = render(<App />);
+  const rendered = render(<App {...options.appProps} />);
   const emit = (data: unknown) => {
     const message = data as { type?: string; payload?: Record<string, unknown> };
     if (message?.type === 'watchlists.members.get.result' && message.payload) {
@@ -1015,6 +1015,86 @@ describe('App', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^Alerts/ }));
     expect(await screen.findByText('This alert is no longer available.')).toBeInTheDocument();
+  });
+
+  describe('Alert activation scroll to Details', () => {
+    const scrollIntoView = vi.fn();
+    // EventPanel also calls scrollIntoView to reveal a selected row; only calls on the Details region count here.
+    const detailsScrollCalls = () => scrollIntoView.mock.calls.filter((_, index) => (scrollIntoView.mock.contexts[index] as Element | undefined)?.classList?.contains('details-panel'));
+
+    beforeEach(() => {
+      scrollIntoView.mockReset();
+      Element.prototype.scrollIntoView = scrollIntoView;
+    });
+
+    afterEach(() => {
+      Reflect.deleteProperty(window, 'matchMedia');
+    });
+
+    async function activateAlertFrom(emit: (data: unknown) => void) {
+      emit({ type: 'alerts.summary.result', payload: { unreadCount: 1 } });
+      fireEvent.click(await screen.findByRole('button', { name: 'Alerts, 1 unread' }));
+      emit({ type: 'alerts.rules.list.result', payload: { rules: [alertRule] } });
+      emit({ type: 'alerts.list.result', payload: { alerts: [unreadAlert], unreadCount: 1, hasMore: false } });
+      fireEvent.click(await within(screen.getByRole('dialog', { name: 'Alerts' })).findByRole('button', { name: new RegExp(nativeEvents[0].title) }));
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Alerts' })).not.toBeInTheDocument());
+    }
+
+    it('ships turned off: Alert activation makes no scroll call to Details', async () => {
+      expect(alertScrollsToDetails).toBe(false);
+      const { emit } = renderWithWebView();
+      const map = await latestMap();
+      emitAppInfo(emit);
+      emit({ type: 'events.list.result', payload: { events: nativeEvents } });
+
+      await activateAlertFrom(emit);
+
+      expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
+      await waitFor(() => expect(map.easeTo).toHaveBeenCalledWith(expect.objectContaining({ center: [24.8, 57.4], zoom: 3.15 })));
+      expect(detailsScrollCalls()).toHaveLength(0);
+    });
+
+    it('when enabled, scrolls the Details region into view once on Alert activation and keeps the map locate', async () => {
+      const { emit } = renderWithWebView({ appProps: { scrollAlertToDetails: true } });
+      const map = await latestMap();
+      emitAppInfo(emit);
+      emit({ type: 'events.list.result', payload: { events: nativeEvents } });
+      await waitFor(() => expect(screen.getByRole('heading', { name: nativeEvents[0].title })).toBeInTheDocument());
+
+      fireEvent.click(within(screen.getByRole('list', { name: 'event list' })).getByRole('button', { name: /Commercial shipping disruption/i }));
+      map.triggerLayer('click', eventLayerId, { features: [{ properties: { id: 'evt-demo-baltic-security' } }], lngLat: { lng: 24.8, lat: 57.4 } });
+      await waitFor(() => expect(screen.getByRole('heading', { name: nativeEvents[0].title })).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: '30D' }));
+      fireEvent.change(screen.getByLabelText('Minimum severity'), { target: { value: 'Medium' } });
+      emit(providerStatus({ state: 'Refreshing' }));
+      emit(providerStatus({ state: 'Idle', lastSuccessAtUtc: new Date().toISOString() }));
+      expect(detailsScrollCalls()).toHaveLength(0);
+
+      await activateAlertFrom(emit);
+
+      await waitFor(() => expect(detailsScrollCalls()).toHaveLength(1));
+      expect(detailsScrollCalls()[0]).toEqual([{ block: 'start', behavior: 'smooth' }]);
+      await waitFor(() => expect(map.easeTo).toHaveBeenCalledWith(expect.objectContaining({ center: [24.8, 57.4], zoom: 3.15 })));
+
+      emit({ type: 'events.list.result', payload: { events: nativeEvents } });
+      emit(providerStatus({ state: 'Idle', lastSuccessAtUtc: new Date(Date.now() + 60_000).toISOString() }));
+      expect(detailsScrollCalls()).toHaveLength(1);
+    });
+
+    it('when enabled, scrolls without animation if reduced motion is preferred', async () => {
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        value: vi.fn((query: string) => ({ matches: query === '(prefers-reduced-motion: reduce)', media: query, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
+      });
+      const { emit } = renderWithWebView({ appProps: { scrollAlertToDetails: true } });
+      await latestMap();
+      emitAppInfo(emit);
+      emit({ type: 'events.list.result', payload: { events: nativeEvents } });
+
+      await activateAlertFrom(emit);
+
+      await waitFor(() => expect(detailsScrollCalls()).toEqual([[{ block: 'start', behavior: 'auto' }]]));
+    });
   });
 
   it('clicking event row and marker select the same persisted Event', async () => {

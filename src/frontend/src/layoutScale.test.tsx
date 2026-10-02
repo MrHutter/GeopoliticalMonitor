@@ -71,7 +71,8 @@ describe('responsive layout', () => {
   it('makes the Events panel a size container with narrow defaults and container-query relaxations', () => {
     expect(block('.event-panel {')).toContain('container: events-panel / inline-size;');
     expect(css).toContain('@container events-panel (max-width: 259px)');
-    expect(css).toContain('@container events-panel (min-width: 340px)');
+    // The former 340px relaxation could never match: the widest Events container is 338px (340px column, 1px borders).
+    expect(css).not.toContain('@container events-panel (min-width: 340px)');
     expect(block('.provider-status-line {')).toContain('flex-wrap: nowrap;');
     expect(block('.provider-status-line .gdacs-refresh-button {')).toContain('flex: 0 0 auto;');
     expect(block('.provider-status-text {')).toContain('text-overflow: ellipsis;');
