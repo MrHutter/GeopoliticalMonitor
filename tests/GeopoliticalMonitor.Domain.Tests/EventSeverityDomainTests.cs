@@ -98,6 +98,31 @@ public class EventSeverityDomainTests
         Assert.Throws<ArgumentException>(() => new EventProvenance(EventProvider.Gdacs, new string('7', 257)));
     }
 
+    [Theory]
+    [InlineData(200001)]
+    [InlineData(202608)]
+    [InlineData(202612)]
+    [InlineData(999912)]
+    public void ProvenanceAcceptsReleaseOrdinalsAsYearTimesHundredPlusMonth(int release)
+    {
+        var provenance = new EventProvenance(EventProvider.UcdpCandidate, "1", release);
+
+        Assert.Equal(release, provenance.ProviderLastSeenRelease);
+        Assert.Equal(release, Create(new EventSeverityAssessment(EventSeverity.Low, "manual", "test"), provenance).ProviderLastSeenRelease);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(202600)]
+    [InlineData(202613)]
+    [InlineData(199912)]
+    [InlineData(1000001)]
+    public void ProvenanceRejectsInvalidReleaseOrdinals(int release)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new EventProvenance(EventProvider.UcdpCandidate, "1", release));
+        Assert.Null(new EventProvenance(EventProvider.Gdacs, "1").ProviderLastSeenRelease);
+    }
+
     private static Event Create(EventSeverityAssessment severity, EventProvenance provenance)
         => Event.Create(
             new EventId("evt-one"),

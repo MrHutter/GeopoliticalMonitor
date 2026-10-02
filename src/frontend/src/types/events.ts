@@ -41,6 +41,8 @@ export type NativeEvent = {
   severityRule: string;
   severityInputs: string;
   provider: NativeEventProvider;
+  /** Newest provider release (year * 100 + month) that contained the Event; present only for release-based providers. */
+  providerLastSeenRelease?: number;
 };
 
 export type NativeSourceItem = {
@@ -125,6 +127,10 @@ export function explainSeverity(event: Pick<NativeEvent, 'severity' | 'severityR
       const alertText = alert ? `GDACS ${alert} alert` : 'GDACS alert';
       return { rule: `${alertText}${magnitude ? `, magnitude ${magnitude}` : ''}, ${event.severity}`, derivedFromProvider: true };
     }
+    case 'ucdp-candidate-v1': {
+      const best = /(?:^|;\s*)best=([0-9]+)/.exec(event.severityInputs)?.[1];
+      return { rule: `UCDP best fatality estimate ${best ?? 'unknown'}, ${event.severity}`, derivedFromProvider: true };
+    }
     case 'manual':
       return { rule: `Set manually, not derived from provider data (${event.severityInputs}).`, derivedFromProvider: false };
     case 'legacy-default':
@@ -165,4 +171,20 @@ export function formatEventTime(value: string) {
 
 export function formatCoordinates(location: NativeLocation) {
   return `${location.longitude.toFixed(1)} lon / ${location.latitude.toFixed(1)} lat`;
+}
+
+/** Formats a release ordinal such as 202608 as 2026-08. */
+export function formatReleaseOrdinal(ordinal: number) {
+  const year = Math.floor(ordinal / 100);
+  const month = ordinal % 100;
+  return `${year}-${String(month).padStart(2, '0')}`;
+}
+
+const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/** Formats a yyyy-MM month key such as 2026-08 as August 2026. */
+export function formatMonthKey(monthKey: string) {
+  const match = /^(\d{4})-(\d{2})$/.exec(monthKey);
+  const month = match ? Number(match[2]) : 0;
+  return match && month >= 1 && month <= 12 ? `${monthNames[month - 1]} ${match[1]}` : monthKey;
 }

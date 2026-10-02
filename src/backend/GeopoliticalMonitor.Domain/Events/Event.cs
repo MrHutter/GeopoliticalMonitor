@@ -49,6 +49,7 @@ public sealed class Event
     public string SeverityInputs => SeverityAssessment.Inputs;
     public EventProvider Provider => Provenance.Provider;
     public string? ProviderKey => Provenance.ProviderKey;
+    public int? ProviderLastSeenRelease => Provenance.ProviderLastSeenRelease;
 
     public static Event Create(
         EventId id,

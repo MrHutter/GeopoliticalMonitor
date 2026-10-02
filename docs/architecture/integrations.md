@@ -10,7 +10,15 @@ Strict GeoJSON parsing accepts point earthquake features only. Individual malfor
 
 An enabled Watchlist Alert rule is evaluated during every accepted GDACS refresh, whether manual or timer-driven; the rules are unchanged. A strictly newer GDACS revision triggers only when an existing watched Event materially changes in title, summary, start time, or stored location fields. New Events, source-only/new-episode changes, revision-only updates, stale or repeated data, equal-timestamp conflicts, membership changes, X attachment, and ReliefWeb attachment do not trigger. The Event update and deduplicated Alert occurrence commit atomically in the same SQLite transaction.
 
-Imported information is attributed to the Global Disaster Awareness and Coordination System, GDACS. GDACS automated alerts and impact information may be uncertain and should be confirmed with competent authorities before critical decisions. Other GDACS hazards, polygons, tracks, paging, scheduled refresh, GDELT, and a generic provider registry remain deferred.
+Imported information is attributed to the Global Disaster Awareness and Coordination System, GDACS. GDACS automated alerts and impact information may be uncertain and should be confirmed with competent authorities before critical decisions. Other GDACS hazards, polygons, tracks, paging, GDELT, and a generic provider registry remain deferred.
+
+## UCDP Candidate Events
+
+The second scheduled provider is the Uppsala Conflict Data Program's UCDP Candidate Events Dataset, released monthly as CSV. `UcdpCandidateFeed` requests only `https://ucdp.uu.se/downloads/candidateged/GEDEvent_v{YY}_0_{M}.csv`, with the file name built from an internal release value, never from web input. It uses its own `HttpClient` with redirects disabled, no retries, a 60-second timeout linked to the caller's token, a streamed 32 MiB cap, a host, scheme and path check before each request, and a `GeopoliticalMonitor/<version>` User-Agent. A 404 means the release is not published yet; any other non-200 status, a redirect, a timeout, or an oversized body is a typed failure with a fixed message. No token or credential is used.
+
+Refreshes run on the shared `ProviderRefreshScheduler` every 6 hours, first 2 minutes after `app.ready`, and on the fieldless `providers.ucdp.refresh` request; both use one `UcdpRefreshService`, so at most one UCDP check is in flight. The first import probes up to four release names counting down from the current month, takes the newest published one and also imports the release before it; later checks request only the release after the newest imported one (the maximum stored `ProviderLastSeenRelease`, combined with an in-memory value for the session). If that release is missing although it is already two or more months old, the four-name probe runs again. `No new release` is a successful check. The provider status entry for UCDP also carries the fixed label `monthly release` and `dataThrough` (`yyyy-MM`); UCDP is stale when the newest imported release was extracted more than 45 days ago.
+
+The RFC 4180 parser resolves required columns by header name, skips and counts malformed rows, limits fields to 8,192 characters, rows to 65,536 characters and files to 20,000 rows, and never reads article, headline, source text or geometry columns. Rows are included only with valid non-zero coordinates, `where_prec` 1 to 4, `best` at least 1 and `date_start` inside the release month, at most 5,000 per release ranked by `best`. Text is normalized to NFC, stripped of control characters and truncated to the database limits before one SQLite transaction per release. Severity uses rule `ucdp-candidate-v1` on `best`. UCDP data is licensed under CC BY 4.0, and the required citation and DEMSCORE acknowledgement appear in Details and Settings. UCDP updates never create Alerts in this version.
 
 ## NASA FIRMS Fire / Thermal Anomalies
 
@@ -71,7 +79,7 @@ Automated tests must not depend on:
 
 - live X credentials;
 - live X website access;
-- live GDACS, GDELT, or other source-provider access;
+- live GDACS, UCDP, GDELT, or other source-provider access;
 - personal credentials;
 - unstable network behavior.
 

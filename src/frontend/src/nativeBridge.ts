@@ -100,7 +100,32 @@ export type GdacsRefreshErrorMessage = {
   payload: { status: string; message: string };
 };
 
-export const scheduledProviderIds = ['Gdacs'] as const;
+export const ucdpRefreshStatuses = ['Succeeded', 'NoNewRelease', 'AlreadyInProgress'] as const;
+export type UcdpRefreshResultMessage = {
+  type: 'providers.ucdp.refresh.result';
+  payload: {
+    status: (typeof ucdpRefreshStatuses)[number];
+    newestRelease: string | null;
+    releasesImported: number;
+    newEvents: number;
+    updatedEvents: number;
+    unchangedRecords: number;
+    conflicts: number;
+    skippedMalformedRecords: number;
+    skippedInvalidCoordinates: number;
+    skippedImpreciseLocation: number;
+    skippedZeroFatalities: number;
+    skippedOutsideWindow: number;
+    droppedByCap: number;
+  };
+};
+
+export type UcdpRefreshErrorMessage = {
+  type: 'providers.ucdp.refresh.error';
+  payload: { status: string; message: string };
+};
+
+export const scheduledProviderIds = ['Gdacs', 'UcdpCandidate'] as const;
 export type ScheduledProviderId = (typeof scheduledProviderIds)[number];
 export const providerRefreshStates = ['Idle', 'Refreshing', 'Failed', 'Stale', 'Unconfigured'] as const;
 export type ProviderRefreshState = (typeof providerRefreshStates)[number];
@@ -111,7 +136,9 @@ export const providerStatusMessages = [
   'Unsupported provider response. No provider data was changed.',
   'Provider data could not be saved. Existing events were preserved.',
   'Not configured.',
+  'No new release',
 ] as const;
+export const providerCadenceLabels = ['monthly release'] as const;
 export type ProviderStatusMessage = (typeof providerStatusMessages)[number];
 
 export type ProviderRefreshStatus = {
@@ -122,6 +149,8 @@ export type ProviderRefreshStatus = {
   nextRefreshAtUtc: string | null;
   message: ProviderStatusMessage | null;
   newAlerts: number;
+  cadenceLabel?: (typeof providerCadenceLabels)[number];
+  dataThrough?: string;
 };
 
 export type ProviderRefreshStatusMessage = {
@@ -456,9 +485,17 @@ export function isProviderRefreshStatusMessage(value: unknown): value is Provide
   });
 }
 
+const providerStatusKeys = ['provider', 'displayName', 'state', 'lastSuccessAtUtc', 'nextRefreshAtUtc', 'message', 'newAlerts'] as const;
+const optionalProviderStatusKeys = ['cadenceLabel', 'dataThrough'] as const;
+const releaseMonthPattern = /^\d{4}-(0[1-9]|1[0-2])$/;
+
 function isProviderRefreshStatus(value: unknown): value is ProviderRefreshStatus {
-  if (!value || typeof value !== 'object' || !hasExactKeys(value, ['provider', 'displayName', 'state', 'lastSuccessAtUtc', 'nextRefreshAtUtc', 'message', 'newAlerts'])) return false;
+  if (!value || typeof value !== 'object') return false;
+  const presentOptional = optionalProviderStatusKeys.filter((key) => Object.prototype.hasOwnProperty.call(value, key));
+  if (!hasExactKeys(value, [...providerStatusKeys, ...presentOptional])) return false;
   const item = value as Record<string, unknown>;
+  if (item.cadenceLabel !== undefined && !isOneOf(item.cadenceLabel, providerCadenceLabels)) return false;
+  if (item.dataThrough !== undefined && !(typeof item.dataThrough === 'string' && releaseMonthPattern.test(item.dataThrough))) return false;
   return isOneOf(item.provider, scheduledProviderIds)
     && isBoundedText(item.displayName, 40)
     && isOneOf(item.state, providerRefreshStates)
@@ -477,6 +514,28 @@ export function requestGdacsRefresh() {
   if (!webview) return false;
   webview.postMessage({ type: 'providers.gdacs.refresh', payload: {} });
   return true;
+}
+
+export function requestUcdpRefresh() {
+  return postNativeMessage({ type: 'providers.ucdp.refresh', payload: {} });
+}
+
+export function isUcdpRefreshResultMessage(value: unknown): value is UcdpRefreshResultMessage {
+  const counters = [
+    'releasesImported', 'newEvents', 'updatedEvents', 'unchangedRecords', 'conflicts', 'skippedMalformedRecords',
+    'skippedInvalidCoordinates', 'skippedImpreciseLocation', 'skippedZeroFatalities', 'skippedOutsideWindow', 'droppedByCap',
+  ] as const;
+  if (!isMessage(value, 'providers.ucdp.refresh.result', ['status', 'newestRelease', ...counters])) return false;
+  const payload = value.payload;
+  return isOneOf(payload.status, ucdpRefreshStatuses)
+    && (payload.newestRelease === null || (typeof payload.newestRelease === 'string' && releaseMonthPattern.test(payload.newestRelease)))
+    && counters.every((key) => typeof payload[key] === 'number' && Number.isInteger(payload[key]) && (payload[key] as number) >= 0);
+}
+
+export function isUcdpRefreshErrorMessage(value: unknown): value is UcdpRefreshErrorMessage {
+  return isMessage(value, 'providers.ucdp.refresh.error', ['status', 'message'])
+    && isBoundedText(value.payload.status, 40)
+    && isBoundedText(value.payload.message, 200);
 }
 
 export function requestFirmsRefresh(viewport: FirmsViewport) {
@@ -957,10 +1016,18 @@ function hasExactKeys(value: object, expected: readonly string[]) {
 }
 
 function isNativeEvent(value: unknown): value is NativeEvent {
-  if (!value || typeof value !== 'object' || !hasExactKeys(value, nativeEventKeys)) return false;
+  if (!value || typeof value !== 'object') return false;
+  // providerLastSeenRelease is optional: native code emits it only for release-based providers (UCDP).
+  const hasRelease = Object.prototype.hasOwnProperty.call(value, 'providerLastSeenRelease');
+  if (!hasExactKeys(value, hasRelease ? [...nativeEventKeys, 'providerLastSeenRelease'] : nativeEventKeys)) return false;
   const item = value as Partial<NativeEvent>;
+  if (hasRelease && !isReleaseOrdinal(item.providerLastSeenRelease)) return false;
   return typeof item.id === 'string' && typeof item.title === 'string' && typeof item.summary === 'string' && isOneOf(item.category, eventCategories) && isOneOf(item.status, eventStatuses) && typeof item.startedAtUtc === 'string' && typeof item.lastUpdatedAtUtc === 'string' && isNativeLocation(item.location) && typeof item.createdAtUtc === 'string' && typeof item.updatedAtUtc === 'string' && typeof item.sourceCount === 'number'
     && isOneOf(item.severity, eventSeverityValues) && isBoundedText(item.severityRule, 64) && isBoundedText(item.severityInputs, 256) && isOneOf(item.provider, eventProviders);
+}
+
+function isReleaseOrdinal(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 200001 && value <= 999912 && value % 100 >= 1 && value % 100 <= 12;
 }
 
 function isBoundedText(value: unknown, maximumLength: number): value is string {

@@ -9,12 +9,14 @@ using GeopoliticalMonitor.Application.Gdacs;
 using GeopoliticalMonitor.Application.Preferences;
 using GeopoliticalMonitor.Application.Refresh;
 using GeopoliticalMonitor.Application.ReliefWeb;
+using GeopoliticalMonitor.Application.Ucdp;
 using GeopoliticalMonitor.Application.Watchlists;
 using GeopoliticalMonitor.Application.XBrowser;
 using GeopoliticalMonitor.Infrastructure.ReliefWeb;
 using GeopoliticalMonitor.Infrastructure.Persistence;
 using GeopoliticalMonitor.Infrastructure.Gdacs;
 using GeopoliticalMonitor.Infrastructure.Firms;
+using GeopoliticalMonitor.Infrastructure.Ucdp;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -47,6 +49,8 @@ public sealed partial class MainWindow : Window
     private ProviderRefreshScheduler? providerRefreshScheduler;
     private volatile bool isClosing;
     private HttpClient? gdacsHttpClient;
+    private UcdpRefreshBridgeHandler? ucdpRefreshBridgeHandler;
+    private HttpClient? ucdpHttpClient;
     private FirmsRefreshBridgeHandler? firmsRefreshBridgeHandler;
     private HttpClient? firmsHttpClient;
     private ReliefWebBridgeHandler? reliefWebBridgeHandler;
@@ -508,13 +512,35 @@ public sealed partial class MainWindow : Window
             // One GdacsRefreshService instance is shared by the manual bridge path and the timer, so its gate
             // allows exactly one in-flight GDACS refresh regardless of which path started it.
             var sharedGdacsService = new GdacsRefreshService(gdacsFeed, eventStore);
-            var scheduler = new ProviderRefreshScheduler([new GdacsScheduledProvider(sharedGdacsService)]);
+
+            // Likewise one UcdpRefreshService instance serves the timer and the manual UCDP action.
+            ucdpHttpClient = UcdpCandidateFeed.CreateProductionHttpClient();
+            var sharedUcdpService = new UcdpRefreshService(new UcdpCandidateFeed(ucdpHttpClient, new UcdpCandidateCsvParser()), eventStore);
+            try
+            {
+                await sharedUcdpService.LoadStateAsync().ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                // Status shows no data-through month until the first check; the refresh itself re-reads the store.
+            }
+
+            var scheduler = new ProviderRefreshScheduler(
+            [
+                new GdacsScheduledProvider(sharedGdacsService),
+                new UcdpScheduledProvider(sharedUcdpService),
+            ]);
             scheduler.StatusChanged += OnProviderRefreshStatusChanged;
             providerRefreshScheduler = scheduler;
             gdacsRefreshBridgeHandler = new GdacsRefreshBridgeHandler(cancellationToken => scheduler.RefreshManuallyAsync(
                 ScheduledProviderId.Gdacs,
                 sharedGdacsService.RefreshAsync,
                 GdacsScheduledProvider.Classify,
+                cancellationToken));
+            ucdpRefreshBridgeHandler = new UcdpRefreshBridgeHandler(cancellationToken => scheduler.RefreshManuallyAsync(
+                ScheduledProviderId.UcdpCandidate,
+                sharedUcdpService.RefreshAsync,
+                UcdpScheduledProvider.Classify,
                 cancellationToken));
             reliefWebHttpClient = ReliefWebReportClient.CreateProductionHttpClient();
             var reliefWebClient = new ReliefWebReportClient(
@@ -537,6 +563,7 @@ public sealed partial class MainWindow : Window
             eventWindowService = null;
             eventSourceBridgeHandler = null;
             gdacsRefreshBridgeHandler = null;
+            ucdpRefreshBridgeHandler = null;
             if (providerRefreshScheduler is not null)
             {
                 providerRefreshScheduler.StatusChanged -= OnProviderRefreshStatusChanged;
@@ -548,6 +575,8 @@ public sealed partial class MainWindow : Window
             alertBridgeHandler = null;
             gdacsHttpClient?.Dispose();
             gdacsHttpClient = null;
+            ucdpHttpClient?.Dispose();
+            ucdpHttpClient = null;
             reliefWebHttpClient?.Dispose();
             reliefWebHttpClient = null;
             persistenceStatus = "SQLite local application data unavailable";
@@ -684,6 +713,9 @@ public sealed partial class MainWindow : Window
                 break;
             case DesktopBridgeProtocol.GdacsRefreshMessageType:
                 await RefreshGdacsAsync(sender);
+                break;
+            case DesktopBridgeProtocol.UcdpRefreshMessageType:
+                await RefreshUcdpAsync(sender);
                 break;
             case DesktopBridgeProtocol.FirmsRefreshMessageType:
                 await RefreshFirmsAsync(sender, request);
@@ -887,6 +919,24 @@ public sealed partial class MainWindow : Window
         }
 
         var response = await gdacsRefreshBridgeHandler.RefreshAsync(lifetimeCancellation.Token);
+        if (!lifetimeCancellation.IsCancellationRequested && sender.CoreWebView2 is not null)
+        {
+            sender.CoreWebView2.PostWebMessageAsJson(response);
+        }
+    }
+
+    private async Task RefreshUcdpAsync(WebView2 sender)
+    {
+        if (ucdpRefreshBridgeHandler is null)
+        {
+            sender.CoreWebView2.PostWebMessageAsJson(
+                DesktopBridgeProtocol.CreateUcdpRefreshErrorResponseJson(
+                    UcdpRefreshStatus.PersistenceFailure,
+                    "UCDP refresh is unavailable."));
+            return;
+        }
+
+        var response = await ucdpRefreshBridgeHandler.RefreshAsync(lifetimeCancellation.Token);
         if (!lifetimeCancellation.IsCancellationRequested && sender.CoreWebView2 is not null)
         {
             sender.CoreWebView2.PostWebMessageAsJson(response);
@@ -2007,6 +2057,7 @@ public sealed partial class MainWindow : Window
         }
 
         gdacsHttpClient?.Dispose();
+        ucdpHttpClient?.Dispose();
         reliefWebHttpClient?.Dispose();
         firmsHttpClient?.Dispose();
         lifetimeCancellation.Dispose();

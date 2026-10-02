@@ -369,6 +369,14 @@ input:focus-visible {
   color: var(--muted-strong);
 }
 
+.provider-status-cadence {
+  color: var(--muted);
+}
+
+.settings-sources dd {
+  color: var(--muted-strong);
+}
+
 .provider-status-row .gdacs-refresh-button {
   margin-left: auto;
 }

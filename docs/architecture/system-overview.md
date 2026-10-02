@@ -23,7 +23,8 @@ WinUI 3 desktop executable
 WinUI 3 desktop executable
   -> Infrastructure layer
   -> EF Core SQLite database under per-user local app data
-  -> explicit manual HTTPS request to official GDACS earthquake API
+  -> GDACS earthquake API over HTTPS (in-app timer while open, or manual)
+  -> UCDP Candidate monthly CSV over HTTPS (in-app timer while open, or manual)
   -> explicit selected-Event ReliefWeb report search and attachment boundary
   -> explicit transient NASA FIRMS viewport refresh boundary
 ```
@@ -49,7 +50,7 @@ The X website pane uses WebView2 browser state under `%LOCALAPPDATA%\Geopolitica
 
 Docker and PostgreSQL/PostGIS are not required for the v0.1 desktop baseline.
 
-GDACS is composed lazily as a native `IGdacsEventFeed` Infrastructure adapter and a provider-specific Application refresh service. Dependency construction performs no network activity. Only `providers.gdacs.refresh` starts a fixed-host, four-day, 100-record earthquake request; normalization and one SQLite transaction then create or update provider-owned Events, episode SourceItems, and associations.
+GDACS is composed lazily as a native `IGdacsEventFeed` Infrastructure adapter and a provider-specific Application refresh service. Dependency construction performs no network activity. The in-app timer (while the window is open) or `providers.gdacs.refresh` starts a fixed-host, four-day, 100-record earthquake request; normalization and one SQLite transaction then create or update provider-owned Events, episode SourceItems, and associations. UCDP Candidate is composed the same way (`UcdpCandidateFeed` plus `UcdpRefreshService`, shared by the timer and `providers.ucdp.refresh`), with one SQLite transaction per monthly release and no Alert evaluation.
 
 ReliefWeb is composed as a native fixed-host Infrastructure client and a provider-specific Application discovery service. It searches reports only for an already selected Event after an explicit user action; candidates are transient, and a separate explicit attachment creates or reuses a bounded metadata-only `Other` SourceItem and EventSourceAssociation. ReliefWeb never creates Events. Production is intentionally configured with no `appname` until the owner supplies an approved ReliefWeb V2 identifier through native composition, so search and attachment return a bounded not-configured result without sending a network request. There is no startup request, automatic matching, automatic attachment, paging, polling, or provider metadata synchronization.
 

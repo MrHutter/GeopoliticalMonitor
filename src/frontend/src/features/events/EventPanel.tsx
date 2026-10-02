@@ -24,6 +24,8 @@ type EventPanelProps = {
   gdacsRefresh: GdacsRefreshFeedback;
   providerStatuses: ProviderRefreshStatus[];
   onRefreshGdacs: () => void;
+  ucdpRefresh?: GdacsRefreshFeedback;
+  onRefreshUcdp?: () => void;
   onSelectEvent: (eventId: string) => void;
   onSelectWatchlist: (watchlistId: string | null) => void;
   onMinimumSeverityChange: (minimumSeverity: MinimumSeverity) => void;
@@ -38,7 +40,7 @@ export function formatCappedNotice(shown: number, total: number) {
 
 const statusDotClass: Record<NativeEventStatus, string> = { Active: 'active', Developing: 'developing', Unverified: 'unverified', Resolved: 'resolved' };
 
-export function EventPanel({ events, selectedEventId, selectedRange, loadError, watchlists, activeWatchlistId, minimumSeverity, eventWindow, emptyMessage, manageButtonRef, gdacsRefresh, providerStatuses, onRefreshGdacs, onSelectEvent, onSelectWatchlist, onMinimumSeverityChange, onManageWatchlists }: EventPanelProps) {
+export function EventPanel({ events, selectedEventId, selectedRange, loadError, watchlists, activeWatchlistId, minimumSeverity, eventWindow, emptyMessage, manageButtonRef, gdacsRefresh, providerStatuses, onRefreshGdacs, ucdpRefresh = { kind: 'idle' }, onRefreshUcdp, onSelectEvent, onSelectWatchlist, onMinimumSeverityChange, onManageWatchlists }: EventPanelProps) {
   const orderedEvents = sortEventsForList(events);
 
   return (
@@ -67,7 +69,13 @@ export function EventPanel({ events, selectedEventId, selectedRange, loadError, 
         </div>
       </div>
 
-      <ProviderStatusStrip statuses={providerStatuses} gdacsRefreshPending={gdacsRefresh.kind === 'pending'} onRefreshGdacs={onRefreshGdacs} />
+      <ProviderStatusStrip
+        statuses={providerStatuses}
+        gdacsRefreshPending={gdacsRefresh.kind === 'pending'}
+        onRefreshGdacs={onRefreshGdacs}
+        ucdpRefreshPending={ucdpRefresh.kind === 'pending'}
+        onRefreshUcdp={onRefreshUcdp}
+      />
 
       <div className="summary-strip" aria-label="event summary">
         <span>{events.length} events</span>
@@ -79,6 +87,7 @@ export function EventPanel({ events, selectedEventId, selectedRange, loadError, 
 
       {loadError ? <p className="demo-note" role="alert">{loadError}</p> : null}
       {gdacsRefresh.message ? <p className={`gdacs-refresh-status is-${gdacsRefresh.kind}`} role={gdacsRefresh.kind === 'error' ? 'alert' : 'status'}>{gdacsRefresh.message}</p> : null}
+      {ucdpRefresh.message ? <p className={`gdacs-refresh-status is-${ucdpRefresh.kind}`} role={ucdpRefresh.kind === 'error' ? 'alert' : 'status'}>{ucdpRefresh.message}</p> : null}
 
       <div className="event-list" role="list" aria-label="event list">
         {!loadError && eventWindow.settled && orderedEvents.length === 0 ? (

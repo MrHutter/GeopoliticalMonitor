@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, type RefObject } from 'react';
+import { ucdpAcknowledgement, ucdpCitation, ucdpDownloadsPage, ucdpLicense } from '../sources/ucdpAttribution';
 import type { AppInfoMessage } from '../../nativeBridge';
 import { accentOptions, type Accent } from '../../types/mock';
 
@@ -126,6 +127,19 @@ export function SettingsPanel({ accent, appInfo, persistenceError, triggerRef, o
               </dl>
             </section>
           ) : null}
+
+          <section className="settings-section" aria-labelledby="data-sources-title">
+            <div className="settings-section-heading">
+              <p className="eyebrow">Attribution</p>
+              <h3 id="data-sources-title">Data sources</h3>
+            </div>
+            <dl className="settings-info settings-sources">
+              <div><dt>UCDP Candidate</dt><dd>Uppsala Conflict Data Program, monthly release ({ucdpDownloadsPage})</dd></div>
+              <div><dt>Citation</dt><dd>{ucdpCitation}</dd></div>
+              <div><dt>Funding</dt><dd>{ucdpAcknowledgement}</dd></div>
+              <div><dt>License</dt><dd>{ucdpLicense}</dd></div>
+            </dl>
+          </section>
         </div>
       </section>
     </div>

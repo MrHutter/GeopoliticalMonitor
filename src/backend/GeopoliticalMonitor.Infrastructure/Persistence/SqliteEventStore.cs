@@ -2,6 +2,7 @@ using GeopoliticalMonitor.Domain.Alerts;
 using GeopoliticalMonitor.Application.Events;
 using GeopoliticalMonitor.Application.Gdacs;
 using GeopoliticalMonitor.Application.ReliefWeb;
+using GeopoliticalMonitor.Application.Ucdp;
 using GeopoliticalMonitor.Domain;
 using GeopoliticalMonitor.Domain.Events;
 using GeopoliticalMonitor.Domain.Sources;
@@ -11,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GeopoliticalMonitor.Infrastructure.Persistence;
 
-public sealed class SqliteEventStore(Func<GeopoliticalMonitorDbContext> createDbContext) : IEventStore, IGdacsEarthquakeStore, IReliefWebSourceStore, IEventWindowStore
+public sealed class SqliteEventStore(Func<GeopoliticalMonitorDbContext> createDbContext) : IEventStore, IGdacsEarthquakeStore, IReliefWebSourceStore, IEventWindowStore, IUcdpCandidateStore
 {
     private const string WindowMatchFunction = "gm_event_window_match";
     private const string UtcTicksFunction = "gm_utc_ticks";
@@ -543,6 +544,226 @@ public sealed class SqliteEventStore(Func<GeopoliticalMonitorDbContext> createDb
             newAlerts);
     }
 
+    public async Task<int?> GetNewestUcdpReleaseAsync(CancellationToken cancellationToken = default)
+    {
+        const string provider = nameof(EventProvider.UcdpCandidate);
+        await using var dbContext = createDbContext();
+        return await dbContext.Events
+            .AsNoTracking()
+            .Where(item => item.Provider == provider && item.ProviderLastSeenRelease != null)
+            .MaxAsync(item => item.ProviderLastSeenRelease, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Imports one UCDP Candidate release in one transaction. The UCDP revision is the release ordinal stored in
+    /// ProviderLastSeenRelease (not LastUpdatedAtUtc, which holds the event's end date): a newer release updates
+    /// provider-owned fields, an equal or older release is ignored. Ownership collisions are counted and never
+    /// overwritten, absent records are never touched, and no Alert is evaluated or created.
+    /// </summary>
+    public async Task<UcdpReleasePersistenceResult> PersistUcdpCandidateReleaseAsync(
+        IReadOnlyList<UcdpCandidateImport> imports,
+        int releaseOrdinal,
+        CancellationToken cancellationToken = default)
+    {
+        if (!EventProvenance.IsValidReleaseOrdinal(releaseOrdinal))
+        {
+            throw new ArgumentOutOfRangeException(nameof(releaseOrdinal), "UCDP release ordinal is invalid.");
+        }
+
+        foreach (var import in imports)
+        {
+            ValidateUcdpImport(import, releaseOrdinal);
+        }
+
+        if (imports.Count == 0)
+        {
+            return new UcdpReleasePersistenceResult(0, 0, 0, 0, 0, 0);
+        }
+
+        const string provider = nameof(EventProvider.UcdpCandidate);
+        await using var dbContext = createDbContext();
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+
+        var eventIds = imports.Select(item => item.Event.Id.Value).Distinct().ToArray();
+        var sourceIds = imports.Select(item => item.Source.Id.Value).Distinct().ToArray();
+        var providerKeys = imports.Select(item => item.Event.ProviderKey!).Distinct().ToArray();
+        var events = await dbContext.Events
+            .Where(item => eventIds.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, cancellationToken)
+            .ConfigureAwait(false);
+        var sources = await dbContext.SourceItems
+            .Where(item => sourceIds.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, cancellationToken)
+            .ConfigureAwait(false);
+        var keyHolders = (await dbContext.Events
+                .AsNoTracking()
+                .Where(item => item.Provider == provider && item.ProviderKey != null && providerKeys.Contains(item.ProviderKey))
+                .Select(item => new { item.Id, item.ProviderKey })
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false))
+            .ToDictionary(item => item.ProviderKey!, item => item.Id, StringComparer.Ordinal);
+        var ownershipSources = await dbContext.EventSourceAssociations
+            .Where(item => eventIds.Contains(item.EventId))
+            .Join(
+                dbContext.SourceItems,
+                association => association.SourceItemId,
+                source => source.Id,
+                (association, source) => new { association.EventId, Source = source })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var associations = (await dbContext.EventSourceAssociations
+                .Where(item => eventIds.Contains(item.EventId) && sourceIds.Contains(item.SourceItemId))
+                .Select(item => new { item.EventId, item.SourceItemId })
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false))
+            .Select(item => (item.EventId, item.SourceItemId))
+            .ToHashSet();
+        var providerOwnedEvents = ownershipSources
+            .Where(item => events.TryGetValue(item.EventId, out var owner) && IsUcdpOwnedEvent(owner, item.Source))
+            .Select(item => item.EventId)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var newEvents = 0;
+        var updatedEvents = 0;
+        var newSources = 0;
+        var updatedSources = 0;
+        var unchangedRecords = 0;
+        var conflicts = 0;
+
+        foreach (var import in imports)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var eventId = import.Event.Id.Value;
+            var sourceId = import.Source.Id.Value;
+            var providerKey = import.Event.ProviderKey!;
+            events.TryGetValue(eventId, out var eventEntity);
+            sources.TryGetValue(sourceId, out var sourceEntity);
+
+            // The (Provider, ProviderKey) unique index stays authoritative: another Event already holding this key,
+            // a UCDP-shaped Event that is not provider-owned, or an unexpected SourceItem is an ownership collision.
+            if ((keyHolders.TryGetValue(providerKey, out var holderId) && !string.Equals(holderId, eventId, StringComparison.Ordinal))
+                || (eventEntity is not null && !providerOwnedEvents.Contains(eventId))
+                || (sourceEntity is not null && !IsExpectedUcdpSource(sourceEntity, import.Source)))
+            {
+                conflicts++;
+                continue;
+            }
+
+            var changed = false;
+            if (eventEntity is null)
+            {
+                eventEntity = ToEntity(import.Event);
+                dbContext.Events.Add(eventEntity);
+                events.Add(eventId, eventEntity);
+                keyHolders[providerKey] = eventId;
+                providerOwnedEvents.Add(eventId);
+                newEvents++;
+                changed = true;
+            }
+            else if (releaseOrdinal > (eventEntity.ProviderLastSeenRelease ?? 0))
+            {
+                ApplyUcdpEventUpdate(eventEntity, import.Event);
+                updatedEvents++;
+                changed = true;
+            }
+
+            if (sourceEntity is null)
+            {
+                sourceEntity = ToEntity(import.Source);
+                dbContext.SourceItems.Add(sourceEntity);
+                sources.Add(sourceId, sourceEntity);
+                newSources++;
+                changed = true;
+            }
+            else if (import.Source.PublishedAtUtc > sourceEntity.PublishedAtUtc)
+            {
+                ApplyProviderSourceUpdate(sourceEntity, import.Source);
+                updatedSources++;
+                changed = true;
+            }
+
+            if (associations.Add((eventId, sourceId)))
+            {
+                dbContext.EventSourceAssociations.Add(new EventSourceAssociationEntity
+                {
+                    EventId = eventId,
+                    SourceItemId = sourceId,
+                    CreatedAtUtc = import.Source.CreatedAtUtc,
+                });
+                changed = true;
+            }
+
+            if (!changed)
+            {
+                unchangedRecords++;
+            }
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return new UcdpReleasePersistenceResult(newEvents, updatedEvents, newSources, updatedSources, unchangedRecords, conflicts);
+    }
+
+    private static void ValidateUcdpImport(UcdpCandidateImport import, int releaseOrdinal)
+    {
+        var providerKey = import.Event.ProviderKey;
+        if (import.Event.Provider != EventProvider.UcdpCandidate
+            || providerKey is null
+            || import.Event.ProviderLastSeenRelease != releaseOrdinal
+            || import.Event.Id.Value != $"{UcdpCandidateNormalizer.EventIdPrefix}{providerKey}"
+            || import.Source.Id.Value != $"{UcdpCandidateNormalizer.SourceIdPrefix}{providerKey}"
+            || import.Source.ExternalId != $"{UcdpCandidateNormalizer.ExternalIdPrefix}{providerKey}"
+            || import.Source.SourceType != SourceType.DatasetRecord
+            || !IsOfficialUcdpUrl(import.Source.Url?.AbsoluteUri))
+        {
+            throw new ArgumentException("UCDP import does not have a consistent provider identity.", nameof(import));
+        }
+    }
+
+    private static bool IsUcdpOwnedEvent(EventEntity eventEntity, SourceItemEntity source)
+    {
+        return eventEntity.Provider == nameof(EventProvider.UcdpCandidate)
+            && eventEntity.ProviderKey is { } providerKey
+            && eventEntity.Id == $"{UcdpCandidateNormalizer.EventIdPrefix}{providerKey}"
+            && source.SourceType == SourceType.DatasetRecord.ToString()
+            && source.ExternalId == $"{UcdpCandidateNormalizer.ExternalIdPrefix}{providerKey}"
+            && IsOfficialUcdpUrl(source.Url);
+    }
+
+    private static bool IsExpectedUcdpSource(SourceItemEntity source, SourceItem incoming)
+    {
+        return source.SourceType == SourceType.DatasetRecord.ToString()
+            && source.ExternalId == incoming.ExternalId
+            && IsOfficialUcdpUrl(source.Url);
+    }
+
+    private static bool IsOfficialUcdpUrl(string? value)
+    {
+        return Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            && uri.Scheme == Uri.UriSchemeHttps
+            && string.Equals(uri.Host, "ucdp.uu.se", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(uri.AbsolutePath, "/downloads/", StringComparison.Ordinal);
+    }
+
+    /// <summary>UCDP-owned fields only; Status, Provider, ProviderKey, CreatedAtUtc and user data are never written.</summary>
+    private static void ApplyUcdpEventUpdate(EventEntity existing, Event incoming)
+    {
+        existing.Title = incoming.Title;
+        existing.Summary = incoming.Summary;
+        existing.Category = incoming.Category.ToString();
+        existing.StartedAtUtc = incoming.StartedAtUtc;
+        existing.LastUpdatedAtUtc = incoming.LastUpdatedAtUtc;
+        existing.Latitude = incoming.Location.Latitude;
+        existing.Longitude = incoming.Location.Longitude;
+        existing.LocationDisplayName = incoming.Location.DisplayName;
+        existing.CountryCode = incoming.Location.CountryCode;
+        existing.Region = incoming.Location.Region;
+        existing.UpdatedAtUtc = incoming.UpdatedAtUtc;
+        existing.ProviderLastSeenRelease = incoming.ProviderLastSeenRelease;
+        ApplySeverity(existing, incoming);
+    }
+
     private static UpdateDecision DecideEventUpdate(EventEntity? existing, Event incoming)
     {
         if (existing is null)
@@ -731,7 +952,7 @@ public sealed class SqliteEventStore(Func<GeopoliticalMonitorDbContext> createDb
             entity.CreatedAtUtc,
             entity.UpdatedAtUtc,
             new EventSeverityAssessment(Enum.Parse<EventSeverity>(entity.Severity), entity.SeverityRule, entity.SeverityInputs),
-            new EventProvenance(Enum.Parse<EventProvider>(entity.Provider), entity.ProviderKey));
+            new EventProvenance(Enum.Parse<EventProvider>(entity.Provider), entity.ProviderKey, entity.ProviderLastSeenRelease));
     }
 
     private static SourceItem ToDomain(SourceItemEntity entity)
@@ -780,6 +1001,7 @@ public sealed class SqliteEventStore(Func<GeopoliticalMonitorDbContext> createDb
             SeverityInputs = geopoliticalEvent.SeverityInputs,
             Provider = geopoliticalEvent.Provider.ToString(),
             ProviderKey = geopoliticalEvent.ProviderKey,
+            ProviderLastSeenRelease = geopoliticalEvent.ProviderLastSeenRelease,
         };
     }
 

@@ -38,6 +38,8 @@ import {
   isEventsListResultMessage,
   isGdacsRefreshErrorMessage,
   isGdacsRefreshResultMessage,
+  isUcdpRefreshErrorMessage,
+  isUcdpRefreshResultMessage,
   isFirmsRefreshErrorMessage,
   isFirmsRefreshResultMessage,
   isEventWatchlistMembershipsResultMessage,
@@ -67,6 +69,7 @@ import {
   requestEventsList,
   requestEventWatchlistMemberships,
   requestGdacsRefresh,
+  requestUcdpRefresh,
   requestProviderRefreshStatus,
   requestFirmsRefresh,
   requestWatchlistMembers,
@@ -77,7 +80,7 @@ import {
   setAlertRuleEnabled,
   setWatchlistMembership,
 } from './nativeBridge';
-import { NativeEvent, NativeSourceItem } from './types/events';
+import { formatMonthKey, NativeEvent, NativeSourceItem } from './types/events';
 import { MapLayer } from './types/mock';
 
 const EventLoadFailureMessage = 'Unable to load local event data.';
@@ -136,6 +139,7 @@ export function App() {
   const [eventSourcesById, setEventSourcesById] = useState<Map<string, NativeSourceItem[]>>(() => new Map());
   const [eventLoadError, setEventLoadError] = useState<string | null>(null);
   const [gdacsRefresh, setGdacsRefresh] = useState<{ kind: 'idle' | 'pending' | 'success' | 'error'; message?: string }>({ kind: 'idle' });
+  const [ucdpRefresh, setUcdpRefresh] = useState<{ kind: 'idle' | 'pending' | 'success' | 'error'; message?: string }>({ kind: 'idle' });
   const [providerStatuses, setProviderStatuses] = useState<ProviderRefreshStatus[]>([]);
   const providerLastSuccessRef = useRef<Map<string, string | null> | null>(null);
   const eventsLoadedRef = useRef(false);
@@ -448,6 +452,30 @@ export function App() {
 
       if (isGdacsRefreshErrorMessage(event.data)) {
         setGdacsRefresh({ kind: 'error', message: event.data.payload.message });
+        return;
+      }
+
+      // The Event list reload after a UCDP import comes from the provider status push (newer last-success time),
+      // which keeps selection, filters and open Details; this handler only reports the outcome.
+      if (isUcdpRefreshResultMessage(event.data)) {
+        const result = event.data.payload;
+        if (result.status === 'AlreadyInProgress') {
+          setUcdpRefresh({ kind: 'pending', message: 'A UCDP check is already in progress.' });
+          return;
+        }
+
+        const through = result.newestRelease ? ` Data through ${formatMonthKey(result.newestRelease)}.` : '';
+        setUcdpRefresh({
+          kind: 'success',
+          message: result.status === 'NoNewRelease'
+            ? `No new UCDP release.${through}`
+            : `UCDP import complete: ${result.newEvents} new, ${result.updatedEvents} updated, ${result.unchangedRecords} unchanged, ${result.conflicts} conflicts.${through}`,
+        });
+        return;
+      }
+
+      if (isUcdpRefreshErrorMessage(event.data)) {
+        setUcdpRefresh({ kind: 'error', message: event.data.payload.message });
         return;
       }
 
@@ -794,6 +822,14 @@ export function App() {
     }
   };
 
+  const refreshUcdp = () => {
+    if (ucdpRefresh.kind === 'pending') return;
+    setUcdpRefresh({ kind: 'pending', message: 'Checking for a new UCDP Candidate release...' });
+    if (!requestUcdpRefresh()) {
+      setUcdpRefresh({ kind: 'error', message: 'Desktop UCDP refresh is unavailable.' });
+    }
+  };
+
   const refreshFirms = () => {
     if (firmsStatus.kind === 'refreshing') return;
     if (!firmsViewport) {
@@ -841,6 +877,8 @@ export function App() {
           gdacsRefresh={gdacsRefresh}
           providerStatuses={providerStatuses}
           onRefreshGdacs={refreshGdacs}
+          ucdpRefresh={ucdpRefresh}
+          onRefreshUcdp={refreshUcdp}
           onSelectEvent={setSelectedEventId}
           onSelectWatchlist={selectWatchlist}
           onMinimumSeverityChange={setMinimumSeverity}

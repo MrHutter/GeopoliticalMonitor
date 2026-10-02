@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { explainSeverity, formatCategory, formatCoordinates, formatEventTime, formatProviderLabel, formatSourceType, NativeEvent, NativeSourceItem } from '../../types/events';
+import { explainSeverity, formatCategory, formatCoordinates, formatEventTime, formatProviderLabel, formatReleaseOrdinal, formatSourceType, NativeEvent, NativeSourceItem } from '../../types/events';
+import { ucdpAcknowledgement, ucdpCaveat, ucdpCitation } from '../sources/ucdpAttribution';
 import { MockXPost } from '../../types/mock';
 import type { WatchlistSummary } from '../../nativeBridge';
 import { ReliefWebDiscovery, type ReliefWebDiscoveryState } from './ReliefWebDiscovery';
@@ -29,6 +30,22 @@ function SeverityBlock({ event }: { event: NativeEvent }) {
       {explanation.derivedFromProvider
         ? <p className="severity-note">Severity is derived automatically from provider data and is not an independent assessment.</p>
         : null}
+    </section>
+  );
+}
+
+function UcdpProvenanceBlock({ event }: { event: NativeEvent }) {
+  return (
+    <section className="severity-block provider-provenance" aria-label="UCDP Candidate provenance">
+      <div className="severity-block-heading">
+        <span className="eyebrow">Source</span>
+        <span className="event-provider-label">UCDP Candidate</span>
+        {event.status === 'Unverified' ? <span className="event-badge unverified-badge">Unverified</span> : null}
+      </div>
+      <p className="provider-caveat">{ucdpCaveat}</p>
+      {event.providerLastSeenRelease ? <p>Last seen in release {formatReleaseOrdinal(event.providerLastSeenRelease)}</p> : null}
+      <p className="severity-note">Citation: {ucdpCitation}</p>
+      <p className="severity-note">{ucdpAcknowledgement}</p>
     </section>
   );
 }
@@ -138,6 +155,7 @@ export function EventDetailsPanel({ event, sources, activeTab, relatedPosts, att
               </div>
             </div>
             <SeverityBlock event={event} />
+            {event.provider === 'UcdpCandidate' ? <UcdpProvenanceBlock event={event} /> : null}
           </>
         )}
 

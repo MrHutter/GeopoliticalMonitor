@@ -61,7 +61,7 @@ public sealed class ProviderRefreshScheduler
             startedAtUtc = now;
             foreach (var entry in entries.Where(item => !item.Unconfigured))
             {
-                entry.NextDueAtUtc ??= now + FirstRunDelay;
+                entry.NextDueAtUtc ??= now + entry.Provider.FirstRunDelay;
             }
         }
 
@@ -252,7 +252,7 @@ public sealed class ProviderRefreshScheduler
                 entry.LastSuccessAtUtc = now;
                 entry.NextDueAtUtc = now + entry.Provider.Interval;
                 entry.LastOutcome = ProviderRefreshOutcomeKind.Succeeded;
-                entry.Message = ProviderStatusMessage.UpToDate;
+                entry.Message = outcome.Message == ProviderStatusMessage.None ? ProviderStatusMessage.UpToDate : outcome.Message;
                 entry.NewAlerts = Math.Max(0, outcome.NewAlerts);
                 break;
             case ProviderRefreshOutcomeKind.Failed:
@@ -278,13 +278,14 @@ public sealed class ProviderRefreshScheduler
 
     private ProviderRefreshStatus ToStatus(Entry entry, DateTimeOffset now)
     {
+        var detail = entry.Provider.GetStatusDetail(now) ?? ProviderStatusDetail.None;
         var state = entry.Unconfigured
             ? ProviderRefreshState.Unconfigured
             : entry.InFlight
                 ? ProviderRefreshState.Refreshing
                 : entry.LastOutcome == ProviderRefreshOutcomeKind.Failed
                     ? ProviderRefreshState.Failed
-                    : IsStale(entry, now) ? ProviderRefreshState.Stale : ProviderRefreshState.Idle;
+                    : IsStale(entry, now) || detail.DataStale ? ProviderRefreshState.Stale : ProviderRefreshState.Idle;
 
         return new ProviderRefreshStatus(
             entry.Provider.Id,
@@ -293,7 +294,9 @@ public sealed class ProviderRefreshScheduler
             entry.LastSuccessAtUtc,
             entry.Unconfigured ? null : entry.NextDueAtUtc,
             entry.Message,
-            entry.NewAlerts);
+            entry.NewAlerts,
+            detail.CadenceLabel,
+            detail.DataThrough);
     }
 
     private bool IsStale(Entry entry, DateTimeOffset now)

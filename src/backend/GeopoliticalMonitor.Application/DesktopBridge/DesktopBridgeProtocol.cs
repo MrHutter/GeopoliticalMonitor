@@ -4,6 +4,7 @@ using GeopoliticalMonitor.Application.Alerts;
 using GeopoliticalMonitor.Application.Events;
 using GeopoliticalMonitor.Application.Firms;
 using GeopoliticalMonitor.Application.Gdacs;
+using GeopoliticalMonitor.Application.Ucdp;
 using GeopoliticalMonitor.Application.Preferences;
 using GeopoliticalMonitor.Application.Refresh;
 using GeopoliticalMonitor.Application.ReliefWeb;
@@ -41,6 +42,9 @@ public static class DesktopBridgeProtocol
     public const string GdacsRefreshMessageType = "providers.gdacs.refresh";
     public const string GdacsRefreshResultMessageType = "providers.gdacs.refresh.result";
     public const string GdacsRefreshErrorMessageType = "providers.gdacs.refresh.error";
+    public const string UcdpRefreshMessageType = "providers.ucdp.refresh";
+    public const string UcdpRefreshResultMessageType = "providers.ucdp.refresh.result";
+    public const string UcdpRefreshErrorMessageType = "providers.ucdp.refresh.error";
     public const string ProvidersRefreshStatusMessageType = "providers.refresh.status";
     public const string ProvidersRefreshStatusGetMessageType = "providers.refresh.status.get";
     public const string FirmsRefreshMessageType = "providers.firms.refresh";
@@ -141,6 +145,7 @@ public static class DesktopBridgeProtocol
                 AppReadyMessageType => TryCreateEmptyRequest(AppReadyMessageType, payload, "app.ready", out request, out error),
                 EventsListMessageType => TryCreateEventsListRequest(payload, out request, out error),
                 GdacsRefreshMessageType => TryCreateEmptyRequest(GdacsRefreshMessageType, payload, "providers.gdacs.refresh", out request, out error),
+                UcdpRefreshMessageType => TryCreateEmptyRequest(UcdpRefreshMessageType, payload, "providers.ucdp.refresh", out request, out error),
                 ProvidersRefreshStatusGetMessageType => TryCreateEmptyRequest(ProvidersRefreshStatusGetMessageType, payload, "providers.refresh.status.get", out request, out error),
                 FirmsRefreshMessageType => TryCreateFirmsRefreshRequest(payload, out request, out error),
                 WatchlistsListMessageType => TryCreateEmptyRequest(WatchlistsListMessageType, payload, "watchlists.list", out request, out error),
@@ -237,19 +242,37 @@ public static class DesktopBridgeProtocol
             type = ProvidersRefreshStatusMessageType,
             payload = new
             {
-                providers = statuses.Select(status => new
-                {
-                    provider = status.Provider.ToString(),
-                    displayName = status.DisplayName,
-                    state = status.State.ToString(),
-                    lastSuccessAtUtc = status.LastSuccessAtUtc,
-                    nextRefreshAtUtc = status.NextRefreshAtUtc,
-                    message = ProviderStatusMessages.ToText(status.Message),
-                    newAlerts = status.NewAlerts,
-                }).ToArray(),
+                providers = statuses.Select(CreateProviderStatusPayload).ToArray(),
             },
         };
         return JsonSerializer.Serialize(response, JsonSerializerOptions.Web);
+    }
+
+    private static Dictionary<string, object?> CreateProviderStatusPayload(ProviderRefreshStatus status)
+    {
+        var payload = new Dictionary<string, object?>
+        {
+            ["provider"] = status.Provider.ToString(),
+            ["displayName"] = status.DisplayName,
+            ["state"] = status.State.ToString(),
+            ["lastSuccessAtUtc"] = status.LastSuccessAtUtc,
+            ["nextRefreshAtUtc"] = status.NextRefreshAtUtc,
+            ["message"] = ProviderStatusMessages.ToText(status.Message),
+            ["newAlerts"] = status.NewAlerts,
+        };
+
+        // Optional fields appear only for providers that publish them (UCDP), so other payloads stay unchanged.
+        if (status.CadenceLabel is not null)
+        {
+            payload["cadenceLabel"] = status.CadenceLabel;
+        }
+
+        if (status.DataThrough is not null)
+        {
+            payload["dataThrough"] = status.DataThrough;
+        }
+
+        return payload;
     }
 
     public static string CreateEventsListResultResponseJson(IReadOnlyList<EventDto> events)
@@ -401,6 +424,41 @@ public static class DesktopBridgeProtocol
         var response = new
         {
             type = GdacsRefreshErrorMessageType,
+            payload = new { status = status.ToString(), message },
+        };
+        return JsonSerializer.Serialize(response, JsonSerializerOptions.Web);
+    }
+
+    public static string CreateUcdpRefreshResultResponseJson(UcdpRefreshResult result)
+    {
+        var response = new
+        {
+            type = UcdpRefreshResultMessageType,
+            payload = new
+            {
+                status = result.Status.ToString(),
+                newestRelease = result.NewestRelease is { } ordinal && UcdpRelease.TryFromOrdinal(ordinal, out var release) ? release.MonthKey : null,
+                result.ReleasesImported,
+                result.NewEvents,
+                result.UpdatedEvents,
+                result.UnchangedRecords,
+                result.Conflicts,
+                result.SkippedMalformedRecords,
+                result.SkippedInvalidCoordinates,
+                result.SkippedImpreciseLocation,
+                result.SkippedZeroFatalities,
+                result.SkippedOutsideWindow,
+                result.DroppedByCap,
+            },
+        };
+        return JsonSerializer.Serialize(response, JsonSerializerOptions.Web);
+    }
+
+    public static string CreateUcdpRefreshErrorResponseJson(UcdpRefreshStatus status, string message)
+    {
+        var response = new
+        {
+            type = UcdpRefreshErrorMessageType,
             payload = new { status = status.ToString(), message },
         };
         return JsonSerializer.Serialize(response, JsonSerializerOptions.Web);

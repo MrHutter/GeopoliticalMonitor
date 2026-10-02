@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using GeopoliticalMonitor.Domain.Events;
 using GeopoliticalMonitor.Domain.Sources;
 
@@ -20,7 +21,8 @@ public sealed record EventDto(
     string Severity,
     string SeverityRule,
     string SeverityInputs,
-    string Provider);
+    string Provider,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? ProviderLastSeenRelease = null);
 
 public sealed record SourceItemDto(
     string Id,
@@ -54,7 +56,8 @@ public static class EventDtoMapper
             geopoliticalEvent.Severity.ToString(),
             geopoliticalEvent.SeverityRule,
             geopoliticalEvent.SeverityInputs,
-            geopoliticalEvent.Provider.ToString());
+            geopoliticalEvent.Provider.ToString(),
+            geopoliticalEvent.ProviderLastSeenRelease);
     }
 
     public static SourceItemDto ToDto(SourceItem sourceItem)

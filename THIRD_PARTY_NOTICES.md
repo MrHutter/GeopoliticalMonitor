@@ -122,3 +122,11 @@ Direct and transitive packages resolved for the projects under `src/` and `tests
 | Natural Earth Admin 0 country boundaries and land, 1:110m | Distributed via world-atlas 2.0.2 | Public domain |
 
 See `docs/design/local-basemap-data.md` for provenance details.
+
+## Datasets
+
+| Dataset | Use | License |
+| :- | :- | :- |
+| UCDP Candidate Events Dataset, monthly releases (Uppsala Conflict Data Program) | Downloaded at runtime from `https://ucdp.uu.se/downloads/` while the app is open; not bundled | CC BY 4.0 |
+
+UCDP citation: Hegre, Håvard, Mihai Croicu, Kristine Eck, and Stina Högbladh (July 2020). Introducing the UCDP Candidate Events Dataset. Research & Politics. doi:10.1177/2053168020935257. UCDP is part of and funded by DEMSCORE, national research infrastructure grant 2021-00162 from the Swedish Research Council.

@@ -21,6 +21,7 @@ public sealed class EventEntity
     public string SeverityInputs { get; set; } = string.Empty;
     public string Provider { get; set; } = string.Empty;
     public string? ProviderKey { get; set; }
+    public int? ProviderLastSeenRelease { get; set; }
     public ICollection<EventSourceAssociationEntity> SourceAssociations { get; } = new List<EventSourceAssociationEntity>();
     public ICollection<WatchlistEventEntity> WatchlistMemberships { get; } = new List<WatchlistEventEntity>();
     public ICollection<AlertOccurrenceEntity> AlertOccurrences { get; } = new List<AlertOccurrenceEntity>();

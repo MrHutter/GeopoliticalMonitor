@@ -153,6 +153,9 @@ namespace GeopoliticalMonitor.Infrastructure.Persistence.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("ProviderLastSeenRelease")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Region")
                         .HasMaxLength(128)
                         .HasColumnType("TEXT");

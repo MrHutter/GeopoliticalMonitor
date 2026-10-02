@@ -11,7 +11,8 @@ Values marked **PROPOSED** are approved as starting values and will be revisited
 | Slice 1: Severity field and display | Implemented | `46db700` |
 | Slice 2: Shared refresh scheduler, with GDACS on the timer | Implemented | `0dba536` |
 | Slice 2B: Event list windowing | Implemented | `ee5d89d` |
-| Slices 3 to 7 | Not started | — |
+| Slice 3: UCDP Candidate provider | Implemented, pending owner acceptance | — |
+| Slices 4 to 7 | Not started | — |
 
 The status line above ("implementation not started") and the findings in section 2 describe the baseline. Line numbers in section 2 refer to `e30d955` and have since moved, so use the file names. **As built** notes mark where the implementation differs from the text. Owner decisions, thresholds and later slices are unchanged.
 
@@ -596,6 +597,18 @@ Required before Slice 3. The first UCDP import can create up to 5,000 Events, bu
 - **Non-goals:** the API route unless the CSV route fails; deduplication.
 - **Tests:** a parser fixture with representative rows (including `Check` statuses, `where_prec` 5–7 and `best` = 0); idempotent re-import of the same release; a later release updates the Event; an earlier release is ignored; ownership collision; size and row caps; release-name discovery.
 - **Manual acceptance:** UCDP Events appear after a few minutes, marked Unverified and "UCDP Candidate"; Details shows fatalities, code status, citation and severity explanation; the status strip labels UCDP as "monthly release"; a restart re-imports nothing.
+
+**As built (Slice 3, pending owner acceptance):**
+
+- Verified file facts (owner probes, 2026-10-02): `https://ucdp.uu.se/downloads/candidateged/GEDEvent_v26_0_8.csv` returns 200 over HTTPS with no token, login or redirect (`text/csv`, about 1.4 MB); `GEDEvent_v26_0_9.csv` returns 404 until published. Monthly names are `GEDEvent_v{YY}_0_{M}.csv` with no zero padding on the month; the half-year release uses another pattern and is not used. The header has 49 columns, starting `id,relid,year,active_year,code_status,type_of_violence` and ending `best,high,low,gwnoa,gwnob`. A release appears about 20 days after its month ends, so the newest events are 20 to 50 days old.
+- D1: `LastUpdatedAtUtc` for a UCDP Event is the end of its `date_end` day (UTC), not the release timestamp, so a release does not make thousands of Events tie as newest in the 2,000-Event window. The release ordinal (year times 100 plus month) is stored in the nullable `ProviderLastSeenRelease` (migration `AddProviderLastSeenRelease`) and is the UCDP revision: a greater ordinal updates provider-owned fields (title, summary, category, start, last update, location, severity, release); an equal or lower ordinal is ignored, with no equal-release Conflict. This runs in a separate UCDP store method; the GDACS method and its stale, Conflict and ownership rules are unchanged.
+- D2: CSV route only. No UCDP API route and no credential code.
+- D3: `source_headline`, `source_original`, `source_article`, `source_office`, `source_date` and `geom_wkt` are never read or stored.
+- D4: a typed fieldless `providers.ucdp.refresh` request with a typed result, routed through the scheduler's manual tracking to the same `UcdpRefreshService` instance, so the gate allows one in-flight check.
+- Release discovery: the first import probes up to four names counting down from the current month, then also imports the release before the newest found. Later checks probe only the next release after the newest imported one (maximum stored `ProviderLastSeenRelease`, plus an in-memory session value so a zero-row release is not downloaded again). Addition: if that next release is missing although it is two or more months old, the four-name probe runs again so the provider cannot stall behind a removed monthly file. All releases are fetched before anything is persisted; one transaction per release, oldest first.
+- The status push for UCDP adds the optional fields `cadenceLabel` (`monthly release`) and `dataThrough` (`yyyy-MM`). `No new release` is a success. UCDP is stale when the newest imported release was extracted (the 20th of the following month) more than 45 days ago, or by the shared rule of no success for three intervals.
+- The parser rejects more than 20,000 rows as an invalid response rather than importing part of a release. Rows longer than 65,536 characters are skipped. Location country code stays empty, because UCDP `country_id` is a Gleditsch-Ward number.
+- Deferred: the Details note "not present in the latest UCDP Candidate release" (section 6.2).
 
 ### Slice 4: Demo data removal
 

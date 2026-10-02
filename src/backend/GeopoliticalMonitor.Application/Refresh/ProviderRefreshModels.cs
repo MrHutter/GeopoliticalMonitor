@@ -4,6 +4,7 @@ namespace GeopoliticalMonitor.Application.Refresh;
 public enum ScheduledProviderId
 {
     Gdacs,
+    UcdpCandidate,
 }
 
 public enum ProviderRefreshState
@@ -34,6 +35,7 @@ public enum ProviderStatusMessage
     InvalidResponse,
     PersistenceFailure,
     NotConfigured,
+    NoNewRelease,
 }
 
 public sealed record ProviderRefreshOutcome(
@@ -42,6 +44,7 @@ public sealed record ProviderRefreshOutcome(
     int NewAlerts = 0)
 {
     public static ProviderRefreshOutcome Succeeded(int newAlerts) => new(ProviderRefreshOutcomeKind.Succeeded, ProviderStatusMessage.UpToDate, newAlerts);
+    public static ProviderRefreshOutcome SucceededWith(ProviderStatusMessage message) => new(ProviderRefreshOutcomeKind.Succeeded, message);
     public static ProviderRefreshOutcome Failed(ProviderStatusMessage message) => new(ProviderRefreshOutcomeKind.Failed, message);
     public static ProviderRefreshOutcome AlreadyInProgress { get; } = new(ProviderRefreshOutcomeKind.AlreadyInProgress);
     public static ProviderRefreshOutcome Cancelled { get; } = new(ProviderRefreshOutcomeKind.Cancelled);
@@ -55,7 +58,15 @@ public sealed record ProviderRefreshStatus(
     DateTimeOffset? LastSuccessAtUtc,
     DateTimeOffset? NextRefreshAtUtc,
     ProviderStatusMessage Message,
-    int NewAlerts);
+    int NewAlerts,
+    string? CadenceLabel = null,
+    string? DataThrough = null);
+
+/// <summary>Optional provider-specific status: a fixed cadence label, the month the newest data runs through (yyyy-MM), and a data-age stale flag.</summary>
+public sealed record ProviderStatusDetail(string? CadenceLabel, string? DataThrough, bool DataStale)
+{
+    public static ProviderStatusDetail None { get; } = new(null, null, false);
+}
 
 /// <summary>A provider refresh the scheduler may run. Implementations wrap one existing provider service.</summary>
 public interface IScheduledProvider
@@ -63,7 +74,14 @@ public interface IScheduledProvider
     ScheduledProviderId Id { get; }
     string DisplayName { get; }
     TimeSpan Interval { get; }
+
+    /// <summary>Delay from the first app.ready to the first timer refresh.</summary>
+    TimeSpan FirstRunDelay => ProviderRefreshScheduler.FirstRunDelay;
+
     Task<ProviderRefreshOutcome> RefreshAsync(CancellationToken cancellationToken);
+
+    /// <summary>Called under the scheduler lock; must be fast and must not block.</summary>
+    ProviderStatusDetail GetStatusDetail(DateTimeOffset now) => ProviderStatusDetail.None;
 }
 
 public static class ProviderStatusMessages
@@ -76,6 +94,7 @@ public static class ProviderStatusMessages
         ProviderStatusMessage.InvalidResponse => "Unsupported provider response. No provider data was changed.",
         ProviderStatusMessage.PersistenceFailure => "Provider data could not be saved. Existing events were preserved.",
         ProviderStatusMessage.NotConfigured => "Not configured.",
+        ProviderStatusMessage.NoNewRelease => "No new release",
         _ => null,
     };
 }

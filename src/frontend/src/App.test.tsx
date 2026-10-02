@@ -784,6 +784,77 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /Commercial shipping disruption/i })).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('shows the UCDP row, runs the manual UCDP check and reloads after an import without resetting the view', async () => {
+    const { postMessage, emit } = renderWithWebView();
+    await latestMap();
+    emitAppInfo(emit);
+    emit({ type: 'alerts.summary.result', payload: { unreadCount: 0 } });
+    const ucdpEvent: NativeEvent = {
+      ...nativeEvents[0],
+      id: 'evt-ucdp-cand-900001',
+      title: 'State-based violence: Northtown',
+      category: 'MilitaryConflict',
+      status: 'Unverified',
+      severity: 'High',
+      severityRule: 'ucdp-candidate-v1',
+      severityInputs: 'best=12; low=10; high=15',
+      provider: 'UcdpCandidate',
+      providerLastSeenRelease: 202608,
+    };
+    const statuses = (ucdp: Record<string, unknown>) => ({
+      type: 'providers.refresh.status',
+      payload: {
+        providers: [
+          providerStatus({ state: 'Idle' }).payload.providers[0],
+          { provider: 'UcdpCandidate', displayName: 'UCDP Candidate', state: 'Idle', lastSuccessAtUtc: null, nextRefreshAtUtc: null, message: null, newAlerts: 0, cadenceLabel: 'monthly release', ...ucdp },
+        ],
+      },
+    });
+    emit(statuses({}));
+    emit({ type: 'events.list.result', payload: { events: [...nativeEvents, ucdpEvent] } });
+    const ucdpRow = () => screen.getByLabelText('UCDP Candidate refresh status');
+    await waitFor(() => expect(ucdpRow()).toHaveTextContent('monthly release, no data yet'));
+
+    fireEvent.click(await screen.findByRole('button', { name: /Commercial shipping disruption/i }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Sources' }));
+    fireEvent.change(screen.getByPlaceholderText('Search events, locations, keywords...'), { target: { value: 'demo' } });
+    fireEvent.change(screen.getByLabelText('Minimum severity'), { target: { value: 'Medium' } });
+    fireEvent.click(screen.getByRole('button', { name: '30D' }));
+    const eventListRequests = () => postMessage.mock.calls.filter(([message]) => (message as { type?: string }).type === 'events.list').length;
+
+    fireEvent.click(within(ucdpRow()).getByRole('button', { name: 'Refresh UCDP' }));
+    expect(postMessage).toHaveBeenCalledWith({ type: 'providers.ucdp.refresh', payload: {} });
+    expect(within(ucdpRow()).getByRole('button', { name: 'Refreshing...' })).toBeDisabled();
+    emit(statuses({ state: 'Refreshing' }));
+    await waitFor(() => expect(ucdpRow()).toHaveTextContent('Refreshing…'));
+    const listRequestsBefore = eventListRequests();
+
+    emit(statuses({ state: 'Idle', lastSuccessAtUtc: new Date().toISOString(), nextRefreshAtUtc: new Date(Date.now() + 6 * 3_600_000).toISOString(), message: 'Up to date.', dataThrough: '2026-08' }));
+    emit({
+      type: 'providers.ucdp.refresh.result',
+      payload: {
+        status: 'Succeeded', newestRelease: '2026-08', releasesImported: 2, newEvents: 3, updatedEvents: 1, unchangedRecords: 0, conflicts: 0,
+        skippedMalformedRecords: 0, skippedInvalidCoordinates: 0, skippedImpreciseLocation: 4, skippedZeroFatalities: 5, skippedOutsideWindow: 0, droppedByCap: 0,
+      },
+    });
+
+    await waitFor(() => expect(eventListRequests()).toBe(listRequestsBefore + 1));
+    expect(await screen.findByText('UCDP import complete: 3 new, 1 updated, 0 unchanged, 0 conflicts. Data through August 2026.')).toBeInTheDocument();
+    expect(ucdpRow()).toHaveTextContent('monthly release, data through August 2026');
+    expect(ucdpRow()).toHaveTextContent(/Next check \d/);
+    expect(within(ucdpRow()).getByRole('button', { name: 'Refresh UCDP' })).toBeEnabled();
+    expect(screen.getByRole('heading', { name: nativeEvents[1].title })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Sources' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByPlaceholderText('Search events, locations, keywords...')).toHaveValue('demo');
+    expect(screen.getByLabelText('Minimum severity')).toHaveValue('Medium');
+    expect(screen.getByRole('button', { name: '30D' })).toHaveClass('is-active');
+    expect(screen.getByRole('button', { name: /Commercial shipping disruption/i })).toHaveAttribute('aria-pressed', 'true');
+
+    emit({ type: 'providers.ucdp.refresh.error', payload: { status: 'TimedOut', message: 'The UCDP request timed out. Existing events were preserved.' } });
+    expect(await screen.findByRole('alert')).toHaveTextContent('The UCDP request timed out. Existing events were preserved.');
+    expect(screen.getByRole('group', { name: 'Provider refresh status' }).textContent?.toLowerCase()).not.toContain('hybrid');
+  });
+
   it('does not select an Event on a timer-driven reload when the selection was cleared', async () => {
     const { emit } = renderWithWebView();
     await latestMap();
