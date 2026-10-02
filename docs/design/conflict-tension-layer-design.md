@@ -1,6 +1,6 @@
 # Conflict and Tension Reference Layer Design
 
-Status: design, decided with the owner, not implemented. Written 2026-10-02.
+Status: design, decided with the owner; implemented as drafts in `1eaee7e` and updated in `9476579` (see sections 10 and 11); every entry awaits owner review. Written 2026-10-02.
 
 This document records the owner's decisions for a map reference layer that shows where armed conflicts and elevated tensions are, as assessed by the owner. Entries are reference material, not Events.
 
@@ -83,7 +83,7 @@ Every label, legend line and popup uses a plain description of what happened. On
 
 The Aircraft, Internet outages and Naval toggles are hidden behind `showPlaceholderMapLayers` (false) and are not part of this layer.
 
-## 10. As built (2026-10-02, pending owner acceptance)
+## 10. As built (2026-10-02, `1eaee7e`)
 
 **Data file:** `src/frontend/src/data/conflictTensionLayer.json`, bundled with the frontend. Top level: `schemaVersion` (1), `fileVersion` (1), `updated` (ISO date) and `entries`. Each entry has the fields in section 1; `parties` is an array of plain strings, `basis` is one plain sentence without URLs, and `asOf` is an ISO date. `armed_conflict` geometry is a GeoJSON Polygon (counter-clockwise exterior ring, `[lon, lat]` rounded to 2 decimals, at most 30 vertices, no antimeridian crossing). `elevated_tension` geometry is an array of ISO 3166-1 alpha-3 country codes, resolved to the bundled Natural Earth countries through one mapping in `src/frontend/src/features/map/conflictTensionLayer.ts`. A test validates the whole file.
 
@@ -101,7 +101,7 @@ The Aircraft, Internet outages and Naval toggles are hidden behind `showPlacehol
 
 **Remaining open items:** owner review of every polygon and every entry, including the country list above; the sources' tiers (officially attributed or fitting the pattern) are not shown in this version.
 
-## 11. Update 2026-10-02 (pending owner acceptance)
+## 11. Update 2026-10-02 (`9476579`)
 
 These changes follow owner decisions of 2026-10-02; the decisions recorded above are unchanged.
 

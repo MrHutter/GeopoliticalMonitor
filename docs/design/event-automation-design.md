@@ -12,13 +12,13 @@ Values marked **PROPOSED** are approved as starting values and will be revisited
 | Slice 2: Shared refresh scheduler, with GDACS on the timer | Implemented | `0dba536` |
 | Slice 2B: Event list windowing | Implemented | `ee5d89d` |
 | Slice 3: UCDP Candidate provider | Implemented | `49c008c` |
-| Slice 4: Demo data removal | Implemented, pending owner acceptance | — |
+| Slice 4: Demo data removal | Implemented | `1eaee7e` (docs `3c55296`) |
 | Slice 5: GDELT provider under strict rules | **Blocked** (owner probe 2026-10-02, see 5.2) | — |
 | Slice 5 (replacement): Find recent reports | Not started | — |
 | Slice 6: Cross-provider deduplication | Not started; matters only if a second conflict source is added, so reassess before starting | — |
 | Slice 7: Alert integration | Not started | — |
 
-The status line above ("implementation not started") and the findings in section 2 describe the baseline. Line numbers in section 2 refer to `e30d955` and have since moved, so use the file names. **As built** notes mark where the implementation differs from the text. Owner decisions, thresholds and later slices are unchanged, except that GDELT Event creation (section 5.2 and Slice 5) was blocked on 2026-10-02, which makes Q3 and Q7 moot.
+The status line above ("implementation not started") and the findings in section 2 describe the baseline. Line numbers in section 2 refer to `e30d955` and have since moved, so use the file names. **As built** notes mark where the implementation differs from the text. Owner decisions, thresholds and later slices are unchanged, except that GDELT Event creation (section 5.2 and Slice 5) was blocked on 2026-10-02, which makes Q3 and Q7 moot. ReliefWeb is dormant by owner decision: no appname will be requested, and its code stays in place with zero network requests.
 
 ---
 
@@ -467,6 +467,8 @@ The approach is rule-based and deterministic. GDACS is excluded, because natural
 3. Leave demo-style IDs in unit-test fixtures as they are; they are plain strings and do not depend on the seeder.
 4. Add an empty state: "No Events yet. Automatic refresh is running." with provider statuses.
 5. `mock/dashboardData.ts` (`mockXPosts`, `initialMapLayers`) is a separate cleanup and is not part of this plan.
+
+**As built (`1eaee7e`):** the plan above is implemented as written, with these details. The cleanup (`DemoDataCleanup`) deletes the rows and writes the native-only `DemoDataCleanupCompleted` preference in the same transaction; the prefix match is case-sensitive; a failure commits nothing and the next launch retries. The notice reaches the UI through the typed `app.info` field `demoEventsRemoved`, true only on the launch that removed at least one demo Event, and is dismissible. The empty state "No Events yet. Automatic refresh is running." appears only for the default criteria (`ALL`, no search, all severities, All Events); other criteria keep the filter-empty messages. `DemoDataCleanupTests` also run the seeder directly.
 
 **Timing:** after UCDP is live (see open question Q2), so the public view has both disaster and conflict data rather than earthquakes alone.
 

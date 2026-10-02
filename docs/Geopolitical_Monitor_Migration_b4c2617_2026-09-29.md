@@ -10,6 +10,10 @@
 - GDELT as an Event creator is blocked by the owner's 2026-10-02 probe of GDELT 2.0 exports (too few rows passed a strict kinetic bar, and most sampled rows were not geopolitical incidents). It is replaced by a planned explicit "Find recent reports" action on a selected Event; see `docs/design/event-automation-design.md`.
 - AdBlock re-enrollment after the bound instance disappears from the X profile: see the README section "Re-enrolling AdBlock".
 - KNOWN OPEN ISSUE: below about 1,270 px of client width the X pane is clipped at the right edge, because the native `XPaneColumn` has `MinWidth` 320 while the layout clamp can request less. Deliberately deferred by the owner.
+- Alert scroll to Details is implemented behind the `alertScrollsToDetails` flag, which ships off (`f68d424`); the README "Re-enrolling AdBlock" section was added in `acc8375`, and the documentation sync in `2e15c46`.
+- Slice 4 demo data removal (no seeding; one-time cleanup of `evt-demo-` and `src-demo-` rows with a one-time notice; empty state) and the draft conflict and tension reference layer are implemented in `1eaee7e`, documented in `3c55296`. Every layer entry is a draft (`ownerReviewed: false`).
+- Conflict and tension data update `9476579`: the Russia-Ukraine area now extends over Russia to the Urals as one entry; new Belarus and Gulf tension entries; Saudi Arabia is tinted by the Gulf entry; Bahrain is named but not shaded because it is absent from the 110m basemap.
+- ReliefWeb is DORMANT BY OWNER DECISION: no appname will be requested; the code stays in place and makes zero network requests.
 - Statements below that these changes contradict carry a "[Superseded 2026-10-02: ...]" note. The original text is kept.
 
 Generated after local checkpoint commit:
@@ -178,7 +182,7 @@ Before public release, the project should at minimum be PRESENTABLE, not necessa
 Required presentation bar before public release:
 
 - automated Event ingestion/monitoring fully working;
-- demo data removed from normal product use;
+- demo data removed from normal product use; [Superseded 2026-10-02: done in `1eaee7e`; startup no longer seeds demo data and formerly seeded demo rows are removed once.]
 - product starts from real provider-driven data or a clean empty state;
 - unused placeholder layers hidden from the UI until implemented;
 - unfinished controls should not visibly advertise non-working features;
@@ -473,7 +477,7 @@ Accepted map behavior:
 - Event markers;
 - selected Event ring;
 - semantic Event colors;
-- mock conflict-zone foundation;
+- mock conflict-zone foundation; [Superseded 2026-10-02: the mock zones were replaced in `1eaee7e` by the owner-curated draft conflict and tension reference layer.]
 - antimeridian correction.
 
 Critical setting:
@@ -717,7 +721,7 @@ No automatic matching.
 
 No ReliefWeb map markers.
 
-Production remains intentionally unconfigured because no approved V2 appname has been supplied.
+Production remains intentionally unconfigured because no approved V2 appname has been supplied. [Superseded 2026-10-02: ReliefWeb is dormant by owner decision; no appname will be requested, and the code stays in place with zero network requests.]
 
 Without appname:
 
@@ -1700,7 +1704,7 @@ This work is also a prerequisite for making the eventual public portfolio build 
 
 Before public release:
 
-- remove/disable demo-seeded Events from normal product startup;
+- remove/disable demo-seeded Events from normal product startup; [Superseded 2026-10-02: done in `1eaee7e`.]
 - app should use real automated ingestion or a clean empty state;
 - demo fixtures may remain in tests where appropriate;
 - public UI should not look like a development sandbox.
@@ -1983,6 +1987,6 @@ Later major product work:
 Public release only once:
 
 - automation is real;
-- demo startup content is removed;
+- demo startup content is removed; [Superseded 2026-10-02: done in `1eaee7e`.]
 - unused placeholder UI is hidden;
 - repo is presentable and public-safe.
