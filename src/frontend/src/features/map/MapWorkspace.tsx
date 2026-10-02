@@ -48,6 +48,8 @@ export function MapWorkspace({
   onFirmsDisplayModeChange,
 }: MapWorkspaceProps) {
   const firmsVisible = layers.some((layer) => layer.id === 'firms' && layer.enabled);
+  const conflictZonesVisible = layers.some((layer) => layer.id === 'conflict-zones' && layer.enabled);
+  const tensionVisible = layers.some((layer) => layer.id === 'tension' && layer.enabled);
   return (
     <section className="map-workspace panel" aria-labelledby="map-title">
       <div className="map-toolbar">
@@ -81,7 +83,7 @@ export function MapWorkspace({
       />
 
       <div className="map-footer">
-        <MapLegend firmsVisible={firmsVisible} firmsHasObservations={firmsObservations.length > 0} />
+        <MapLegend firmsVisible={firmsVisible} firmsHasObservations={firmsObservations.length > 0} conflictZonesVisible={conflictZonesVisible} tensionVisible={tensionVisible} />
         <span className="demo-note">Bundled Natural Earth 110m basemap. No remote tiles or map server.</span>
       </div>
     </section>

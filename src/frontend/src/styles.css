@@ -565,6 +565,45 @@ input:focus-visible {
   text-overflow: ellipsis;
 }
 
+/* One dismissible line in the same muted style as the capped notice. */
+.event-panel-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 3px 10px;
+  color: var(--muted-strong);
+  font-size: 0.66rem;
+  line-height: 14px;
+}
+
+.event-panel-notice > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-panel-notice-dismiss {
+  flex: 0 0 auto;
+  min-height: 20px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-soft);
+  padding: 0 7px;
+  color: var(--muted-strong);
+  font-size: 0.66rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.event-panel-notice-dismiss:hover,
+.event-panel-notice-dismiss:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
 .gdacs-refresh-status {
   border-bottom: 1px solid var(--line);
   padding: 8px 12px;
@@ -2490,6 +2529,39 @@ dd {
 .firms-map-popup span,
 .firms-map-popup small { color: var(--muted-strong); font-size: 0.7rem; }
 .firms-map-popup .maplibregl-popup-close-button { color: var(--muted-strong); }
+
+/* Conflict and tension reference popup: bounded like the FIRMS popup, neutral border, one section per entry. */
+.conflict-tension-popup {
+  max-width: 300px;
+}
+
+.conflict-tension-popup .maplibregl-popup-content {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  background: rgba(6, 6, 6, 0.98);
+  color: var(--text);
+  padding: 9px 11px;
+  box-shadow: none;
+}
+
+.conflict-tension-popup section { display: grid; gap: 3px; }
+.conflict-tension-popup section + section { border-top: 1px solid var(--line); padding-top: 7px; }
+.conflict-tension-popup strong { color: var(--text); font-size: 0.76rem; }
+.conflict-tension-popup span,
+.conflict-tension-popup small { color: var(--muted-strong); font-size: 0.7rem; line-height: 1.3; }
+.conflict-tension-popup small { color: var(--muted); }
+.conflict-tension-popup .maplibregl-popup-close-button { color: var(--muted-strong); }
+
+.legend i.legend-area-swatch {
+  width: 12px;
+  height: 9px;
+  border: 1px solid;
+  opacity: 0.8;
+}
 
 .source-grid small {
   overflow-wrap: anywhere;

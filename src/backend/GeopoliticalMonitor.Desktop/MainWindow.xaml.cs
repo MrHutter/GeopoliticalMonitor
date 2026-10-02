@@ -70,6 +70,7 @@ public sealed partial class MainWindow : Window
     private string? persistenceInitializationError;
     private double expandedXPaneWidth = XBrowserDefaults.DefaultPaneWidth;
     private bool persistenceInitialized;
+    private bool demoEventsRemovedThisLaunch;
     private bool xPaneWidthRestored;
     private bool isXPaneCollapsed;
     private bool isDraggingXPaneSplitter;
@@ -549,7 +550,10 @@ public sealed partial class MainWindow : Window
                 new ReliefWebClientOptions(AppName: null));
             reliefWebBridgeHandler = new ReliefWebBridgeHandler(
                 new ReliefWebReportDiscoveryService(reliefWebClient, eventStore, eventStore));
-            await new DemoDataSeeder(eventCatalogService).SeedAsync().ConfigureAwait(false);
+            // Demo data is no longer seeded (Slice 4); formerly seeded demo rows are removed once. The cleanup never
+            // throws: on failure nothing is committed and the next launch retries.
+            var demoCleanup = await DemoDataCleanup.TryRunAsync(databaseInitializer.CreateDbContext).ConfigureAwait(false);
+            demoEventsRemovedThisLaunch = demoCleanup.RemovedDemoEvents;
 
             persistenceStatus = "SQLite local application data";
             persistenceInitializationError = null;
@@ -780,7 +784,8 @@ public sealed partial class MainWindow : Window
                 "WebView2 desktop host",
                 persistenceStatus,
                 false,
-                xPaneSide));
+                xPaneSide,
+                demoEventsRemovedThisLaunch));
 
         sender.CoreWebView2.PostWebMessageAsJson(responseJson);
     }

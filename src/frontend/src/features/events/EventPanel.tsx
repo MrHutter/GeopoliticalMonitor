@@ -32,6 +32,9 @@ type EventPanelProps = {
   onManageWatchlists: () => void;
   /** Changes whenever the list criteria change (scope, range, search, severity); resets the rendered window. */
   criteriaKey?: string;
+  /** A one-line, dismissible notice shown above the list, such as the one-time demo data removal. */
+  notice?: string | null;
+  onDismissNotice?: () => void;
 };
 
 /** Rows rendered at first and added per step; the list grows incrementally instead of rendering every Event. */
@@ -59,7 +62,7 @@ export function formatCappedNotice(shown: number, total: number) {
 
 const statusDotClass: Record<NativeEventStatus, string> = { Active: 'active', Developing: 'developing', Unverified: 'unverified', Resolved: 'resolved' };
 
-export function EventPanel({ events, selectedEventId, selectedRange, loadError, watchlists, activeWatchlistId, minimumSeverity, eventWindow, emptyMessage, manageButtonRef, gdacsRefresh, providerStatuses, onRefreshGdacs, ucdpRefresh = { kind: 'idle' }, onRefreshUcdp, onSelectEvent, onSelectWatchlist, onMinimumSeverityChange, onManageWatchlists, criteriaKey = '' }: EventPanelProps) {
+export function EventPanel({ events, selectedEventId, selectedRange, loadError, watchlists, activeWatchlistId, minimumSeverity, eventWindow, emptyMessage, manageButtonRef, gdacsRefresh, providerStatuses, onRefreshGdacs, ucdpRefresh = { kind: 'idle' }, onRefreshUcdp, onSelectEvent, onSelectWatchlist, onMinimumSeverityChange, onManageWatchlists, criteriaKey = '', notice = null, onDismissNotice }: EventPanelProps) {
   const orderedEvents = useMemo(() => sortEventsForList(events), [events]);
   const activeWatchlist = activeWatchlistId ? watchlists.find((watchlist) => watchlist.id === activeWatchlistId) : undefined;
   const listRef = useRef<HTMLDivElement>(null);
@@ -158,6 +161,13 @@ export function EventPanel({ events, selectedEventId, selectedRange, loadError, 
           <span>{formatCappedNoticeShort(events.length, eventWindow.totalCount)}</span>
           <span className="event-window-notice-advice"> {cappedNoticeAdvice}</span>
         </p>
+      ) : null}
+
+      {notice ? (
+        <div className="event-panel-notice" role="status">
+          <span>{notice}</span>
+          {onDismissNotice ? <button type="button" className="event-panel-notice-dismiss" aria-label="Dismiss notice" onClick={onDismissNotice}>Dismiss</button> : null}
+        </div>
       ) : null}
 
       {loadError ? <p className="demo-note" role="alert">{loadError}</p> : null}

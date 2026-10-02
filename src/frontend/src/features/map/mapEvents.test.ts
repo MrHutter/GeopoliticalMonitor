@@ -4,7 +4,6 @@ import {
   eventsToFeatureCollection,
   getCategoryColor,
   getEventCoordinates,
-  mockConflictZones,
   selectedMarkerPaint,
   defaultMarkerStrokeWidth,
   selectedMarkerRadius,
@@ -132,24 +131,4 @@ describe('mapEvents', () => {
     }
   });
 
-  it('keeps mock conflict zones as bounded regional polygons', () => {
-    expect(mockConflictZones.features).toHaveLength(2);
-
-    mockConflictZones.features.forEach((feature) => {
-      const coordinates = feature.geometry.coordinates.flat();
-      const longitudes = coordinates.map(([longitude]) => longitude);
-      const latitudes = coordinates.map(([, latitude]) => latitude);
-
-      expect(Math.max(...longitudes) - Math.min(...longitudes)).toBeLessThanOrEqual(20);
-      expect(Math.max(...latitudes) - Math.min(...latitudes)).toBeLessThanOrEqual(12);
-      longitudes.forEach((longitude) => {
-        expect(longitude).toBeGreaterThanOrEqual(-180);
-        expect(longitude).toBeLessThanOrEqual(180);
-      });
-      latitudes.forEach((latitude) => {
-        expect(latitude).toBeGreaterThanOrEqual(-90);
-        expect(latitude).toBeLessThanOrEqual(90);
-      });
-    });
-  });
 });

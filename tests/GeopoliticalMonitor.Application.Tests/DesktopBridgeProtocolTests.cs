@@ -221,6 +221,25 @@ public class DesktopBridgeProtocolTests
         Assert.Equal("SQLite local application data", payload.GetProperty("persistence").GetString());
         Assert.False(payload.GetProperty("productionInboundPortsRequired").GetBoolean());
         Assert.Equal("Left", payload.GetProperty("xPaneSide").GetString());
+        Assert.Equal(JsonValueKind.False, payload.GetProperty("demoEventsRemoved").ValueKind);
+        Assert.Equal(7, payload.EnumerateObject().Count());
+    }
+
+    [Fact]
+    public void AppInfoReportsDemoEventRemovalAsTypedBoolean()
+    {
+        var json = DesktopBridgeProtocol.CreateAppInfoResponseJson(
+            new DesktopBridgeAppInfo(
+                ProductIdentity.DisplayName,
+                "WinUI 3",
+                "WebView2 desktop host",
+                "SQLite local application data",
+                false,
+                XPaneSide.Right,
+                DemoEventsRemoved: true));
+
+        using var document = JsonDocument.Parse(json);
+        Assert.True(document.RootElement.GetProperty("payload").GetProperty("demoEventsRemoved").GetBoolean());
     }
 
     [Fact]

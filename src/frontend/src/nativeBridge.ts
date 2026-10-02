@@ -16,6 +16,8 @@ export type AppInfoMessage = {
     persistence: string;
     productionInboundPortsRequired: boolean;
     xPaneSide: XPaneSide;
+    /** True only on the launch whose one-time cleanup removed formerly seeded demo Events. */
+    demoEventsRemoved?: boolean;
   };
 };
 
@@ -592,7 +594,8 @@ export function isAppInfoMessage(value: unknown): value is AppInfoMessage {
     && typeof message.payload.uiHost === 'string'
     && typeof message.payload.persistence === 'string'
     && typeof message.payload.productionInboundPortsRequired === 'boolean'
-    && isOneOf(message.payload.xPaneSide, xPaneSideValues);
+    && isOneOf(message.payload.xPaneSide, xPaneSideValues)
+    && (message.payload.demoEventsRemoved === undefined || typeof message.payload.demoEventsRemoved === 'boolean');
 }
 
 export function isXPaneSideValueMessage(value: unknown): value is XPaneSideValueMessage {

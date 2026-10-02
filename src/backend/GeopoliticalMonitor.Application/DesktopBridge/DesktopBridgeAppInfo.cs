@@ -8,4 +8,5 @@ public sealed record DesktopBridgeAppInfo(
     string UiHost,
     string Persistence,
     bool ProductionInboundPortsRequired,
-    XPaneSide XPaneSide);
+    XPaneSide XPaneSide,
+    bool DemoEventsRemoved = false);

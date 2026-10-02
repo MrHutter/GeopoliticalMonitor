@@ -190,6 +190,7 @@ public static class DesktopBridgeProtocol
                 appInfo.Persistence,
                 appInfo.ProductionInboundPortsRequired,
                 XPaneSide = appInfo.XPaneSide.ToString(),
+                appInfo.DemoEventsRemoved,
             },
         };
         return JsonSerializer.Serialize(response, JsonSerializerOptions.Web);

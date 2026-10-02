@@ -1,0 +1,619 @@
+{
+  "schemaVersion": 1,
+  "fileVersion": 1,
+  "updated": "2026-10-02",
+  "entries": [
+    {
+      "id": "russia-ukraine",
+      "name": "Russia-Ukraine",
+      "class": "armed_conflict",
+      "parties": [
+        "Russia",
+        "Ukraine"
+      ],
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              32.0,
+              46.3
+            ],
+            [
+              33.5,
+              46.0
+            ],
+            [
+              35.5,
+              46.6
+            ],
+            [
+              37.5,
+              47.0
+            ],
+            [
+              38.8,
+              47.6
+            ],
+            [
+              40.0,
+              48.6
+            ],
+            [
+              40.2,
+              50.0
+            ],
+            [
+              38.6,
+              51.3
+            ],
+            [
+              36.6,
+              51.9
+            ],
+            [
+              34.8,
+              51.9
+            ],
+            [
+              34.0,
+              51.3
+            ],
+            [
+              35.0,
+              50.4
+            ],
+            [
+              36.0,
+              49.7
+            ],
+            [
+              36.8,
+              49.0
+            ],
+            [
+              35.8,
+              48.0
+            ],
+            [
+              35.0,
+              47.6
+            ],
+            [
+              34.0,
+              47.4
+            ],
+            [
+              33.3,
+              46.9
+            ],
+            [
+              32.0,
+              46.3
+            ]
+          ]
+        ]
+      },
+      "approximate": true,
+      "countryCodes": [
+        "UKR",
+        "RUS"
+      ],
+      "basis": "Draft polygon drawn by an AI assistant for owner review from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used.",
+      "asOf": "2026-10-02",
+      "ownerReviewed": false
+    },
+    {
+      "id": "iran-gulf-us",
+      "name": "Iran with the Gulf states, Jordan and the US",
+      "class": "armed_conflict",
+      "parties": [
+        "Iran",
+        "Gulf states",
+        "Jordan",
+        "United States"
+      ],
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              44.8,
+              37.2
+            ],
+            [
+              45.5,
+              34.8
+            ],
+            [
+              46.0,
+              33.0
+            ],
+            [
+              47.6,
+              31.5
+            ],
+            [
+              48.5,
+              29.9
+            ],
+            [
+              50.0,
+              29.3
+            ],
+            [
+              51.5,
+              27.8
+            ],
+            [
+              54.0,
+              26.8
+            ],
+            [
+              56.2,
+              26.2
+            ],
+            [
+              57.5,
+              25.6
+            ],
+            [
+              60.5,
+              29.0
+            ],
+            [
+              61.0,
+              34.0
+            ],
+            [
+              59.0,
+              36.5
+            ],
+            [
+              53.0,
+              37.0
+            ],
+            [
+              48.0,
+              38.4
+            ],
+            [
+              44.5,
+              39.3
+            ],
+            [
+              44.8,
+              37.2
+            ]
+          ]
+        ]
+      },
+      "approximate": true,
+      "countryCodes": [
+        "IRN"
+      ],
+      "basis": "Draft polygon drawn by an AI assistant for owner review from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used.",
+      "asOf": "2026-10-02",
+      "ownerReviewed": false
+    },
+    {
+      "id": "yemen-saudi-arabia",
+      "name": "Yemen with Saudi Arabia",
+      "class": "armed_conflict",
+      "parties": [
+        "Yemen",
+        "Saudi Arabia"
+      ],
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              42.6,
+              15.6
+            ],
+            [
+              42.9,
+              14.8
+            ],
+            [
+              43.2,
+              13.3
+            ],
+            [
+              43.5,
+              12.7
+            ],
+            [
+              45.0,
+              13.4
+            ],
+            [
+              46.0,
+              14.6
+            ],
+            [
+              47.0,
+              16.0
+            ],
+            [
+              46.5,
+              17.3
+            ],
+            [
+              44.5,
+              17.6
+            ],
+            [
+              43.3,
+              17.5
+            ],
+            [
+              42.6,
+              16.4
+            ],
+            [
+              42.6,
+              15.6
+            ]
+          ]
+        ]
+      },
+      "approximate": true,
+      "countryCodes": [
+        "YEM",
+        "SAU"
+      ],
+      "basis": "Draft polygon drawn by an AI assistant for owner review from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used.",
+      "asOf": "2026-10-02",
+      "ownerReviewed": false
+    },
+    {
+      "id": "israel-lebanon-hamas",
+      "name": "Israel with Lebanon and Hamas",
+      "class": "armed_conflict",
+      "parties": [
+        "Israel",
+        "Lebanon",
+        "Hamas"
+      ],
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              34.2,
+              31.2
+            ],
+            [
+              34.65,
+              31.2
+            ],
+            [
+              35.2,
+              32.4
+            ],
+            [
+              35.9,
+              32.8
+            ],
+            [
+              35.9,
+              33.3
+            ],
+            [
+              36.1,
+              33.8
+            ],
+            [
+              35.5,
+              33.9
+            ],
+            [
+              35.1,
+              33.1
+            ],
+            [
+              34.9,
+              32.8
+            ],
+            [
+              34.4,
+              31.6
+            ],
+            [
+              34.2,
+              31.2
+            ]
+          ]
+        ]
+      },
+      "approximate": true,
+      "countryCodes": [
+        "ISR",
+        "LBN",
+        "PSE"
+      ],
+      "basis": "Draft polygon drawn by an AI assistant for owner review from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used.",
+      "asOf": "2026-10-02",
+      "ownerReviewed": false
+    },
+    {
+      "id": "myanmar",
+      "name": "Myanmar",
+      "class": "armed_conflict",
+      "parties": [
+        "Myanmar"
+      ],
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              93.3,
+              19.6
+            ],
+            [
+              94.3,
+              18.9
+            ],
+            [
+              95.0,
+              18.6
+            ],
+            [
+              96.2,
+              17.0
+            ],
+            [
+              98.6,
+              16.0
+            ],
+            [
+              97.8,
+              18.0
+            ],
+            [
+              98.9,
+              19.7
+            ],
+            [
+              100.1,
+              21.5
+            ],
+            [
+              99.0,
+              22.2
+            ],
+            [
+              98.6,
+              25.0
+            ],
+            [
+              97.4,
+              27.3
+            ],
+            [
+              94.6,
+              25.6
+            ],
+            [
+              93.3,
+              24.0
+            ],
+            [
+              92.3,
+              20.7
+            ],
+            [
+              93.3,
+              19.6
+            ]
+          ]
+        ]
+      },
+      "approximate": true,
+      "countryCodes": [
+        "MMR"
+      ],
+      "basis": "Draft polygon drawn by an AI assistant for owner review from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used.",
+      "asOf": "2026-10-02",
+      "ownerReviewed": false
+    },
+    {
+      "id": "sudan",
+      "name": "Sudan",
+      "class": "armed_conflict",
+      "parties": [
+        "Sudan"
+      ],
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              22.4,
+              12.5
+            ],
+            [
+              23.5,
+              10.8
+            ],
+            [
+              25.0,
+              10.2
+            ],
+            [
+              27.5,
+              9.7
+            ],
+            [
+              30.5,
+              10.5
+            ],
+            [
+              32.5,
+              12.2
+            ],
+            [
+              34.0,
+              13.9
+            ],
+            [
+              33.8,
+              15.8
+            ],
+            [
+              32.0,
+              16.2
+            ],
+            [
+              30.0,
+              15.8
+            ],
+            [
+              27.0,
+              15.6
+            ],
+            [
+              24.0,
+              15.9
+            ],
+            [
+              22.0,
+              15.5
+            ],
+            [
+              22.4,
+              12.5
+            ]
+          ]
+        ]
+      },
+      "approximate": true,
+      "countryCodes": [
+        "SDN"
+      ],
+      "basis": "Draft polygon drawn by an AI assistant for owner review from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used.",
+      "asOf": "2026-10-02",
+      "ownerReviewed": false
+    },
+    {
+      "id": "russian-attacks-on-europe",
+      "name": "Russian attacks on Europe",
+      "class": "elevated_tension",
+      "parties": [
+        "Russia",
+        "European Union and NATO member states",
+        "Moldova"
+      ],
+      "geometry": [
+        "ALB",
+        "BGR",
+        "CZE",
+        "DEU",
+        "DNK",
+        "ESP",
+        "EST",
+        "FIN",
+        "FRA",
+        "GBR",
+        "GRC",
+        "ITA",
+        "LTU",
+        "LVA",
+        "MDA",
+        "NLD",
+        "NOR",
+        "POL",
+        "ROU",
+        "SVK",
+        "SWE",
+        "USA"
+      ],
+      "basis": "Each country is listed by at least one of the agreed sources as read on 2 October 2026: the Sahaidachnyi Security Center tracker article, the ICCT and GLOBSEC update on Russia-linked sabotage, the AP map report, the IISS paper on Russian sabotage operations, and the ISW drone-incursion map as reproduced by Newsweek.",
+      "asOf": "2026-10-02",
+      "ownerReviewed": false
+    },
+    {
+      "id": "india-pakistan",
+      "name": "India-Pakistan",
+      "class": "elevated_tension",
+      "parties": [
+        "India",
+        "Pakistan"
+      ],
+      "geometry": [
+        "IND",
+        "PAK"
+      ],
+      "basis": "Listed in the owner's starting set of elevated tensions (India and Pakistan); not yet reviewed against current reporting.",
+      "asOf": "2026-10-02",
+      "ownerReviewed": false
+    },
+    {
+      "id": "pakistan-afghanistan",
+      "name": "Pakistan-Afghanistan",
+      "class": "elevated_tension",
+      "parties": [
+        "Pakistan",
+        "Afghanistan"
+      ],
+      "geometry": [
+        "PAK",
+        "AFG"
+      ],
+      "basis": "Listed in the owner's starting set of elevated tensions (Pakistan and Afghanistan); not yet reviewed against current reporting.",
+      "asOf": "2026-10-02",
+      "ownerReviewed": false
+    },
+    {
+      "id": "israel-iran",
+      "name": "Israel-Iran",
+      "class": "elevated_tension",
+      "parties": [
+        "Israel",
+        "Iran"
+      ],
+      "geometry": [
+        "ISR",
+        "IRN"
+      ],
+      "basis": "Listed in the owner's starting set of elevated tensions (Israel and Iran); not yet reviewed against current reporting.",
+      "asOf": "2026-10-02",
+      "ownerReviewed": false
+    },
+    {
+      "id": "china-taiwan",
+      "name": "China-Taiwan",
+      "class": "elevated_tension",
+      "parties": [
+        "China",
+        "Taiwan"
+      ],
+      "geometry": [
+        "CHN",
+        "TWN"
+      ],
+      "basis": "Listed in the owner's starting set of elevated tensions (China and Taiwan); not yet reviewed against current reporting.",
+      "asOf": "2026-10-02",
+      "ownerReviewed": false
+    },
+    {
+      "id": "north-south-korea",
+      "name": "North Korea and South Korea",
+      "class": "elevated_tension",
+      "parties": [
+        "North Korea",
+        "South Korea"
+      ],
+      "geometry": [
+        "PRK",
+        "KOR"
+      ],
+      "basis": "Listed in the owner's starting set of elevated tensions (North Korea and South Korea); not yet reviewed against current reporting.",
+      "asOf": "2026-10-02",
+      "ownerReviewed": false
+    }
+  ]
+}

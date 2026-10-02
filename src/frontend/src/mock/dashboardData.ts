@@ -60,7 +60,8 @@ export function getVisibleLayerToggles(layers: MapLayer[], showPlaceholders: boo
 
 export const initialMapLayers: MapLayer[] = [
   { id: 'events', label: 'Events', enabled: true, status: 'active' },
-  { id: 'conflict-zones', label: 'Conflict zones', enabled: true, status: 'demo' },
+  { id: 'conflict-zones', label: 'Conflict zones', enabled: true, status: 'active' },
+  { id: 'tension', label: 'Tension', enabled: true, status: 'active' },
   { id: 'firms', label: 'NASA FIRMS — Fire / Thermal Anomalies', enabled: false, status: 'active' },
   { id: 'aircraft', label: 'Aircraft', enabled: false, status: 'pending' },
   { id: 'naval', label: 'Naval', enabled: true, status: 'pending' },

@@ -1,7 +1,14 @@
 import { eventSeverities } from '../../types/events';
+import { conflictLegendLabel, conflictZoneColors, tensionColors, tensionLegendLabel } from './conflictTensionLayer';
 import { legendCategories, severityMarkerRadii, severityRingSeverities } from './mapEvents';
 
-type MapLegendProps = { firmsVisible: boolean; firmsHasObservations: boolean };
+type MapLegendProps = {
+  firmsVisible: boolean;
+  firmsHasObservations: boolean;
+  /** The conflict and tension swatches are listed only while their layers are on. */
+  conflictZonesVisible?: boolean;
+  tensionVisible?: boolean;
+};
 
 const firmsLegendItems = [
   { label: '<3h', className: 'firms-age-under-3h' },
@@ -15,7 +22,7 @@ export function severityGlyphDiameter(severity: keyof typeof severityMarkerRadii
   return severityMarkerRadii[severity][0] * 2;
 }
 
-export function MapLegend({ firmsVisible, firmsHasObservations }: MapLegendProps) {
+export function MapLegend({ firmsVisible, firmsHasObservations, conflictZonesVisible = false, tensionVisible = false }: MapLegendProps) {
   return (
     <div className="map-legends">
       <div className="legend" aria-label="semantic legend">
@@ -25,6 +32,18 @@ export function MapLegend({ firmsVisible, firmsHasObservations }: MapLegendProps
             {item.label}
           </span>
         ))}
+        {conflictZonesVisible ? (
+          <span data-reference-layer="conflict-zones">
+            <i className="legend-area-swatch" style={{ background: conflictZoneColors.fill, borderColor: conflictZoneColors.outline }} aria-hidden="true" />
+            {conflictLegendLabel}
+          </span>
+        ) : null}
+        {tensionVisible ? (
+          <span data-reference-layer="tension">
+            <i className="legend-area-swatch" style={{ background: tensionColors.fill, borderColor: tensionColors.fill }} aria-hidden="true" />
+            {tensionLegendLabel}
+          </span>
+        ) : null}
       </div>
       <div className="legend severity-size-legend" aria-label="Marker size shows severity, from Low to Catastrophic; Critical and Catastrophic markers have a light ring">
         <strong>Size = severity</strong>

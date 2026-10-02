@@ -147,7 +147,7 @@ describe('responsive layout', () => {
     );
 
     const toggles = screen.getByLabelText('map layers').querySelectorAll('label');
-    expect(Array.from(toggles, (label) => label.querySelector('span')?.textContent)).toEqual(['Events', 'Conflict zones', 'NASA FIRMS — Fire / Thermal Anomalies', 'Infrastructure']);
+    expect(Array.from(toggles, (label) => label.querySelector('span')?.textContent)).toEqual(['Events', 'Conflict zones', 'Tension', 'NASA FIRMS — Fire / Thermal Anomalies', 'Infrastructure']);
     const firms = container.querySelector('.firms-refresh-control');
     expect(firms).not.toBeNull();
     expect(Array.from(firms!.children, (child) => child.className)).toEqual(['firms-display-filter', '', 'firms-window-label', 'firms-snapshot-summary', 'firms-refresh-status is-success']);

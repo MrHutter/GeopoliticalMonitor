@@ -41,14 +41,14 @@ describe('map layer toggles', () => {
     expect(placeholderMapLayerIds).toEqual(['aircraft', 'naval', 'internet-outages']);
     renderLayers();
 
-    expect(toggleLabels()).toEqual(['Events', 'Conflict zones', 'NASA FIRMS — Fire / Thermal Anomalies', 'Infrastructure']);
+    expect(toggleLabels()).toEqual(['Events', 'Conflict zones', 'Tension', 'NASA FIRMS — Fire / Thermal Anomalies', 'Infrastructure']);
   });
 
   it('lists every toggle again when the flag is on, and they still toggle', () => {
     const onToggleLayer = vi.fn();
     renderLayers(true, onToggleLayer);
 
-    expect(toggleLabels()).toEqual(['Events', 'Conflict zones', 'NASA FIRMS — Fire / Thermal Anomalies', 'Aircraft', 'Naval', 'Infrastructure', 'Internet outages']);
+    expect(toggleLabels()).toEqual(['Events', 'Conflict zones', 'Tension', 'NASA FIRMS — Fire / Thermal Anomalies', 'Aircraft', 'Naval', 'Infrastructure', 'Internet outages']);
     fireEvent.click(screen.getByLabelText(/Naval/));
     expect(onToggleLayer).toHaveBeenCalledWith('naval');
   });
@@ -58,7 +58,8 @@ describe('map layer toggles', () => {
 
     expect(visible.map((layer) => [layer.id, layer.enabled, layer.status])).toEqual([
       ['events', true, 'active'],
-      ['conflict-zones', true, 'demo'],
+      ['conflict-zones', true, 'active'],
+      ['tension', true, 'active'],
       ['firms', false, 'active'],
       ['infrastructure', false, 'pending'],
     ]);
@@ -67,7 +68,33 @@ describe('map layer toggles', () => {
   });
 });
 
+describe('conflict and tension toggles', () => {
+  it('lists Conflict zones and Tension as active, default-on layers without a DEMO badge', () => {
+    renderLayers();
+    const conflict = screen.getByLabelText(/Conflict zones/).closest('label');
+    const tension = screen.getByLabelText(/^Tension/).closest('label');
+
+    expect(screen.getByLabelText(/Conflict zones/)).toBeChecked();
+    expect(screen.getByLabelText(/^Tension/)).toBeChecked();
+    expect(conflict?.querySelector('em')).toHaveTextContent('Active');
+    expect(tension?.querySelector('em')).toHaveTextContent('Active');
+    expect(screen.getByLabelText('map layers')).not.toHaveTextContent('Demo');
+  });
+});
+
 describe('map legend', () => {
+  it('adds the conflict and tension swatches only while their layers are on', () => {
+    const { rerender } = render(<MapLegend firmsVisible={false} firmsHasObservations={false} conflictZonesVisible tensionVisible />);
+    const legend = screen.getByLabelText('semantic legend');
+
+    expect(legend.querySelector('[data-reference-layer="conflict-zones"]')).toHaveTextContent('Armed conflict (approximate area)');
+    expect(legend.querySelector('[data-reference-layer="tension"]')).toHaveTextContent('Elevated tension');
+    rerender(<MapLegend firmsVisible={false} firmsHasObservations={false} conflictZonesVisible={false} tensionVisible />);
+    expect(legend.querySelector('[data-reference-layer="conflict-zones"]')).toBeNull();
+    rerender(<MapLegend firmsVisible={false} firmsHasObservations={false} />);
+    expect(legend.querySelector('[data-reference-layer]')).toBeNull();
+  });
+
   it('has exactly one entry per Event category, colored from the marker palette and labelled like the list', () => {
     render(<MapLegend firmsVisible={false} firmsHasObservations={false} />);
     const legend = screen.getByLabelText('semantic legend');

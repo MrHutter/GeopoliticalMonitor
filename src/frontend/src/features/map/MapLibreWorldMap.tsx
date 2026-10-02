@@ -6,6 +6,21 @@ import mapLibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&ur
 import { Accent, MapLayer } from '../../types/mock';
 import type { FirmsObservation, FirmsViewport } from '../../nativeBridge';
 import { NativeEvent } from '../../types/events';
+import {
+  conflictTensionEntries,
+  conflictTensionPopupHtml,
+  conflictZoneFillLayerId,
+  conflictZoneFillPaint,
+  conflictZoneOutlineLayerId,
+  conflictZoneOutlinePaint,
+  conflictZoneSourceId,
+  conflictZonesToFeatureCollection,
+  entryIdsFromFeatureProperties,
+  tensionCountriesToFeatureCollection,
+  tensionFillLayerId,
+  tensionFillPaint,
+  tensionSourceId,
+} from './conflictTensionLayer';
 import { addExternalPointLayer } from './externalPointLayer';
 import {
   firmsCirclePaint,
@@ -19,15 +34,12 @@ import {
   severityRadiusExpression,
   severityStrokeColorExpression,
   severityStrokeWidthExpression,
-  conflictZoneLayerId,
-  conflictZoneSourceId,
   defaultMapView,
   eventLayerId,
   eventSourceId,
   eventsToFeatureCollection,
   getEventCoordinates,
   locateMapView,
-  mockConflictZones,
   selectedEventLayerId,
   selectedMarkerPaint,
 } from './mapEvents';
@@ -91,6 +103,7 @@ export function MapLibreWorldMap({
   const mapRef = useRef<MapLibreMapInstance | null>(null);
   const popupRef = useRef<Popup | null>(null);
   const firmsPopupRef = useRef<Popup | null>(null);
+  const referencePopupRef = useRef<Popup | null>(null);
   const onSelectEventRef = useRef(onSelectEvent);
   const eventsRef = useRef(events);
   const selectedEventIdRef = useRef(selectedEventId);
@@ -142,6 +155,7 @@ export function MapLibreWorldMap({
     mapRef.current = map;
     popupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12, className: 'event-map-tooltip' });
     firmsPopupRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: true, offset: 8, className: 'firms-map-popup' });
+    referencePopupRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: true, offset: 8, className: 'conflict-tension-popup' });
 
     const reportViewport = () => {
       const bounds = map.getBounds();
@@ -162,20 +176,12 @@ export function MapLibreWorldMap({
 
 
     const handleLoad = () => {
-      map.addSource(conflictZoneSourceId, {
-        type: 'geojson',
-        data: mockConflictZones,
-      });
-      map.addLayer({
-        id: conflictZoneLayerId,
-        type: 'fill',
-        source: conflictZoneSourceId,
-        paint: {
-          'fill-color': '#9b5f64',
-          'fill-opacity': 0.16,
-          'fill-outline-color': '#b0787c',
-        },
-      });
+      // Reference layers sit above the basemap and below FIRMS and Event markers: tension, then conflict fill and outline.
+      map.addSource(tensionSourceId, { type: 'geojson', data: tensionCountriesToFeatureCollection(conflictTensionEntries) });
+      map.addLayer({ id: tensionFillLayerId, type: 'fill', source: tensionSourceId, paint: tensionFillPaint });
+      map.addSource(conflictZoneSourceId, { type: 'geojson', data: conflictZonesToFeatureCollection(conflictTensionEntries) });
+      map.addLayer({ id: conflictZoneFillLayerId, type: 'fill', source: conflictZoneSourceId, paint: conflictZoneFillPaint });
+      map.addLayer({ id: conflictZoneOutlineLayerId, type: 'line', source: conflictZoneSourceId, paint: conflictZoneOutlinePaint });
 
       addExternalPointLayer(map, {
         sourceId: firmsSourceId,
@@ -214,7 +220,8 @@ export function MapLibreWorldMap({
         paint: selectedMarkerPaint(accent),
       });
       setLayerVisibility(map, [eventLayerId, selectedEventLayerId], isLayerEnabled(layers, 'events'));
-      setLayerVisibility(map, [conflictZoneLayerId], isLayerEnabled(layers, 'conflict-zones'));
+      setLayerVisibility(map, [conflictZoneFillLayerId, conflictZoneOutlineLayerId], isLayerEnabled(layers, 'conflict-zones'));
+      setLayerVisibility(map, [tensionFillLayerId], isLayerEnabled(layers, 'tension'));
       setLayerVisibility(map, [firmsLayerId], isLayerEnabled(layers, 'firms'));
       reportViewport();
       requestAnimationFrame(() => map.resize());
@@ -255,7 +262,22 @@ export function MapLibreWorldMap({
         .addTo(map);
     };
 
+    // Conflict and tension popups open only when no Event marker or FIRMS point is under the pointer; hidden layers
+    // return no features, so a toggled-off layer never opens a popup.
+    const handleReferenceClick = (event: MapLayerMouseEvent) => {
+      const renderedLayers = (ids: string[]) => ids.filter((id) => map.getLayer(id));
+      if (map.queryRenderedFeatures(event.point, { layers: renderedLayers([eventLayerId, selectedEventLayerId, firmsLayerId]) }).length > 0) return;
+      const hits = map.queryRenderedFeatures(event.point, { layers: renderedLayers([conflictZoneFillLayerId, tensionFillLayerId]) });
+      const entryIds = entryIdsFromFeatureProperties(hits.map((hit) => hit.properties));
+      const entries = entryIds
+        .map((id) => conflictTensionEntries.find((entry) => entry.id === id))
+        .filter((entry) => entry !== undefined);
+      if (entries.length === 0) return;
+      referencePopupRef.current?.setLngLat(event.lngLat).setHTML(conflictTensionPopupHtml(entries)).addTo(map);
+    };
+
     map.on('load', handleLoad);
+    map.on('click', handleReferenceClick);
     map.on('click', eventLayerId, handleClick);
     map.on('mouseenter', eventLayerId, handleMouseEnter);
     map.on('mousemove', eventLayerId, handleMouseMove);
@@ -280,7 +302,10 @@ export function MapLibreWorldMap({
       popupRef.current = null;
       firmsPopupRef.current?.remove();
       firmsPopupRef.current = null;
+      referencePopupRef.current?.remove();
+      referencePopupRef.current = null;
       map.off('load', handleLoad);
+      map.off('click', handleReferenceClick);
       map.off('click', eventLayerId, handleClick);
       map.off('mouseenter', eventLayerId, handleMouseEnter);
       map.off('mousemove', eventLayerId, handleMouseMove);
@@ -332,7 +357,8 @@ export function MapLibreWorldMap({
     }
 
     setLayerVisibility(map, [eventLayerId, selectedEventLayerId], isLayerEnabled(layers, 'events'));
-    setLayerVisibility(map, [conflictZoneLayerId], isLayerEnabled(layers, 'conflict-zones'));
+    setLayerVisibility(map, [conflictZoneFillLayerId, conflictZoneOutlineLayerId], isLayerEnabled(layers, 'conflict-zones'));
+    setLayerVisibility(map, [tensionFillLayerId], isLayerEnabled(layers, 'tension'));
     setLayerVisibility(map, [firmsLayerId], isLayerEnabled(layers, 'firms'));
     requestAnimationFrame(() => map.resize());
   }, [layers]);

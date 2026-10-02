@@ -1,12 +1,10 @@
-import type { FeatureCollection, Point, Polygon } from 'geojson';
+import type { FeatureCollection, Point } from 'geojson';
 import type { Accent } from '../../types/mock';
 import { formatCategory, type NativeEvent, type NativeEventCategory, type NativeEventSeverity, type NativeEventStatus } from '../../types/events';
 
 export const eventSourceId = 'mock-events';
 export const eventLayerId = 'mock-events-circle';
 export const selectedEventLayerId = 'mock-events-selected-ring';
-export const conflictZoneSourceId = 'mock-conflict-zones';
-export const conflictZoneLayerId = 'mock-conflict-zones-fill';
 
 export const defaultMapView = { center: [22, 24] as [number, number], zoom: 1.05, pitch: 0, bearing: 0 };
 export const locateMapView = { zoom: 3.15, pitch: 0, bearing: 0 };
@@ -158,11 +156,3 @@ export function eventsToFeatureCollection(events: NativeEvent[]): FeatureCollect
     })),
   };
 }
-
-export const mockConflictZones: FeatureCollection<Polygon, { id: string; label: string }> = {
-  type: 'FeatureCollection',
-  features: [
-    { type: 'Feature', properties: { id: 'demo-zone-red-sea', label: 'Demo maritime risk area' }, geometry: { type: 'Polygon', coordinates: [[[34, 11], [47, 11], [47, 21], [34, 21], [34, 11]]] } },
-    { type: 'Feature', properties: { id: 'demo-zone-east-europe', label: 'Demo border watch area' }, geometry: { type: 'Polygon', coordinates: [[[18, 53], [32, 53], [32, 61], [18, 61], [18, 53]]] } },
-  ],
-};

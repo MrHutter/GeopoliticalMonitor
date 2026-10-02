@@ -378,6 +378,11 @@ describe('nativeBridge', () => {
 
   it('rejects malformed messages', () => {
     expect(isAppInfoMessage({ type: 'app.info', payload: { shell: 'WinUI 3' } })).toBe(false);
+    const appInfo = { applicationName: 'Geopolitical Monitor', shell: 'WinUI 3', uiHost: 'WebView2 desktop host', persistence: 'SQLite local application data', productionInboundPortsRequired: false, xPaneSide: 'Right' };
+    expect(isAppInfoMessage({ type: 'app.info', payload: { ...appInfo, demoEventsRemoved: true } })).toBe(true);
+    expect(isAppInfoMessage({ type: 'app.info', payload: { ...appInfo, demoEventsRemoved: false } })).toBe(true);
+    expect(isAppInfoMessage({ type: 'app.info', payload: { ...appInfo, demoEventsRemoved: 'true' } })).toBe(false);
+    expect(isAppInfoMessage({ type: 'app.info', payload: { ...appInfo, demoEventsRemoved: 1 } })).toBe(false);
     expect(isAppInfoMessage({ type: 'app.info', payload: { applicationName: 'Geopolitical Monitor', shell: 'WinUI 3', uiHost: 'WebView2', persistence: 'SQLite', productionInboundPortsRequired: false, xPaneSide: 'Center' } })).toBe(false);
     expect(isAppInfoMessage({ type: 'native.execute', payload: {} })).toBe(false);
     expect(isPreferenceValueMessage({ type: 'preferences.value', payload: { key: 'AccentTheme', value: 'Purple' } })).toBe(false);

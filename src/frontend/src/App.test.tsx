@@ -14,10 +14,12 @@ const maplibreMock = vi.hoisted(() => {
   class MockPopup {
     static instances: MockPopup[] = [];
     setLngLat = vi.fn(() => this);
-    setHTML = vi.fn(() => this);
+    setHTML = vi.fn((_html: string) => this);
     addTo = vi.fn(() => this);
     remove = vi.fn(() => this);
-    constructor() { MockPopup.instances.push(this); }
+    options?: { className?: string };
+    constructor(options?: { className?: string }) { this.options = options; MockPopup.instances.push(this); }
+    static byClass(className: string) { return MockPopup.instances.filter((popup) => popup.options?.className === className).at(-1)!; }
   }
 
   class MockMap {
@@ -27,7 +29,8 @@ const maplibreMock = vi.hoisted(() => {
     layers = new Map<string, unknown>();
     loadHandlers: Array<() => void> = [];
     layerHandlers = new Map<string, LayerHandler[]>();
-    eventHandlers = new Map<string, Array<() => void>>();
+    eventHandlers = new Map<string, Array<(event?: unknown) => void>>();
+    queryRenderedFeatures = vi.fn((_point?: unknown, _options?: { layers?: string[] }): Array<{ properties: Record<string, unknown> }> => []);
     setFilter = vi.fn();
     setPaintProperty = vi.fn();
     setLayoutProperty = vi.fn();
@@ -73,7 +76,7 @@ const maplibreMock = vi.hoisted(() => {
       handlers.forEach((handler) => handler(event));
     }
 
-    trigger(type: string) { (this.eventHandlers.get(type) ?? []).forEach((handler) => handler()); }
+    trigger(type: string, event?: unknown) { (this.eventHandlers.get(type) ?? []).forEach((handler) => handler(event)); }
 
     addSource(id: string, source: { data?: unknown }) {
       this.sources.set(id, { data: source.data, setData: vi.fn((data: unknown) => { const stored = this.sources.get(id); if (stored) stored.data = data; }) });
@@ -1017,6 +1020,144 @@ describe('App', () => {
     expect(await screen.findByText('This alert is no longer available.')).toBeInTheDocument();
   });
 
+  describe('conflict and tension reference layers', () => {
+    it('adds tension, conflict fill and outline below FIRMS and Event markers, and no demo polygons', async () => {
+      renderWithWebView();
+      const map = await latestMap();
+
+      expect([...map.layers.keys()]).toEqual([
+        'tension-countries-fill', 'conflict-zones-fill', 'conflict-zones-outline', firmsLayerId, eventLayerId, selectedEventLayerId,
+      ]);
+      expect(map.getLayer('mock-conflict-zones-fill')).toBeUndefined();
+      expect(map.getSource('mock-conflict-zones')).toBeUndefined();
+      const conflictData = map.getSource('conflict-zones')?.data as { features: Array<{ properties: { entryId: string } }> };
+      expect(conflictData.features.map((feature) => feature.properties.entryId)).toContain('russia-ukraine');
+      const tensionData = map.getSource('tension-countries')?.data as { features: Array<{ properties: { countryCode: string } }> };
+      expect(tensionData.features.map((feature) => feature.properties.countryCode)).not.toContain('ISR');
+    });
+
+    it('hides each reference layer with its own toggle and drops its legend swatch', async () => {
+      renderWithWebView();
+      const map = await latestMap();
+      expect(screen.getByText('Armed conflict (approximate area)')).toBeInTheDocument();
+      expect(screen.getByText('Elevated tension')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText(/^Tension/));
+      expect(map.setLayoutProperty).toHaveBeenCalledWith('tension-countries-fill', 'visibility', 'none');
+      expect(screen.queryByText('Elevated tension')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByLabelText(/Conflict zones/));
+      expect(map.setLayoutProperty).toHaveBeenCalledWith('conflict-zones-fill', 'visibility', 'none');
+      expect(map.setLayoutProperty).toHaveBeenCalledWith('conflict-zones-outline', 'visibility', 'none');
+      expect(screen.queryByText('Armed conflict (approximate area)')).not.toBeInTheDocument();
+    });
+
+    it('opens one popup listing each entry under the pointer, without selecting an Event', async () => {
+      const { emit } = renderWithWebView();
+      const map = await latestMap();
+      emitAppInfo(emit);
+      emit({ type: 'events.list.result', payload: { events: nativeEvents } });
+      await waitFor(() => expect(screen.getByRole('heading', { name: nativeEvents[0].title })).toBeInTheDocument());
+      map.queryRenderedFeatures.mockImplementation((_point, options) => (options?.layers?.includes('conflict-zones-fill')
+        ? [{ properties: { entryId: 'russia-ukraine' } }, { properties: { countryCode: 'PAK', entryIds: 'india-pakistan,pakistan-afghanistan' } }]
+        : []));
+      const referencePopup = maplibreMock.MockPopup.byClass('conflict-tension-popup');
+
+      map.trigger('click', { point: { x: 1, y: 2 }, lngLat: { lng: 37, lat: 48 } });
+
+      const html = referencePopup.setHTML.mock.calls.at(-1)?.[0] as string;
+      expect(html.match(/<section>/g)).toHaveLength(3);
+      expect(html).toContain('Russia-Ukraine');
+      expect(html).toContain('India-Pakistan');
+      expect(html).toContain('Draft, not yet reviewed by the owner');
+      expect(referencePopup.addTo).toHaveBeenCalled();
+      expect(screen.getByRole('heading', { name: nativeEvents[0].title })).toBeInTheDocument();
+    });
+
+    it('gives Event markers and FIRMS points click priority over the reference popup', async () => {
+      renderWithWebView();
+      const map = await latestMap();
+      map.queryRenderedFeatures.mockImplementation((_point, options) => (options?.layers?.includes(eventLayerId)
+        ? [{ properties: { id: 'evt-demo-baltic-security' } }]
+        : [{ properties: { entryId: 'russia-ukraine' } }]));
+      const referencePopup = maplibreMock.MockPopup.byClass('conflict-tension-popup');
+
+      map.trigger('click', { point: { x: 1, y: 2 }, lngLat: { lng: 37, lat: 48 } });
+
+      expect(referencePopup.setHTML).not.toHaveBeenCalled();
+      expect(map.queryRenderedFeatures.mock.calls[0][1]?.layers).toEqual([eventLayerId, selectedEventLayerId, firmsLayerId]);
+    });
+  });
+
+  describe('demo data removal notice and empty state', () => {
+    const appInfoPayload = { applicationName: productDisplayName, shell: 'WinUI 3', uiHost: 'WebView2 desktop host', persistence: 'SQLite local application data', productionInboundPortsRequired: false, xPaneSide: 'Right' };
+
+    it('shows the one-time removal notice only when the host reports removed demo Events, and dismisses it', async () => {
+      const { emit } = renderWithWebView();
+      await latestMap();
+      emit({ type: 'app.info', payload: { ...appInfoPayload, demoEventsRemoved: true } });
+
+      const notice = await screen.findByText('Demo Events were removed.');
+      expect(notice.closest('[role="status"]')).not.toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Dismiss notice' }));
+      expect(screen.queryByText('Demo Events were removed.')).not.toBeInTheDocument();
+
+      // A repeated app.info in the same session does not bring a dismissed notice back.
+      emit({ type: 'app.info', payload: { ...appInfoPayload, demoEventsRemoved: true } });
+      expect(screen.queryByText('Demo Events were removed.')).not.toBeInTheDocument();
+    });
+
+    it('shows no notice when the field is false or absent, and rejects a non-boolean value', async () => {
+      const { emit, postMessage } = renderWithWebView();
+      await latestMap();
+      emit({ type: 'app.info', payload: { ...appInfoPayload, demoEventsRemoved: false } });
+      emitAppInfo(emit);
+      expect(screen.queryByText('Demo Events were removed.')).not.toBeInTheDocument();
+
+      const listRequestsBefore = postMessage.mock.calls.filter(([message]) => (message as { type?: string }).type === 'events.list').length;
+      emit({ type: 'app.info', payload: { ...appInfoPayload, demoEventsRemoved: 'yes' } });
+      expect(screen.queryByText('Demo Events were removed.')).not.toBeInTheDocument();
+      expect(postMessage.mock.calls.filter(([message]) => (message as { type?: string }).type === 'events.list')).toHaveLength(listRequestsBefore);
+    });
+
+    it('shows the store-empty state at the default criteria with the provider status strip visible', async () => {
+      const { emit } = renderWithWebView();
+      await latestMap();
+      emitAppInfo(emit);
+      emit({ type: 'events.list.result', payload: { events: [] } });
+
+      expect(await screen.findByText('No Events yet. Automatic refresh is running.')).toBeInTheDocument();
+      expect(screen.getByRole('group', { name: 'Provider refresh status' })).toBeInTheDocument();
+      expect(screen.queryByText('No events match the active filters.')).not.toBeInTheDocument();
+    });
+
+    it('keeps the filter-empty message for non-default criteria', async () => {
+      const { emit } = renderWithWebView();
+      await latestMap();
+      emitAppInfo(emit);
+      emit({ type: 'events.list.result', payload: { events: [] } });
+      await screen.findByText('No Events yet. Automatic refresh is running.');
+
+      fireEvent.click(screen.getByRole('button', { name: '7D' }));
+      expect(await screen.findByText('No events match the active filters.')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'ALL' }));
+      expect(await screen.findByText('No Events yet. Automatic refresh is running.')).toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText('Minimum severity'), { target: { value: 'High' } });
+      expect(await screen.findByText('No events match the active filters.')).toBeInTheDocument();
+    });
+
+    it('keeps the filter-empty message when matching Events exist but are filtered out', async () => {
+      const { emit } = renderWithWebView();
+      await latestMap();
+      emitAppInfo(emit);
+      emit({ type: 'events.list.result', payload: { events: nativeEvents } });
+      await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent(`${nativeEvents.length} events`));
+
+      fireEvent.change(screen.getByPlaceholderText('Search events, locations, keywords...'), { target: { value: 'no-such-event' } });
+      expect(await screen.findByText('No events match the active filters.')).toBeInTheDocument();
+      expect(screen.queryByText('No Events yet. Automatic refresh is running.')).not.toBeInTheDocument();
+    });
+  });
+
   describe('Alert activation scroll to Details', () => {
     const scrollIntoView = vi.fn();
     // EventPanel also calls scrollIntoView to reveal a selected row; only calls on the Details region count here.
@@ -1847,7 +1988,7 @@ describe('App', () => {
       lngLat: { lng: firmsObservation.longitude, lat: firmsObservation.latitude },
     });
     expect(selectedHeading).toBeInTheDocument();
-    const firmsPopup = maplibreMock.MockPopup.instances.at(-1)!;
+    const firmsPopup = maplibreMock.MockPopup.byClass('firms-map-popup');
     expect(firmsPopup.setHTML).toHaveBeenCalledWith(expect.stringContaining('NASA FIRMS — Fire / Thermal Anomaly'));
     expect(firmsPopup.setHTML).toHaveBeenCalledWith(expect.stringContaining('NASA FIRMS / LANCE'));
 

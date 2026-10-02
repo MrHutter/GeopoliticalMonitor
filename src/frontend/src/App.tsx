@@ -84,6 +84,8 @@ import { formatMonthKey, NativeEvent, NativeSourceItem } from './types/events';
 import { MapLayer } from './types/mock';
 
 const EventLoadFailureMessage = 'Unable to load local event data.';
+export const noEventsYetMessage = 'No Events yet. Automatic refresh is running.';
+export const demoEventsRemovedNotice = 'Demo Events were removed.';
 const searchDebounceMilliseconds = 250;
 const formatUtcTime = (value: string) => new Intl.DateTimeFormat('en-GB', {
   hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'UTC',
@@ -105,6 +107,7 @@ export type AppProps = {
 
 export function App({ scrollAlertToDetails = alertScrollsToDetails }: AppProps = {}) {
   const [appInfo, setAppInfo] = useState<AppInfoMessage['payload'] | null>(null);
+  const [demoRemovalNoticeDismissed, setDemoRemovalNoticeDismissed] = useState(false);
   const [xPaneSide, setXPaneSide] = useState<XPaneSide>('Right');
   const { accent, setAccent, applyPersistedAccent, persistenceError, reportPersistenceError } = useAccentPreference();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -634,6 +637,8 @@ export function App({ scrollAlertToDetails = alertScrollsToDetails }: AppProps =
   }, [applyPersistedAccent, completeAlertResource, reportPersistenceError, requestAlertResource]);
 
   const activeWatchlist = watchlists.find((watchlist) => watchlist.id === activeWatchlistId) ?? null;
+  // The store-empty state applies only to the default criteria; any other criteria keep the filter-empty messages.
+  const isDefaultEventCriteria = activeWatchlistId === null && selectedRange === 'ALL' && searchQuery === '' && debouncedSearch === '' && minimumSeverity === 'All';
   const activeMemberships = activeWatchlistId ? membersByWatchlist.get(activeWatchlistId) ?? null : null;
   // The native windowed query owns scope, time range, search and severity filtering; this is the one visible
   // collection shared by the Event list and the map.
@@ -889,7 +894,11 @@ export function App({ scrollAlertToDetails = alertScrollsToDetails }: AppProps =
             minimumSeverity={minimumSeverity}
             criteriaKey={`${activeWatchlistId ?? ''}|${selectedRange}|${debouncedSearch}|${minimumSeverity}`}
             eventWindow={eventWindow}
-            emptyMessage={activeWatchlist ? (activeWatchlist.eventCount === 0 ? 'No events in this watchlist.' : 'No watchlist events match the active filters.') : 'No events match the active filters.'}
+            emptyMessage={activeWatchlist
+              ? (activeWatchlist.eventCount === 0 ? 'No events in this watchlist.' : 'No watchlist events match the active filters.')
+              : eventWindow.totalCount === 0 && isDefaultEventCriteria ? noEventsYetMessage : 'No events match the active filters.'}
+            notice={appInfo?.demoEventsRemoved === true && !demoRemovalNoticeDismissed ? demoEventsRemovedNotice : null}
+            onDismissNotice={() => setDemoRemovalNoticeDismissed(true)}
             manageButtonRef={watchlistManageButtonRef}
             gdacsRefresh={gdacsRefresh}
             providerStatuses={providerStatuses}
