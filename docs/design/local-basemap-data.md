@@ -19,5 +19,5 @@ Provenance and licensing:
 Current limitations:
 
 - Country labels are not rendered in Task 003 because the selected 110m dataset is used primarily for land and country boundaries.
-- Conflict zones are local mock demonstration polygons only.
+- Conflict zones and tension tints come from the owner-curated reference file `src/frontend/src/data/conflictTensionLayer.json`; conflict polygons are approximate drafts, and tension entries reuse these bundled country shapes (see `docs/design/conflict-tension-layer-design.md`).
 - Event markers are mock/demo frontend data using longitude/latitude. Live event ingestion and final backend geographic models remain future work.

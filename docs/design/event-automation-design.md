@@ -12,7 +12,7 @@ Values marked **PROPOSED** are approved as starting values and will be revisited
 | Slice 2: Shared refresh scheduler, with GDACS on the timer | Implemented | `0dba536` |
 | Slice 2B: Event list windowing | Implemented | `ee5d89d` |
 | Slice 3: UCDP Candidate provider | Implemented | `49c008c` |
-| Slice 4: Demo data removal | Not started | — |
+| Slice 4: Demo data removal | Implemented, pending owner acceptance | — |
 | Slice 5: GDELT provider under strict rules | **Blocked** (owner probe 2026-10-02, see 5.2) | — |
 | Slice 5 (replacement): Find recent reports | Not started | — |
 | Slice 6: Cross-provider deduplication | Not started; matters only if a second conflict source is added, so reassess before starting | — |

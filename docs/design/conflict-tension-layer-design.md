@@ -82,3 +82,21 @@ Every label, legend line and popup uses a plain description of what happened. On
 ## 9. Not part of this layer
 
 The Aircraft, Internet outages and Naval toggles are hidden behind `showPlaceholderMapLayers` (false) and are not part of this layer.
+
+## 10. As built (2026-10-02, pending owner acceptance)
+
+**Data file:** `src/frontend/src/data/conflictTensionLayer.json`, bundled with the frontend. Top level: `schemaVersion` (1), `fileVersion` (1), `updated` (ISO date) and `entries`. Each entry has the fields in section 1; `parties` is an array of plain strings, `basis` is one plain sentence without URLs, and `asOf` is an ISO date. `armed_conflict` geometry is a GeoJSON Polygon (counter-clockwise exterior ring, `[lon, lat]` rounded to 2 decimals, at most 30 vertices, no antimeridian crossing). `elevated_tension` geometry is an array of ISO 3166-1 alpha-3 country codes, resolved to the bundled Natural Earth countries through one mapping in `src/frontend/src/features/map/conflictTensionLayer.ts`. A test validates the whole file.
+
+**Implementation details added beyond section 1:**
+
+- `ownerReviewed` (boolean): popups show "Assessed, owner-curated" when true and "Draft, not yet reviewed by the owner" when false.
+- `countryCodes` on every `armed_conflict` entry: the countries whose territory its polygons cover, used only for the precedence rule in section 3 (not the parties).
+- `approximate: true` on every polygon entry.
+
+**Status of every entry:** all twelve entries are drafts (`ownerReviewed: false`, `asOf` 2026-10-02). The six conflict polygons are rough hulls drawn by an AI assistant for owner review from general geographic knowledge; no third-party dataset or tracker geometry was used.
+
+**Precedence result:** Israel-Iran is fully suppressed (Israel and Iran are covered by conflict entries). The tinted countries are the 22 countries of "Russian attacks on Europe", plus India, Pakistan, Afghanistan, China, Taiwan, North Korea and South Korea.
+
+**"Russian attacks on Europe" country check (2 October 2026):** a country is listed when at least one agreed source that could be read lists it. Read: the Sahaidachnyi Security Center article on its tracker (the tracker page itself did not show its data), the ICCT and GLOBSEC update, the AP map report, and the IISS paper (country labels in its incident chart). The ISW map could not be read directly and was checked through Newsweek's reproduction of it. Listed: Albania, Bulgaria, Czechia, Denmark, Estonia, Finland, France, Germany, Greece, Italy, Latvia, Lithuania, Moldova, Netherlands, Norway, Poland, Romania, Slovakia, Spain, Sweden, United Kingdom and the United States. Moldova rests only on the ISW map as reproduced by Newsweek. Countries the sources name outside the EU and NATO (and Ukraine, Russia and Belarus) are not listed.
+
+**Remaining open items:** owner review of every polygon and every entry, including the country list above; the sources' tiers (officially attributed or fitting the pattern) are not shown in this version.
