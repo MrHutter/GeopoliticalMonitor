@@ -1,0 +1,39 @@
+{
+  "description": "Shared Event list filter cases. The native windowed query (EventWindowRules / SqliteEventStore) and the frontend reference filter (eventFilters.ts) must return the same Event ids for every case.",
+  "nowUtc": "2026-09-30T12:00:00Z",
+  "events": [
+    { "id": "evt-parity-1", "title": "Port strike in Rotterdam", "summary": "Dock workers stopped loading.", "category": "Infrastructure", "status": "Active", "severity": "Medium", "startedAtUtc": "2026-09-30T11:00:00Z", "lastUpdatedAtUtc": "2026-09-30T11:30:00Z", "locationDisplayName": "Rotterdam", "region": "North Sea" },
+    { "id": "evt-parity-2", "title": "Earthquake near Türkiye coast", "summary": "Shaking felt inland.", "category": "NaturalDisaster", "status": "Unverified", "severity": "High", "startedAtUtc": "2026-09-29T12:00:00Z", "lastUpdatedAtUtc": "2026-09-29T13:00:00Z", "locationDisplayName": "Türkiye", "region": null },
+    { "id": "evt-parity-3", "title": "Border talks", "summary": "Ministers reported 100% agreement.", "category": "PoliticalDiplomatic", "status": "Resolved", "severity": "Low", "startedAtUtc": "2026-09-29T11:59:59Z", "lastUpdatedAtUtc": "2026-09-29T12:30:00Z", "locationDisplayName": "Capital district", "region": "Central Europe" },
+    { "id": "evt-parity-4", "title": "Militia clash", "summary": "Fighting reported_near the river.", "category": "MilitaryConflict", "status": "Developing", "severity": "Critical", "startedAtUtc": "2026-09-23T12:00:00Z", "lastUpdatedAtUtc": "2026-09-24T08:00:00Z", "locationDisplayName": "Northern corridor", "region": "Baltic" },
+    { "id": "evt-parity-5", "title": "Civil protest", "summary": "Crowd gathered at noon.", "category": "CivilUnrest", "status": "Active", "severity": "Catastrophic", "startedAtUtc": "2026-08-31T12:00:00Z", "lastUpdatedAtUtc": "2026-09-01T08:00:00Z", "locationDisplayName": "Civic square", "region": "Delta" },
+    { "id": "evt-parity-6", "title": "Old economic note", "summary": "Quarterly figures.", "category": "Economic", "status": "Resolved", "severity": "Low", "startedAtUtc": "2026-07-02T11:59:59Z", "lastUpdatedAtUtc": "2026-07-02T12:00:00Z", "locationDisplayName": "Financial district", "region": null },
+    { "id": "evt-parity-7", "title": "Security alert ÉCOLE", "summary": "Precautionary note.", "category": "Security", "status": "Unverified", "severity": "Medium", "startedAtUtc": "2026-07-03T12:00:00Z", "lastUpdatedAtUtc": "2026-07-03T12:00:00Z", "locationDisplayName": "Paris", "region": "Île-de-France" }
+  ],
+  "cases": [
+    { "name": "all defaults", "range": "ALL", "search": "", "minimumSeverity": "All", "expectedIds": ["evt-parity-1", "evt-parity-2", "evt-parity-3", "evt-parity-4", "evt-parity-5", "evt-parity-6", "evt-parity-7"] },
+    { "name": "24H inclusive cutoff", "range": "24H", "search": "", "minimumSeverity": "All", "expectedIds": ["evt-parity-1", "evt-parity-2"] },
+    { "name": "7D inclusive cutoff", "range": "7D", "search": "", "minimumSeverity": "All", "expectedIds": ["evt-parity-1", "evt-parity-2", "evt-parity-3", "evt-parity-4"] },
+    { "name": "30D inclusive cutoff", "range": "30D", "search": "", "minimumSeverity": "All", "expectedIds": ["evt-parity-1", "evt-parity-2", "evt-parity-3", "evt-parity-4", "evt-parity-5"] },
+    { "name": "90D excludes one second past", "range": "90D", "search": "", "minimumSeverity": "All", "expectedIds": ["evt-parity-1", "evt-parity-2", "evt-parity-3", "evt-parity-4", "evt-parity-5", "evt-parity-7"] },
+    { "name": "category display label", "range": "ALL", "search": "military conflict", "minimumSeverity": "All", "expectedIds": ["evt-parity-4"] },
+    { "name": "raw category", "range": "ALL", "search": "MILITARYCONFLICT", "minimumSeverity": "All", "expectedIds": ["evt-parity-4"] },
+    { "name": "trimmed mixed case label", "range": "ALL", "search": "  NATURAL disaster ", "minimumSeverity": "All", "expectedIds": ["evt-parity-2"] },
+    { "name": "non-ASCII lower case", "range": "ALL", "search": "türk", "minimumSeverity": "All", "expectedIds": ["evt-parity-2"] },
+    { "name": "non-ASCII upper case in title", "range": "ALL", "search": "école", "minimumSeverity": "All", "expectedIds": ["evt-parity-7"] },
+    { "name": "non-ASCII region", "range": "ALL", "search": "ÎLE", "minimumSeverity": "All", "expectedIds": ["evt-parity-7"] },
+    { "name": "percent is literal", "range": "ALL", "search": "100%", "minimumSeverity": "All", "expectedIds": ["evt-parity-3"] },
+    { "name": "lone percent is literal", "range": "ALL", "search": "%", "minimumSeverity": "All", "expectedIds": ["evt-parity-3"] },
+    { "name": "underscore is literal", "range": "ALL", "search": "_near", "minimumSeverity": "All", "expectedIds": ["evt-parity-4"] },
+    { "name": "status", "range": "ALL", "search": "unverified", "minimumSeverity": "All", "expectedIds": ["evt-parity-2", "evt-parity-7"] },
+    { "name": "severity word", "range": "ALL", "search": "Catastrophic", "minimumSeverity": "All", "expectedIds": ["evt-parity-5"] },
+    { "name": "region", "range": "ALL", "search": "baltic", "minimumSeverity": "All", "expectedIds": ["evt-parity-4"] },
+    { "name": "location display name", "range": "ALL", "search": "civic square", "minimumSeverity": "All", "expectedIds": ["evt-parity-5"] },
+    { "name": "summary", "range": "ALL", "search": "dock workers", "minimumSeverity": "All", "expectedIds": ["evt-parity-1"] },
+    { "name": "minimum High", "range": "ALL", "search": "", "minimumSeverity": "High", "expectedIds": ["evt-parity-2", "evt-parity-4", "evt-parity-5"] },
+    { "name": "minimum Critical within 30D", "range": "30D", "search": "", "minimumSeverity": "Critical", "expectedIds": ["evt-parity-4", "evt-parity-5"] },
+    { "name": "AND of range, search and severity", "range": "7D", "search": "a", "minimumSeverity": "Medium", "expectedIds": ["evt-parity-1", "evt-parity-2", "evt-parity-4"] },
+    { "name": "no match", "range": "ALL", "search": "zzz", "minimumSeverity": "All", "expectedIds": [] },
+    { "name": "whitespace search is no filter", "range": "ALL", "search": "   ", "minimumSeverity": "Medium", "expectedIds": ["evt-parity-1", "evt-parity-2", "evt-parity-4", "evt-parity-5", "evt-parity-7"] }
+  ]
+}

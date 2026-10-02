@@ -1,5 +1,6 @@
 import type { NativeEvent, NativeSourceItem, NativeEventCategory, NativeEventProvider, NativeEventSeverity, NativeEventStatus, NativeSourceType, ReliefWebReportCandidate } from './types/events';
 import type { Accent } from './types/mock';
+import type { EventTimeRange, MinimumSeverity } from './features/events/eventFilters';
 
 export const nativeAccentValues = ['Orange', 'Blue', 'Red', 'Green', 'Yellow'] as const;
 export type NativeAccentValue = (typeof nativeAccentValues)[number];
@@ -40,7 +41,19 @@ export type PreferenceErrorMessage = {
 
 export type EventsListResultMessage = {
   type: 'events.list.result';
-  payload: { events: NativeEvent[] };
+  payload: { events: NativeEvent[]; totalCount: number; capped: boolean; requestId: number | null };
+};
+
+export const maximumEventSearchLength = 200;
+
+/** Typed criteria for the native windowed Event list. Absent optional ids are omitted, never sent as null. */
+export type EventListCriteria = {
+  requestId: number;
+  range: EventTimeRange;
+  search: string;
+  minimumSeverity: MinimumSeverity;
+  watchlistId?: string;
+  keepEventId?: string;
 };
 
 export type EventSourcesResultMessage = {
@@ -366,8 +379,17 @@ export function sendAccentPreference(accent: Accent) {
   });
 }
 
-export function requestEventsList() {
-  window.chrome?.webview?.postMessage({ type: 'events.list', payload: {} });
+export function requestEventsList(criteria?: EventListCriteria) {
+  if (!criteria) return postNativeMessage({ type: 'events.list', payload: {} });
+  const payload: Record<string, string | number> = {
+    requestId: criteria.requestId,
+    range: criteria.range,
+    search: criteria.search.slice(0, maximumEventSearchLength),
+    minimumSeverity: criteria.minimumSeverity,
+  };
+  if (criteria.watchlistId) payload.watchlistId = criteria.watchlistId;
+  if (criteria.keepEventId) payload.keepEventId = criteria.keepEventId;
+  return postNativeMessage({ type: 'events.list', payload });
 }
 
 export function requestWatchlistsList() {
@@ -535,9 +557,18 @@ export function isPreferenceErrorMessage(value: unknown): value is PreferenceErr
 }
 
 export function isEventsListResultMessage(value: unknown): value is EventsListResultMessage {
-  if (!value || typeof value !== 'object') return false;
-  const message = value as Partial<EventsListResultMessage>;
-  return message.type === 'events.list.result' && !!message.payload && Array.isArray(message.payload.events) && message.payload.events.every(isNativeEvent);
+  if (!isMessage(value, 'events.list.result', ['events', 'totalCount', 'capped', 'requestId'])) return false;
+  const payload = value.payload;
+  return Array.isArray(payload.events)
+    && payload.events.every(isNativeEvent)
+    && isNonNegativeInteger(payload.totalCount)
+    && (payload.totalCount as number) >= payload.events.length
+    && typeof payload.capped === 'boolean'
+    && (payload.requestId === null || isNonNegativeInteger(payload.requestId));
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
 }
 
 export function isEventSourcesResultMessage(value: unknown): value is EventSourcesResultMessage {

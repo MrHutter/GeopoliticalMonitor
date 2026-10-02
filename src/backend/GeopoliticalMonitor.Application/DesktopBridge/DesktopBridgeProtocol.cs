@@ -139,7 +139,7 @@ public static class DesktopBridgeProtocol
             return type switch
             {
                 AppReadyMessageType => TryCreateEmptyRequest(AppReadyMessageType, payload, "app.ready", out request, out error),
-                EventsListMessageType => TryCreateEmptyRequest(EventsListMessageType, payload, "events.list", out request, out error),
+                EventsListMessageType => TryCreateEventsListRequest(payload, out request, out error),
                 GdacsRefreshMessageType => TryCreateEmptyRequest(GdacsRefreshMessageType, payload, "providers.gdacs.refresh", out request, out error),
                 ProvidersRefreshStatusGetMessageType => TryCreateEmptyRequest(ProvidersRefreshStatusGetMessageType, payload, "providers.refresh.status.get", out request, out error),
                 FirmsRefreshMessageType => TryCreateFirmsRefreshRequest(payload, out request, out error),
@@ -253,8 +253,21 @@ public static class DesktopBridgeProtocol
     }
 
     public static string CreateEventsListResultResponseJson(IReadOnlyList<EventDto> events)
+        => CreateEventsListResultResponseJson(new EventWindowResult(events, events.Count, false), requestId: null);
+
+    public static string CreateEventsListResultResponseJson(EventWindowResult result, int? requestId)
     {
-        var response = new { type = EventsListResultMessageType, payload = new { events } };
+        var response = new
+        {
+            type = EventsListResultMessageType,
+            payload = new
+            {
+                events = result.Events,
+                totalCount = result.TotalCount,
+                capped = result.Capped,
+                requestId,
+            },
+        };
         return JsonSerializer.Serialize(response, JsonSerializerOptions.Web);
     }
 
@@ -602,6 +615,103 @@ public static class DesktopBridgeProtocol
         }
 
         request = new DesktopBridgeRequest(type);
+        return true;
+    }
+
+    /// <summary>
+    /// events.list with optional typed criteria. No fields (or a null payload) keeps the old meaning: every criterion
+    /// at its default, with the window cap applied. Unknown, duplicate, null or mistyped fields are rejected.
+    /// </summary>
+    private static bool TryCreateEventsListRequest(JsonElement? payload, out DesktopBridgeRequest? request, out string? error)
+    {
+        request = null;
+        error = null;
+        var window = new EventWindowRequest();
+        int? requestId = null;
+
+        if (payload is { ValueKind: JsonValueKind.Object } payloadObject)
+        {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var property in payloadObject.EnumerateObject())
+            {
+                if (!seen.Add(property.Name))
+                {
+                    error = $"Duplicate events.list field '{property.Name}'.";
+                    return false;
+                }
+
+                switch (property.Name)
+                {
+                    case "requestId":
+                        if (property.Value.ValueKind != JsonValueKind.Number
+                            || !property.Value.TryGetInt32(out var parsedRequestId)
+                            || parsedRequestId < 0)
+                        {
+                            error = "events.list requestId must be a non-negative 32-bit integer.";
+                            return false;
+                        }
+
+                        requestId = parsedRequestId;
+                        break;
+                    case "range":
+                        if (property.Value.ValueKind != JsonValueKind.String
+                            || !EventWindowRules.TryParseRange(property.Value.GetString(), out var range))
+                        {
+                            error = "events.list range is not supported.";
+                            return false;
+                        }
+
+                        window = window with { Range = range };
+                        break;
+                    case "search":
+                        if (property.Value.ValueKind != JsonValueKind.String
+                            || property.Value.GetString() is not { } search
+                            || search.Length > EventWindowRules.MaximumSearchLength)
+                        {
+                            error = $"events.list search must be a string of at most {EventWindowRules.MaximumSearchLength} characters.";
+                            return false;
+                        }
+
+                        window = window with { Search = search };
+                        break;
+                    case "minimumSeverity":
+                        if (property.Value.ValueKind != JsonValueKind.String
+                            || !EventWindowRules.TryParseMinimumSeverity(property.Value.GetString(), out var minimumSeverity))
+                        {
+                            error = "events.list minimumSeverity is not supported.";
+                            return false;
+                        }
+
+                        window = window with { MinimumSeverity = minimumSeverity };
+                        break;
+                    case "watchlistId":
+                        if (property.Value.ValueKind != JsonValueKind.String
+                            || !WatchlistId.TryParse(property.Value.GetString(), out _))
+                        {
+                            error = "events.list watchlistId is invalid.";
+                            return false;
+                        }
+
+                        window = window with { WatchlistId = property.Value.GetString() };
+                        break;
+                    case "keepEventId":
+                        if (property.Value.ValueKind != JsonValueKind.String
+                            || !EventCatalogService.TryParseEventId(property.Value.GetString(), out _))
+                        {
+                            error = "events.list keepEventId is invalid.";
+                            return false;
+                        }
+
+                        window = window with { KeepEventId = property.Value.GetString() };
+                        break;
+                    default:
+                        error = $"Unexpected events.list field '{property.Name}'.";
+                        return false;
+                }
+            }
+        }
+
+        request = new DesktopBridgeRequest(EventsListMessageType, EventWindow: window, EventsListRequestId: requestId);
         return true;
     }
 

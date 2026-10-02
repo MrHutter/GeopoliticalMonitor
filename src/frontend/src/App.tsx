@@ -4,7 +4,7 @@ import { AlertsPanel } from './features/alerts/AlertsPanel';
 import { DetailTab, EventDetailsPanel, type XPostAttachmentFeedback } from './features/event-details/EventDetailsPanel';
 import type { ReliefWebDiscoveryState } from './features/event-details/ReliefWebDiscovery';
 import { EventPanel } from './features/events/EventPanel';
-import { filterEvents, filterEventsByMinimumSeverity, type EventTimeRange, type MinimumSeverity } from './features/events/eventFilters';
+import { type EventTimeRange, type MinimumSeverity } from './features/events/eventFilters';
 import { MapWorkspace } from './features/map/MapWorkspace';
 import { filterFirmsObservations, type FirmsDisplayMode } from './features/map/firmsMap';
 import { SettingsPanel } from './features/settings/SettingsPanel';
@@ -81,6 +81,7 @@ import { NativeEvent, NativeSourceItem } from './types/events';
 import { MapLayer } from './types/mock';
 
 const EventLoadFailureMessage = 'Unable to load local event data.';
+const searchDebounceMilliseconds = 250;
 const formatUtcTime = (value: string) => new Intl.DateTimeFormat('en-GB', {
   hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'UTC',
 }).format(new Date(value));
@@ -115,6 +116,15 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRange, setSelectedRange] = useState<EventTimeRange>('ALL');
   const [minimumSeverity, setMinimumSeverity] = useState<MinimumSeverity>('All');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [eventQueryEnabled, setEventQueryEnabled] = useState(false);
+  const [eventReloadToken, setEventReloadToken] = useState(0);
+  const [eventWindow, setEventWindow] = useState<{ totalCount: number; capped: boolean; settled: boolean }>({ totalCount: 0, capped: false, settled: false });
+  const [eventListPending, setEventListPending] = useState(false);
+  const eventRequestSequenceRef = useRef(0);
+  const latestEventRequestIdRef = useRef<number | null>(null);
+  const keepEventOverrideRef = useRef<string | null>(null);
+  const pendingAlertEventIdRef = useRef<string | null>(null);
   const [events, setEvents] = useState<NativeEvent[]>([]);
   const [watchlists, setWatchlists] = useState<WatchlistSummary[]>([]);
   const [activeWatchlistId, setActiveWatchlistId] = useState<string | null>(null);
@@ -199,7 +209,8 @@ export function App() {
       if (isAppInfoMessage(event.data)) {
         setAppInfo(event.data.payload);
         setXPaneSide(event.data.payload.xPaneSide);
-        requestEventsList();
+        setEventQueryEnabled(true);
+        setEventReloadToken((token) => token + 1);
         requestWatchlistsList();
         requestAlertResource('summary');
         requestProviderRefreshStatus();
@@ -217,7 +228,7 @@ export function App() {
         if (refreshed.length > 0) {
           const selectedId = selectedEventIdRef.current;
           setEventSourcesById((current) => (selectedId && current.has(selectedId) ? new Map([[selectedId, current.get(selectedId)!]]) : new Map()));
-          requestEventsList();
+          setEventReloadToken((token) => token + 1);
           if (selectedId) requestEventSources(selectedId);
           if (refreshed.some((status) => status.newAlerts > 0)) {
             requestAlertResource('summary');
@@ -243,9 +254,20 @@ export function App() {
       }
 
       if (isEventsListResultMessage(event.data)) {
+        // Discard any response that is not for the most recent windowed request (stale or unsolicited).
+        if (event.data.payload.requestId === null || event.data.payload.requestId !== latestEventRequestIdRef.current) return;
         const nativeEvents = event.data.payload.events;
         setEvents(nativeEvents);
+        setEventWindow({ totalCount: event.data.payload.totalCount, capped: event.data.payload.capped, settled: true });
+        setEventListPending(false);
         setEventLoadError(null);
+        const alertEventId = pendingAlertEventIdRef.current;
+        pendingAlertEventIdRef.current = null;
+        if (alertEventId && !nativeEvents.some((item) => item.id === alertEventId)) {
+          setAlertStatus({ kind: 'error', message: 'This alert is no longer available.' });
+          requestAlertResource('summary');
+          requestAlertResource('list');
+        }
         // Only the first non-empty load auto-selects; later reloads (manual or timer) never select a different Event.
         const isFirstLoad = !eventsLoadedRef.current;
         if (nativeEvents.length > 0) eventsLoadedRef.current = true;
@@ -416,7 +438,7 @@ export function App() {
           message: `GDACS refresh complete: ${result.newEvents} new, ${result.updatedEvents} updated, ${result.unchangedRecords} unchanged, ${result.skippedMalformedRecords} skipped, ${result.conflicts} conflicts.`,
         });
         setEventSourcesById(new Map());
-        requestEventsList();
+        setEventReloadToken((token) => token + 1);
         if (result.newAlerts > 0) {
           requestAlertResource('summary');
           if (alertsLoadedRef.current || alertsOpenRef.current) requestAlertResource('list');
@@ -556,6 +578,8 @@ export function App() {
 
       if (isEventsErrorMessage(event.data)) {
         setEventLoadError(EventLoadFailureMessage);
+        setEventListPending(false);
+        pendingAlertEventIdRef.current = null;
       }
     };
 
@@ -570,14 +594,9 @@ export function App() {
 
   const activeWatchlist = watchlists.find((watchlist) => watchlist.id === activeWatchlistId) ?? null;
   const activeMemberships = activeWatchlistId ? membersByWatchlist.get(activeWatchlistId) ?? null : null;
-  const scopedEvents = useMemo(
-    () => activeWatchlistId ? events.filter((event) => activeMemberships?.has(event.id)) : events,
-    [activeMemberships, activeWatchlistId, events],
-  );
-  const filteredEvents = useMemo(
-    () => filterEventsByMinimumSeverity(filterEvents(scopedEvents, searchQuery, selectedRange), minimumSeverity),
-    [minimumSeverity, scopedEvents, searchQuery, selectedRange],
-  );
+  // The native windowed query owns scope, time range, search and severity filtering; this is the one visible
+  // collection shared by the Event list and the map.
+  const filteredEvents = events;
   const eventsById = useMemo(() => new Map(filteredEvents.map((event) => [event.id, event])), [filteredEvents]);
   const selectedEvent = selectedEventId ? eventsById.get(selectedEventId) ?? null : null;
   const selectedSources = selectedEventId ? eventSourcesById.get(selectedEventId) ?? [] : [];
@@ -607,10 +626,38 @@ export function App() {
   }, [selectedEventId]);
 
   useEffect(() => {
-    if (selectedEventId && !selectedEvent) {
+    // While a windowed request is in flight the previous result stays visible; selection is only cleared once the
+    // response for the current criteria shows the selected Event no longer matches.
+    if (selectedEventId && !selectedEvent && !eventListPending) {
       setSelectedEventId(null);
     }
-  }, [selectedEvent, selectedEventId]);
+  }, [eventListPending, selectedEvent, selectedEventId]);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedSearch(searchQuery), searchDebounceMilliseconds);
+    return () => window.clearTimeout(id);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (!eventQueryEnabled) return;
+    const requestId = eventRequestSequenceRef.current + 1;
+    eventRequestSequenceRef.current = requestId;
+    latestEventRequestIdRef.current = requestId;
+    const keepEventId = keepEventOverrideRef.current ?? selectedEventIdRef.current ?? undefined;
+    keepEventOverrideRef.current = null;
+    // Mark pending before sending so a response can never be overwritten by the pending flag it settles.
+    setEventListPending(true);
+    const sent = requestEventsList({
+      requestId,
+      range: selectedRange,
+      search: debouncedSearch,
+      minimumSeverity,
+      watchlistId: activeWatchlistId ?? undefined,
+      keepEventId,
+    });
+    if (!sent) setEventListPending(false);
+    // activeMemberships is a dependency so membership edits inside the active Watchlist re-query the window.
+  }, [activeMemberships, activeWatchlistId, debouncedSearch, eventQueryEnabled, eventReloadToken, minimumSeverity, selectedRange]);
 
   useEffect(() => {
     if (selectedEvent && !eventSourcesById.has(selectedEvent.id)) {
@@ -687,17 +734,18 @@ export function App() {
     setPendingActiveWatchlistId(null);
     setActiveWatchlistId(null);
     setSearchQuery('');
+    setDebouncedSearch('');
     setSelectedRange('ALL');
     setMinimumSeverity('All');
     setSelectedEventId(alert.eventId);
+    // Keep the Alert's Event in the window even when it is older than the newest-by-update cap.
+    keepEventOverrideRef.current = alert.eventId;
+    pendingAlertEventIdRef.current = alert.eventId;
+    setEventListPending(true);
+    setEventReloadToken((token) => token + 1);
     setActiveTab('Overview');
     locateRequestIdRef.current += 1;
     setLocateRequest({ eventId: alert.eventId, requestId: locateRequestIdRef.current });
-    if (!events.some((item) => item.id === alert.eventId)) {
-      setAlertStatus({ kind: 'error', message: 'This alert is no longer available.' });
-      requestAlertResource('summary');
-      requestAlertResource('list');
-    }
   };
 
   const toggleMapLayer = (layerId: string) => {
@@ -787,6 +835,7 @@ export function App() {
           watchlists={watchlists}
           activeWatchlistId={activeWatchlistId}
           minimumSeverity={minimumSeverity}
+          eventWindow={eventWindow}
           emptyMessage={activeWatchlist ? (activeWatchlist.eventCount === 0 ? 'No events in this watchlist.' : 'No watchlist events match the active filters.') : 'No events match the active filters.'}
           manageButtonRef={watchlistManageButtonRef}
           gdacsRefresh={gdacsRefresh}

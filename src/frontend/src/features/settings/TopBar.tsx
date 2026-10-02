@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 import { productDisplayNameUpper } from '../../productIdentity';
 import { eventTimeRanges, type EventTimeRange } from '../events/eventFilters';
+import { maximumEventSearchLength } from '../../nativeBridge';
 
 type TopBarProps = {
   searchQuery: string;
@@ -37,6 +38,7 @@ export function TopBar({ searchQuery, onSearchQueryChange, selectedRange, onRang
           type="search"
           placeholder="Search events, locations, keywords..."
           value={searchQuery}
+          maxLength={maximumEventSearchLength}
           onChange={(event) => onSearchQueryChange(event.target.value)}
         />
       </label>

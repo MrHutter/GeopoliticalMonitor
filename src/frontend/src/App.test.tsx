@@ -4,6 +4,7 @@ import { eventLayerId, eventSourceId, getCategoryColor, selectedEventLayerId } f
 import { firmsLayerId, firmsSourceId } from './features/map/firmsMap';
 import { productDisplayName, productDisplayNameUpper } from './productIdentity';
 import type { NativeEvent, NativeSourceItem } from './types/events';
+import { simulateEventWindow, type SimulatedEventListRequest } from './test/eventWindowSimulator';
 
 type LayerHandler = (event: { features?: Array<{ properties?: Record<string, unknown> }>; lngLat?: unknown }) => void;
 
@@ -316,12 +317,56 @@ const latestMap = async () => {
   return map;
 };
 
-function renderWithWebView() {
+/**
+ * Renders App with a simulated native host. Emitting a legacy-shaped `events.list.result` (no requestId) sets the
+ * simulated native Event store and answers the latest windowed request; later `events.list` requests are answered
+ * from that store with the shared reference filter, Watchlist membership, the cap and the keep-Event rule.
+ */
+function renderWithWebView(options: { cap?: number; autoRespond?: boolean } = {}) {
   let messageHandler: ((event: { data: unknown }) => void) | undefined;
-  const postMessage = vi.fn();
+  let dataset: NativeEvent[] | null = null;
+  let lastListRequest: SimulatedEventListRequest | null = null;
+  const members = new Map<string, Set<string>>();
+  const answer = (request: SimulatedEventListRequest) => messageHandler?.({ data: simulateEventWindow(dataset ?? [], request, { cap: options.cap ?? 2000, members }) });
+  const postMessage = vi.fn((message: unknown) => {
+    const typed = message as { type?: string; payload?: SimulatedEventListRequest };
+    if (typed?.type !== 'events.list') return;
+    lastListRequest = typed.payload ?? {};
+    // Like the real host, an empty store still answers; tests that need data emit a fixture list.
+    if (options.autoRespond !== false) answer(lastListRequest);
+  });
   window.chrome = { webview: { postMessage, addEventListener: vi.fn((_type, listener) => { messageHandler = listener; }), removeEventListener: vi.fn() } };
   const rendered = render(<App />);
-  return { postMessage, emit: (data: unknown) => act(() => messageHandler?.({ data })), unmount: rendered.unmount };
+  const emit = (data: unknown) => {
+    const message = data as { type?: string; payload?: Record<string, unknown> };
+    if (message?.type === 'watchlists.members.get.result' && message.payload) {
+      members.set(message.payload.watchlistId as string, new Set(message.payload.eventIds as string[]));
+    }
+    if (message?.type === 'watchlists.members.set.result' && message.payload) {
+      const watchlistId = message.payload.watchlistId as string;
+      const current = new Set(members.get(watchlistId) ?? []);
+      if (message.payload.isMember) current.add(message.payload.eventId as string);
+      else current.delete(message.payload.eventId as string);
+      members.set(watchlistId, current);
+    }
+    if (message?.type === 'events.list.result' && message.payload && !('requestId' in message.payload)) {
+      dataset = message.payload.events as NativeEvent[];
+      const request = lastListRequest;
+      if (request) act(() => answer(request));
+      return;
+    }
+    act(() => messageHandler?.({ data }));
+  };
+  const respondToLatest = () => {
+    const request = lastListRequest;
+    if (request) act(() => answer(request));
+  };
+  const listRequests = () => postMessage.mock.calls
+    .map(([message]) => message as { type?: string; payload?: SimulatedEventListRequest })
+    .filter((message) => message.type === 'events.list')
+    .map((message) => message.payload ?? {});
+  const respond = (request: SimulatedEventListRequest) => act(() => answer(request));
+  return { postMessage, emit, unmount: rendered.unmount, respondToLatest, respond, listRequests };
 }
 
 function providerStatus(overrides: Partial<{
@@ -388,7 +433,7 @@ describe('App', () => {
     emitAppInfo(emit);
 
     await waitFor(() => expect(screen.getByText('No inbound ports')).toBeInTheDocument());
-    expect(postMessage).toHaveBeenCalledWith({ type: 'events.list', payload: {} });
+    expect(postMessage).toHaveBeenCalledWith({ type: 'events.list', payload: expect.objectContaining({ range: 'ALL', search: '', minimumSeverity: 'All' }) });
   });
 
   it('does not mount Settings or add Settings-only bridge work during dashboard startup', async () => {
@@ -613,7 +658,7 @@ describe('App', () => {
       payload: { status: 'Succeeded', newEvents: 1, updatedEvents: 0, newSources: 1, updatedSources: 0, unchangedRecords: 0, skippedMalformedRecords: 0, conflicts: 0, newAlerts: 0 },
     });
     expect(await screen.findByText(/GDACS refresh complete: 1 new/)).toBeInTheDocument();
-    expect(postMessage).toHaveBeenCalledWith({ type: 'events.list', payload: {} });
+    expect(postMessage).toHaveBeenCalledWith({ type: 'events.list', payload: expect.objectContaining({ range: 'ALL', search: '', minimumSeverity: 'All' }) });
 
     emit({ type: 'events.list.result', payload: { events: [...nativeEvents, gdacsEvent] } });
     expect(await screen.findByRole('button', { name: /Earthquake in Russia/i })).toHaveTextContent('Natural Disaster');
@@ -751,13 +796,148 @@ describe('App', () => {
     fireEvent.change(search, { target: { value: 'shipping' } });
     await waitFor(() => expect(screen.getByRole('heading', { name: 'No event selected' })).toBeInTheDocument());
     fireEvent.change(search, { target: { value: '' } });
-    expect(screen.getByRole('button', { name: /Reported security activity/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Reported security activity/i })).toBeInTheDocument();
 
     emit(providerStatus({ state: 'Idle', lastSuccessAtUtc: new Date().toISOString() }));
     emit({ type: 'events.list.result', payload: { events: nativeEvents } });
 
     expect(screen.getByRole('heading', { name: 'No event selected' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Reported security activity/i })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('sends typed window criteria with the selected Event as the keep id and debounces search typing', async () => {
+    const { emit, listRequests } = renderWithWebView();
+    await latestMap();
+    emitAppInfo(emit);
+    emit({ type: 'events.list.result', payload: { events: nativeEvents } });
+    await waitFor(() => expect(screen.getByRole('heading', { name: nativeEvents[0].title })).toBeInTheDocument());
+    expect(listRequests()[0]).toEqual({ requestId: 1, range: 'ALL', search: '', minimumSeverity: 'All' });
+
+    fireEvent.click(screen.getByRole('button', { name: '7D' }));
+    expect(listRequests().at(-1)).toEqual({ requestId: 2, range: '7D', search: '', minimumSeverity: 'All', keepEventId: nativeEvents[0].id });
+
+    const before = listRequests().length;
+    const search = screen.getByPlaceholderText('Search events, locations, keywords...');
+    fireEvent.change(search, { target: { value: 'b' } });
+    fireEvent.change(search, { target: { value: 'ba' } });
+    fireEvent.change(search, { target: { value: 'bal' } });
+    expect(listRequests()).toHaveLength(before);
+
+    await waitFor(() => expect(listRequests()).toHaveLength(before + 1));
+    expect(listRequests().at(-1)).toMatchObject({ search: 'bal', range: '7D' });
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(listRequests()).toHaveLength(before + 1);
+  });
+
+  it('discards stale responses and keeps the previous result visible while a request is in flight', async () => {
+    const { emit, listRequests, respond, respondToLatest } = renderWithWebView({ autoRespond: false });
+    await latestMap();
+    emitAppInfo(emit);
+    expect(screen.queryByText('No events match the active filters.')).not.toBeInTheDocument();
+    emit({ type: 'events.list.result', payload: { events: [...nativeEvents, olderEvent] } });
+    await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('3 events'));
+
+    fireEvent.click(screen.getByRole('button', { name: '24H' }));
+    const staleRequest = listRequests().at(-1)!;
+    fireEvent.click(screen.getByRole('button', { name: '30D' }));
+
+    expect(screen.getByLabelText('event summary')).toHaveTextContent('3 events');
+    expect(screen.getByRole('button', { name: /Older economic briefing/i })).toBeInTheDocument();
+    expect(screen.queryByText('No events match the active filters.')).not.toBeInTheDocument();
+
+    respond(staleRequest);
+    expect(screen.getByLabelText('event summary')).toHaveTextContent('3 events');
+
+    respondToLatest();
+    await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('3 events'));
+    expect(screen.getByRole('button', { name: '30D' })).toHaveClass('is-active');
+
+    fireEvent.click(screen.getByRole('button', { name: '24H' }));
+    respondToLatest();
+    await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('2 events'));
+  });
+
+  it('shows the capped notice with real numbers and gives the map and list the same capped collection', async () => {
+    const { emit } = renderWithWebView({ cap: 2 });
+    const map = await latestMap();
+    emitAppInfo(emit);
+    emit({ type: 'events.list.result', payload: { events: [...nativeEvents, olderEvent] } });
+
+    expect(await screen.findByText('Showing the newest 2 of 3 matching Events. Narrow the time range or search to see others.')).toBeInTheDocument();
+    expect(screen.getByLabelText('event summary')).toHaveTextContent('2 events');
+    const rowTitles = within(screen.getByRole('list', { name: 'event list' })).getAllByRole('button').map((row) => row.textContent);
+    expect(rowTitles.some((text) => text?.includes(olderEvent.title))).toBe(false);
+    await waitFor(() => expect((map.getSource(eventSourceId)?.data as { features: Array<{ properties: { id: string } }> }).features.map((feature) => feature.properties.id).sort())
+      .toEqual([nativeEvents[0].id, nativeEvents[1].id].sort()));
+
+    fireEvent.click(screen.getByRole('button', { name: '24H' }));
+    await waitFor(() => expect(screen.queryByText(/Showing the newest/)).not.toBeInTheDocument());
+  });
+
+  it('keeps a selected Event that still matches even outside the cap and clears it when the criteria exclude it', async () => {
+    const { emit } = renderWithWebView({ cap: 2 });
+    await latestMap();
+    emitAppInfo(emit);
+    emit({ type: 'events.list.result', payload: { events: [...nativeEvents, olderEvent] } });
+    const search = screen.getByPlaceholderText('Search events, locations, keywords...');
+
+    fireEvent.change(search, { target: { value: 'economic' } });
+    fireEvent.click(await screen.findByRole('button', { name: /Older economic briefing/i }));
+    expect(screen.getByRole('heading', { name: olderEvent.title })).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: '' } });
+    await waitFor(() => expect(screen.getByRole('button', { name: /Reported security activity/i })).toBeInTheDocument());
+    expect(screen.getByRole('heading', { name: olderEvent.title })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Older economic briefing/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('event summary')).toHaveTextContent('2 events');
+
+    fireEvent.click(screen.getByRole('button', { name: '7D' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'No event selected' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'ALL' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /Reported security activity/i })).toBeInTheDocument());
+    expect(screen.getByRole('heading', { name: 'No event selected' })).toBeInTheDocument();
+  });
+
+  it('activates an Alert whose Event is older than the newest capped window', async () => {
+    const { postMessage, emit, listRequests } = renderWithWebView({ cap: 2 });
+    const map = await latestMap();
+    emitAppInfo(emit);
+    emit({ type: 'events.list.result', payload: { events: [...nativeEvents, olderEvent] } });
+    emit({ type: 'alerts.summary.result', payload: { unreadCount: 1 } });
+    await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('2 events'));
+    expect(screen.queryByRole('button', { name: /Older economic briefing/i })).not.toBeInTheDocument();
+    const oldAlert = { ...unreadAlert, eventId: olderEvent.id, eventTitle: olderEvent.title };
+
+    fireEvent.click(screen.getByRole('button', { name: 'Alerts, 1 unread' }));
+    emit({ type: 'alerts.rules.list.result', payload: { rules: [alertRule] } });
+    emit({ type: 'alerts.list.result', payload: { alerts: [oldAlert], unreadCount: 1, hasMore: false } });
+    fireEvent.click(await screen.findByRole('button', { name: new RegExp(olderEvent.title) }));
+
+    expect(postMessage).toHaveBeenCalledWith({ type: 'alerts.markRead', payload: { alertId: oldAlert.id } });
+    expect(listRequests().at(-1)).toMatchObject({ range: 'ALL', search: '', minimumSeverity: 'All', keepEventId: olderEvent.id });
+    expect(await screen.findByRole('heading', { name: olderEvent.title })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Older economic briefing/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('event summary')).toHaveTextContent('2 events');
+    await waitFor(() => expect((map.getSource(eventSourceId)?.data as { features: Array<{ properties: { id: string } }> }).features.map((feature) => feature.properties.id))
+      .toContain(olderEvent.id));
+  });
+
+  it('reports an activated Alert as unavailable only when the native window does not contain its Event', async () => {
+    const { emit } = renderWithWebView();
+    await latestMap();
+    emitAppInfo(emit);
+    emit({ type: 'events.list.result', payload: { events: nativeEvents } });
+    emit({ type: 'alerts.summary.result', payload: { unreadCount: 1 } });
+    const missingAlert = { ...unreadAlert, eventId: 'evt-deleted-event', eventTitle: 'Deleted event' };
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Alerts, 1 unread' }));
+    emit({ type: 'alerts.rules.list.result', payload: { rules: [alertRule] } });
+    emit({ type: 'alerts.list.result', payload: { alerts: [missingAlert], unreadCount: 1, hasMore: false } });
+    fireEvent.click(await screen.findByRole('button', { name: /Deleted event/ }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'No event selected' })).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /^Alerts/ }));
+    expect(await screen.findByText('This alert is no longer available.')).toBeInTheDocument();
   });
 
   it('clicking event row and marker select the same persisted Event', async () => {
@@ -911,7 +1091,7 @@ describe('App', () => {
     expect(screen.getByText('No event selected.')).toBeInTheDocument();
 
     fireEvent.change(search, { target: { value: '' } });
-    expect(screen.getByRole('button', { name: /Reported security activity/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Reported security activity/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'No event selected' })).toBeInTheDocument();
   });
 

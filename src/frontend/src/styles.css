@@ -387,6 +387,15 @@ input:focus-visible {
   color: var(--muted);
 }
 
+.event-window-notice {
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 7px 12px;
+  color: var(--muted-strong);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
 .gdacs-refresh-status {
   border-bottom: 1px solid var(--line);
   padding: 8px 12px;

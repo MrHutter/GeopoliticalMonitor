@@ -18,6 +18,7 @@ type EventPanelProps = {
   watchlists: WatchlistSummary[];
   activeWatchlistId: string | null;
   minimumSeverity: MinimumSeverity;
+  eventWindow: { totalCount: number; capped: boolean; settled: boolean };
   emptyMessage: string;
   manageButtonRef: RefObject<HTMLButtonElement | null>;
   gdacsRefresh: GdacsRefreshFeedback;
@@ -29,9 +30,15 @@ type EventPanelProps = {
   onManageWatchlists: () => void;
 };
 
+const countFormatter = new Intl.NumberFormat('en-US');
+
+export function formatCappedNotice(shown: number, total: number) {
+  return `Showing the newest ${countFormatter.format(shown)} of ${countFormatter.format(total)} matching Events. Narrow the time range or search to see others.`;
+}
+
 const statusDotClass: Record<NativeEventStatus, string> = { Active: 'active', Developing: 'developing', Unverified: 'unverified', Resolved: 'resolved' };
 
-export function EventPanel({ events, selectedEventId, selectedRange, loadError, watchlists, activeWatchlistId, minimumSeverity, emptyMessage, manageButtonRef, gdacsRefresh, providerStatuses, onRefreshGdacs, onSelectEvent, onSelectWatchlist, onMinimumSeverityChange, onManageWatchlists }: EventPanelProps) {
+export function EventPanel({ events, selectedEventId, selectedRange, loadError, watchlists, activeWatchlistId, minimumSeverity, eventWindow, emptyMessage, manageButtonRef, gdacsRefresh, providerStatuses, onRefreshGdacs, onSelectEvent, onSelectWatchlist, onMinimumSeverityChange, onManageWatchlists }: EventPanelProps) {
   const orderedEvents = sortEventsForList(events);
 
   return (
@@ -66,12 +73,15 @@ export function EventPanel({ events, selectedEventId, selectedRange, loadError, 
         <span>{events.length} events</span>
         <span>{events.reduce((total, event) => total + event.sourceCount, 0)} sources</span>
       </div>
+      {eventWindow.capped ? (
+        <p className="event-window-notice" role="status">{formatCappedNotice(events.length, eventWindow.totalCount)}</p>
+      ) : null}
 
       {loadError ? <p className="demo-note" role="alert">{loadError}</p> : null}
       {gdacsRefresh.message ? <p className={`gdacs-refresh-status is-${gdacsRefresh.kind}`} role={gdacsRefresh.kind === 'error' ? 'alert' : 'status'}>{gdacsRefresh.message}</p> : null}
 
       <div className="event-list" role="list" aria-label="event list">
-        {!loadError && orderedEvents.length === 0 ? (
+        {!loadError && eventWindow.settled && orderedEvents.length === 0 ? (
           <p className="event-empty-state" role="status">{emptyMessage}</p>
         ) : null}
         {orderedEvents.map((event) => (

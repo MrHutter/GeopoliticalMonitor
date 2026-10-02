@@ -6,12 +6,134 @@ using GeopoliticalMonitor.Domain;
 using GeopoliticalMonitor.Domain.Events;
 using GeopoliticalMonitor.Domain.Sources;
 using GeopoliticalMonitor.Infrastructure.Persistence.Entities;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace GeopoliticalMonitor.Infrastructure.Persistence;
 
-public sealed class SqliteEventStore(Func<GeopoliticalMonitorDbContext> createDbContext) : IEventStore, IGdacsEarthquakeStore, IReliefWebSourceStore
+public sealed class SqliteEventStore(Func<GeopoliticalMonitorDbContext> createDbContext) : IEventStore, IGdacsEarthquakeStore, IReliefWebSourceStore, IEventWindowStore
 {
+    private const string WindowMatchFunction = "gm_event_window_match";
+    private const string UtcTicksFunction = "gm_utc_ticks";
+
+    // Constant SQL only; every user-controlled value is bound as a parameter. Filtering runs through a deterministic
+    // C# function so native matching is identical to the shared EventWindowRules (Unicode-aware, literal substrings).
+    private const string WindowWhereClause = """
+        gm_event_window_match(e."StartedAtUtc", e."Title", e."Summary", e."Category", e."Status", e."Severity", e."LocationDisplayName", e."Region", $cutoffTicks, $search, $minimumRank) = 1
+        AND ($watchlistId IS NULL OR EXISTS (
+            SELECT 1 FROM "WatchlistEvents" AS w WHERE w."WatchlistId" = $watchlistId AND w."EventId" = e."Id"))
+        """;
+
+    public async Task<EventWindowPage> QueryEventWindowAsync(EventWindowCriteria criteria, int cap, CancellationToken cancellationToken = default)
+    {
+        await using var dbContext = createDbContext();
+        await dbContext.Database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        var connection = (SqliteConnection)dbContext.Database.GetDbConnection();
+        RegisterWindowFunctions(connection, criteria);
+
+        var ids = new List<string>(Math.Min(cap, 256));
+        await using (var select = CreateWindowCommand(connection, criteria, $"""
+            SELECT e."Id" FROM "Events" AS e
+            WHERE {WindowWhereClause}
+            ORDER BY {UtcTicksFunction}(e."LastUpdatedAtUtc") DESC, e."Id" ASC
+            LIMIT $cap
+            """))
+        {
+            select.Parameters.AddWithValue("$cap", cap);
+            await using var reader = await select.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                ids.Add(reader.GetString(0));
+            }
+        }
+
+        int totalCount;
+        await using (var count = CreateWindowCommand(connection, criteria, $"""SELECT COUNT(*) FROM "Events" AS e WHERE {WindowWhereClause}"""))
+        {
+            totalCount = Convert.ToInt32(await count.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false), System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        if (criteria.KeepEventId is { } keepEventId && !ids.Contains(keepEventId, StringComparer.Ordinal))
+        {
+            await using var keep = CreateWindowCommand(connection, criteria, $"""SELECT COUNT(*) FROM "Events" AS e WHERE e."Id" = $keepEventId AND {WindowWhereClause}""");
+            keep.Parameters.AddWithValue("$keepEventId", keepEventId);
+            var keepMatches = Convert.ToInt32(await keep.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false), System.Globalization.CultureInfo.InvariantCulture) > 0;
+            if (keepMatches)
+            {
+                if (ids.Count >= cap)
+                {
+                    // The kept Event replaces the oldest returned Event, so the window never exceeds the cap.
+                    ids.RemoveAt(ids.Count - 1);
+                }
+
+                ids.Add(keepEventId);
+            }
+        }
+
+        if (ids.Count == 0)
+        {
+            return new EventWindowPage([], new Dictionary<EventId, int>(), totalCount);
+        }
+
+        var entities = await dbContext.Events
+            .AsNoTracking()
+            .Where(item => ids.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, StringComparer.Ordinal, cancellationToken)
+            .ConfigureAwait(false);
+        var sourceCounts = await dbContext.EventSourceAssociations
+            .AsNoTracking()
+            .Where(item => ids.Contains(item.EventId))
+            .GroupBy(item => item.EventId)
+            .Select(group => new { EventId = group.Key, Count = group.Count() })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var events = ids.Where(entities.ContainsKey).Select(id => ToDomain(entities[id])).ToArray();
+        return new EventWindowPage(
+            events,
+            sourceCounts.ToDictionary(item => new EventId(item.EventId), item => item.Count),
+            totalCount);
+    }
+
+    private static SqliteCommand CreateWindowCommand(SqliteConnection connection, EventWindowCriteria criteria, string sql)
+    {
+        var command = connection.CreateCommand();
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("$cutoffTicks", criteria.StartedAtOrAfterUtc is { } cutoff ? cutoff.UtcTicks : DBNull.Value);
+        command.Parameters.AddWithValue("$search", criteria.NormalizedSearch);
+        command.Parameters.AddWithValue("$minimumRank", criteria.MinimumSeverityRank);
+        command.Parameters.AddWithValue("$watchlistId", (object?)criteria.WatchlistId ?? DBNull.Value);
+        return command;
+    }
+
+    private static void RegisterWindowFunctions(SqliteConnection connection, EventWindowCriteria criteria)
+    {
+        connection.CreateFunction(UtcTicksFunction, (string? value) =>
+            EventWindowRules.TryParseStoredTimestamp(value, out var timestamp) ? timestamp.UtcTicks : long.MinValue, isDeterministic: true);
+
+        connection.CreateFunction(WindowMatchFunction, (object?[] args) =>
+        {
+            var cutoff = args[8] is long ticks ? new DateTimeOffset(ticks, TimeSpan.Zero) : (DateTimeOffset?)null;
+            DateTimeOffset? startedAt = EventWindowRules.TryParseStoredTimestamp(args[0] as string, out var parsed) ? parsed : null;
+            var rowCriteria = criteria with
+            {
+                StartedAtOrAfterUtc = cutoff,
+                NormalizedSearch = args[9] as string ?? string.Empty,
+                MinimumSeverityRank = Convert.ToInt32(args[10], System.Globalization.CultureInfo.InvariantCulture),
+            };
+            return EventWindowRules.Matches(
+                rowCriteria,
+                startedAt,
+                args[1] as string,
+                args[2] as string,
+                args[3] as string,
+                args[4] as string,
+                args[5] as string,
+                args[6] as string,
+                args[7] as string);
+        }, isDeterministic: true);
+    }
+
     public async Task<IReadOnlyList<Event>> GetEventsAsync(CancellationToken cancellationToken = default)
     {
         await using var dbContext = createDbContext();

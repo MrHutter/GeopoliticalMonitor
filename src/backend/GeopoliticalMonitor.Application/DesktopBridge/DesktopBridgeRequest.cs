@@ -19,4 +19,6 @@ public sealed record DesktopBridgeRequest(
     double? FirmsWest = null,
     double? FirmsSouth = null,
     double? FirmsEast = null,
-    double? FirmsNorth = null);
+    double? FirmsNorth = null,
+    Events.EventWindowRequest? EventWindow = null,
+    int? EventsListRequestId = null);

@@ -51,6 +51,7 @@ import {
   setWatchlistMembership,
   setAlertRuleEnabled,
   requestProviderRefreshStatus,
+  requestEventsList,
 } from './nativeBridge';
 
 describe('nativeBridge', () => {
@@ -134,6 +135,42 @@ describe('nativeBridge', () => {
     expect(postMessage).toHaveBeenCalledWith({ type: 'providers.refresh.status.get', payload: {} });
   });
 
+  it('strictly validates windowed event list responses', () => {
+    const event = {
+      id: 'evt-one', title: 'Title', summary: 'Summary', category: 'Security', status: 'Active',
+      startedAtUtc: '2026-09-17T10:00:00Z', lastUpdatedAtUtc: '2026-09-17T10:05:00Z',
+      location: { latitude: 1, longitude: 2, displayName: 'Place', countryCode: null, region: null },
+      createdAtUtc: '2026-09-17T09:00:00Z', updatedAtUtc: '2026-09-17T10:05:00Z', sourceCount: 0,
+      severity: 'Low', severityRule: 'manual', severityInputs: 'test', provider: 'Manual',
+    };
+    const accepts = (payload: Record<string, unknown>) => isEventsListResultMessage({ type: 'events.list.result', payload });
+
+    expect(accepts({ events: [event], totalCount: 4812, capped: true, requestId: 9 })).toBe(true);
+    expect(accepts({ events: [], totalCount: 0, capped: false, requestId: null })).toBe(true);
+    expect(accepts({ events: [event] })).toBe(false);
+    expect(accepts({ events: [event], totalCount: 1, capped: false })).toBe(false);
+    expect(accepts({ events: [event], totalCount: 1, capped: false, requestId: 1, extra: true })).toBe(false);
+    expect(accepts({ events: [event], totalCount: 0, capped: false, requestId: 1 })).toBe(false);
+    expect(accepts({ events: [event], totalCount: -1, capped: false, requestId: 1 })).toBe(false);
+    expect(accepts({ events: [event], totalCount: 1.5, capped: false, requestId: 1 })).toBe(false);
+    expect(accepts({ events: [event], totalCount: 1, capped: 'no', requestId: 1 })).toBe(false);
+    expect(accepts({ events: [event], totalCount: 1, capped: false, requestId: '1' })).toBe(false);
+    expect(accepts({ events: [event], totalCount: 1, capped: false, requestId: -2 })).toBe(false);
+  });
+
+  it('posts typed windowed list criteria, omitting absent ids and bounding search', () => {
+    const postMessage = vi.fn();
+    window.chrome = { webview: { postMessage, addEventListener: vi.fn(), removeEventListener: vi.fn() } };
+
+    expect(requestEventsList()).toBe(true);
+    expect(requestEventsList({ requestId: 4, range: '7D', search: 'x'.repeat(260), minimumSeverity: 'High' })).toBe(true);
+    expect(requestEventsList({ requestId: 5, range: 'ALL', search: '', minimumSeverity: 'All', watchlistId: 'wl-00000000000000000000000000000001', keepEventId: 'evt-one' })).toBe(true);
+
+    expect(postMessage).toHaveBeenNthCalledWith(1, { type: 'events.list', payload: {} });
+    expect(postMessage).toHaveBeenNthCalledWith(2, { type: 'events.list', payload: { requestId: 4, range: '7D', search: 'x'.repeat(200), minimumSeverity: 'High' } });
+    expect(postMessage).toHaveBeenNthCalledWith(3, { type: 'events.list', payload: { requestId: 5, range: 'ALL', search: '', minimumSeverity: 'All', watchlistId: 'wl-00000000000000000000000000000001', keepEventId: 'evt-one' } });
+  });
+
   it('strictly validates event severity, provider and field set', () => {
     const valid = {
       id: 'evt-gdacs-eq-1',
@@ -152,7 +189,7 @@ describe('nativeBridge', () => {
       severityInputs: 'alert=Red; magnitude=7.8',
       provider: 'Gdacs',
     };
-    const accepts = (event: unknown) => isEventsListResultMessage({ type: 'events.list.result', payload: { events: [event] } });
+    const accepts = (event: unknown) => isEventsListResultMessage({ type: 'events.list.result', payload: { events: [event], totalCount: 1, capped: false, requestId: 1 } });
     const missingSeverity: Record<string, unknown> = { ...valid };
     delete missingSeverity.severity;
 
@@ -204,7 +241,7 @@ describe('nativeBridge', () => {
       location: null,
     };
 
-    expect(isEventsListResultMessage({ type: 'events.list.result', payload: { events: [eventPayload] } })).toBe(true);
+    expect(isEventsListResultMessage({ type: 'events.list.result', payload: { events: [eventPayload], totalCount: 1, capped: false, requestId: 3 } })).toBe(true);
     expect(isEventSourcesResultMessage({ type: 'events.sources.result', payload: { eventId: 'evt-demo', sources: [sourcePayload] } })).toBe(true);
     expect(isAttachXPostResultMessage({ type: 'events.sources.attachXPost.result', payload: { eventId: 'evt-demo', disposition: 'CreatedAndAttached', source: sourcePayload } })).toBe(true);
     expect(isAttachXPostErrorMessage({ type: 'events.sources.attachXPost.error', payload: { eventId: 'evt-demo', message: 'Unable to attach.' } })).toBe(true);
@@ -347,7 +384,7 @@ describe('nativeBridge', () => {
     expect(isXPaneSideValueMessage({ type: 'xPane.side.value', payload: { value: 'Center' } })).toBe(false);
     expect(isPreferenceUpdatedMessage({ type: 'preferences.updated', payload: { key: 'Unknown', value: 'Blue' } })).toBe(false);
     expect(isPreferenceErrorMessage({ type: 'preferences.error', payload: { key: 'AccentTheme' } })).toBe(false);
-    expect(isEventsListResultMessage({ type: 'events.list.result', payload: { events: [{ id: 'evt-demo', category: 'Security' }] } })).toBe(false);
+    expect(isEventsListResultMessage({ type: 'events.list.result', payload: { events: [{ id: 'evt-demo', category: 'Security' }], totalCount: 1, capped: false, requestId: 1 } })).toBe(false);
     expect(isEventSourcesResultMessage({ type: 'events.sources.result', payload: { eventId: 'evt-demo', sources: [{ id: 'src-demo', sourceType: 'Unknown' }] } })).toBe(false);
     expect(isAttachXPostResultMessage({ type: 'events.sources.attachXPost.result', payload: { eventId: 'evt-demo', disposition: 'Unknown', source: {} } })).toBe(false);
     expect(isAttachXPostErrorMessage({ type: 'events.sources.attachXPost.error', payload: { eventId: 'evt-demo' } })).toBe(false);

@@ -41,6 +41,7 @@ public sealed partial class MainWindow : Window
     private XPaneWidthPreferenceService? xPaneWidthPreferenceService;
     private XPaneSidePreferenceService? xPaneSidePreferenceService;
     private EventCatalogService? eventCatalogService;
+    private EventWindowService? eventWindowService;
     private EventSourceBridgeHandler? eventSourceBridgeHandler;
     private GdacsRefreshBridgeHandler? gdacsRefreshBridgeHandler;
     private ProviderRefreshScheduler? providerRefreshScheduler;
@@ -495,6 +496,7 @@ public sealed partial class MainWindow : Window
 
             var eventStore = new SqliteEventStore(databaseInitializer.CreateDbContext);
             eventCatalogService = new EventCatalogService(eventStore);
+            eventWindowService = new EventWindowService(eventStore);
             eventSourceBridgeHandler = new EventSourceBridgeHandler(eventCatalogService);
             watchlistBridgeHandler = new WatchlistBridgeHandler(
                 new WatchlistService(new SqliteWatchlistStore(databaseInitializer.CreateDbContext)));
@@ -532,6 +534,7 @@ public sealed partial class MainWindow : Window
             xPaneWidthPreferenceService = null;
             xPaneSidePreferenceService = null;
             eventCatalogService = null;
+            eventWindowService = null;
             eventSourceBridgeHandler = null;
             gdacsRefreshBridgeHandler = null;
             if (providerRefreshScheduler is not null)
@@ -668,7 +671,7 @@ public sealed partial class MainWindow : Window
                 await SaveAccentPreferenceAsync(sender, request.PreferenceValue);
                 break;
             case DesktopBridgeProtocol.EventsListMessageType:
-                await SendEventsAsync(sender);
+                await SendEventsAsync(sender, request);
                 break;
             case DesktopBridgeProtocol.EventsGetMessageType:
                 await SendEventAsync(sender, request.EventId);
@@ -755,9 +758,9 @@ public sealed partial class MainWindow : Window
         AppWebView.CoreWebView2?.PostWebMessageAsJson(DesktopBridgeProtocol.CreateXPaneSideValueResponseJson(xPaneSide));
     }
 
-    private async Task SendEventsAsync(WebView2 sender)
+    private async Task SendEventsAsync(WebView2 sender, DesktopBridgeRequest request)
     {
-        if (eventCatalogService is null)
+        if (eventWindowService is null)
         {
             sender.CoreWebView2.PostWebMessageAsJson(DesktopBridgeProtocol.CreateEventsErrorResponseJson(EventDataUnavailableMessage));
             return;
@@ -765,8 +768,8 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            var events = await eventCatalogService.GetEventsAsync();
-            sender.CoreWebView2.PostWebMessageAsJson(DesktopBridgeProtocol.CreateEventsListResultResponseJson(events));
+            var window = await eventWindowService.QueryAsync(request.EventWindow ?? new EventWindowRequest());
+            sender.CoreWebView2.PostWebMessageAsJson(DesktopBridgeProtocol.CreateEventsListResultResponseJson(window, request.EventsListRequestId));
         }
         catch (Exception)
         {
