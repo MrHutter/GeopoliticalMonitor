@@ -11,10 +11,14 @@ Values marked **PROPOSED** are approved as starting values and will be revisited
 | Slice 1: Severity field and display | Implemented | `46db700` |
 | Slice 2: Shared refresh scheduler, with GDACS on the timer | Implemented | `0dba536` |
 | Slice 2B: Event list windowing | Implemented | `ee5d89d` |
-| Slice 3: UCDP Candidate provider | Implemented, pending owner acceptance | — |
-| Slices 4 to 7 | Not started | — |
+| Slice 3: UCDP Candidate provider | Implemented | `49c008c` |
+| Slice 4: Demo data removal | Not started | — |
+| Slice 5: GDELT provider under strict rules | **Blocked** (owner probe 2026-10-02, see 5.2) | — |
+| Slice 5 (replacement): Find recent reports | Not started | — |
+| Slice 6: Cross-provider deduplication | Not started; matters only if a second conflict source is added, so reassess before starting | — |
+| Slice 7: Alert integration | Not started | — |
 
-The status line above ("implementation not started") and the findings in section 2 describe the baseline. Line numbers in section 2 refer to `e30d955` and have since moved, so use the file names. **As built** notes mark where the implementation differs from the text. Owner decisions, thresholds and later slices are unchanged.
+The status line above ("implementation not started") and the findings in section 2 describe the baseline. Line numbers in section 2 refer to `e30d955` and have since moved, so use the file names. **As built** notes mark where the implementation differs from the text. Owner decisions, thresholds and later slices are unchanged, except that GDELT Event creation (section 5.2 and Slice 5) was blocked on 2026-10-02, which makes Q3 and Q7 moot.
 
 ---
 
@@ -328,7 +332,9 @@ Records are **included** only if all of the following hold:
 
 Each record also creates a SourceItem `src-ucdp-cand-{id}` with SourceType DatasetRecord, ExternalId `UCDP:CAND:{id}`, a URL pointing to the UCDP downloads page, and provenance text containing the citation and the `code_status`.
 
-### 5.2 GDELT strict creation rules (PROPOSED)
+### 5.2 GDELT strict creation rules (PROPOSED) — BLOCKED
+
+> **Blocked (2026-10-02).** GDELT does not create Events. The owner's probe over 24 hours of GDELT 2.0 exports on 2026-10-02 applied a strict kinetic-code bar (CAMEO codes 193 to 196, the 20x codes, the 183x bombing codes, 185 and 186; `QuadClass` 4; city-level locations; one row per source URL). Only about 16 rows a day passed at `NumSources` 2 and `NumArticles` 3, and about 8 at the proposed 3 and 5. The sampled rows were mostly not geopolitical incidents: a court case, a wildlife-photo contest coded as small-arms fire, and one article producing several rows pinned on a capital. Slice 5 is replaced by an explicit "Find recent reports" action (section 13, Slice 5 replacement). Access facts kept for that work: the `http://` links listed for the bulk files can be rewritten to `https://`, and `lastupdate.txt` carries each file's size and md5. The rules below are kept as the record of what was proposed.
 
 A record **creates an Event** only if all of the following hold:
 
@@ -619,7 +625,9 @@ Required before Slice 3. The first UCDP import can create up to 5,000 Events, bu
 - **Tests:** the cleanup removes only `evt-demo-` and `src-demo-` rows and runs once; seeder tests still pass because they call the seeder directly.
 - **Manual acceptance:** after launch no demo Events remain; the empty state shows before the first refresh completes; restarting does not bring the demo Events back.
 
-### Slice 5: GDELT provider under strict rules
+### Slice 5: GDELT provider under strict rules — BLOCKED
+
+> **Blocked (2026-10-02):** see the evidence in section 5.2. Replaced by the next slice; the plan below is kept as a record and is not to be implemented.
 
 - **Depends on:** Slice 2B (Event list windowing), which is already required before Slice 3.
 - **Scope:**
@@ -633,7 +641,16 @@ Required before Slice 3. The first UCDP import can create up to 5,000 Events, bu
 - **Tests:** fixture rows at every rule boundary; zip-bomb and wrong-entry rejection; http-to-https rewrite and host rejection; an unchanged `lastupdate.txt` means no download; the cap of 25.
 - **Manual acceptance:** a small number of GDELT Events appear, clearly labelled; turning the toggle off stops requests (verify in the status strip); markers stay readable.
 
+### Slice 5 (replacement): Find recent reports
+
+- **Status:** not implemented.
+- **Scope:** an explicit user action on a selected Event. The native host runs one GDELT DOC 2.0 search (`api.gdeltproject.org`, https only, free, no key, about a three-month window, at most one request per five seconds, up to 250 articles). Errors may arrive as HTTP 200 plain text and must be recognised as errors. Results are transient candidates (title, URL, domain, date, language) shown to the user; an explicit Attach creates a SourceItem and its association with the Event. Nothing is created automatically. Citation to the GDELT Project is required.
+- **Pattern:** the same as the ReliefWeb search-and-attach flow. `SourceItem` != `Event` stays: a GDELT article never becomes an Event.
+- **Non-goals:** Event creation, background or timer requests, Alerts.
+
 ### Slice 6: Cross-provider deduplication
+
+> **Reassess (2026-10-02):** with GDELT creation blocked, deduplication only matters if a second conflict source is added.
 
 - **Scope:** match rule per section 7; `SupersededByEventId`; attach below-bar GDELT records to matched Events (at most 3 per Event); a Details section listing linked and superseded Events; ambiguous-match counts in the refresh result.
 - **Non-goals:** model-assisted matching and automatic Watchlist migration.
@@ -655,11 +672,11 @@ Required before Slice 3. The first UCDP import can create up to 5,000 Events, bu
 | :- | :- | :- | :- |
 | Q1 | Approve the severity thresholds in 4.2, including the Catastrophic bar? | Approve as written, and revisit after two weeks of real data. | Approved as written; revisit after about two weeks of real data. |
 | Q2 | Remove demo data before or after UCDP is live? | After UCDP (slice order above). | After UCDP is live. |
-| Q3 | GDELT automatic refresh on by default? | Off by default, with a clear toggle, until the thresholds are tuned on real data. | Off by default; the owner switches it on after the thresholds are tuned. |
+| Q3 | GDELT automatic refresh on by default? | Off by default, with a clear toggle, until the thresholds are tuned on real data. | Off by default; the owner switches it on after the thresholds are tuned. **Moot (2026-10-02):** GDELT creation is blocked (section 5.2). |
 | Q4 | Refresh intervals in 3.2? | Approve: GDACS 30 min, UCDP 6 h check, GDELT 15 min. | Approved. |
 | Q5 | Skip UCDP records with `best` = 0? | Yes, for volume; revisit if coverage looks thin. | Yes, skip `best` = 0. |
 | Q6 | Category for UCDP one-sided violence (type 3)? | Security. MilitaryConflict is kept for state-based and non-state fighting. | Security. |
-| Q7 | GDELT creation bar (`NumSources` ≥ 3, `NumArticles` ≥ 5, roots 18–20, city-level)? | Approve as the starting bar. | Approved with a revision: root 18 is limited to the bombing and assassination subset (section 5.2 rule 1). |
+| Q7 | GDELT creation bar (`NumSources` ≥ 3, `NumArticles` ≥ 5, roots 18–20, city-level)? | Approve as the starting bar. | Approved with a revision: root 18 is limited to the bombing and assassination subset (section 5.2 rule 1). **Moot (2026-10-02):** GDELT creation is blocked (section 5.2). |
 | Q8 | When a GDELT Event is superseded, move its Watchlist memberships to the UCDP Event? | No automatic move; show a notice in Details and let the user decide. | No automatic move. |
 | Q9 | Should severity changes from GDACS or UCDP create Alerts for watched Events? | Yes (`SeverityIncreased`, slice 7). | Yes. |
 | Q10 | Clickable source links through a typed `links.openExternal`? | Defer. Keep text-only now, and review the ReliefWeb `target="_blank"` link separately. | Deferred. |

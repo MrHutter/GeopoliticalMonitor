@@ -23,7 +23,8 @@ Windows desktop geopolitical/OSINT situational-awareness app. WinUI 3/.NET deskt
 
 ## Current status (verify against fresh repo state — this goes stale fast)
 - Working repository: `C:\Dev\GeopoliticalMonitor-github`, branch `main`, with a private GitHub remote (`origin`, MrHutter/GeopoliticalMonitor). History begins at the single initial commit `1222d52`; older history exists only in the owner's local archive repository. The repo is not yet intended to be public.
-- Event automation Slice 1 (`46db700`, severity and provider identity), Slice 2 (`0dba536`, GDACS refresh scheduler and provider status) and Slice 2B (`ee5d89d`, native Event list windowing, cap 2,000) are implemented. Next planned slice: Slice 3 (UCDP Candidate).
+- Event automation Slice 1 (`46db700`, severity and provider identity), Slice 2 (`0dba536`, GDACS refresh scheduler and provider status), Slice 2B (`ee5d89d`, native Event list windowing, cap 2,000) and Slice 3 (`49c008c`, UCDP Candidate provider) are implemented. Dashboard layout: layout fix `3e94b4a`, density pass `c24f6d0`, scaling pass `e98a51f`.
+- Next planned work: Slice 4 (demo data removal) and the conflict/tension reference layer (`docs/design/conflict-tension-layer-design.md`). GDELT as an Event creator is blocked (see the event automation design).
 - Event automation design, slice plan and owner decisions: `docs/design/event-automation-design.md`.
 - Full context for anything deeper — Git history, domain model, FIRMS/AdBlock design detail, roadmap, publication audit findings — lives in `docs/Geopolitical_Monitor_Migration_b4c2617_2026-09-29.md`. Read the relevant section when a task actually needs that detail rather than assuming it's all loaded here.
 

@@ -5,6 +5,11 @@
 - Repository `C:\Dev\GeopoliticalMonitor-github` has a private GitHub remote (`origin`, MrHutter/GeopoliticalMonitor). Its fresh history begins at the single initial commit `1222d52`; `b4c2617` and earlier history exist only in the owner's local archive repository.
 - Event automation Slice 1 `46db700` (Event severity Low/Medium/High/Critical/Catastrophic; `Provider` and `ProviderKey`), Slice 2 `0dba536` (in-process GDACS refresh scheduler, every 30 min while the app is open; provider status strip) and Slice 2B `ee5d89d` (native Event list windowing, cap 2,000) are implemented.
 - Design, slice plan and owner decisions: `docs/design/event-automation-design.md`.
+- Slice 3 `49c008c` (UCDP Candidate provider: monthly release, checked every 6 hours while the app is open, first check 2 minutes after `app.ready`, `Refresh UCDP` action, `ProviderLastSeenRelease` column, no Alerts for UCDP) is implemented.
+- Dashboard layout: layout fix `3e94b4a` (bounded Events list, newest first, 100 rows rendered at a time), density pass `c24f6d0` (Details below the first screen; the Aircraft, Internet outages and Naval placeholder toggles hidden behind `showPlaceholderMapLayers`, Infrastructure kept; smaller markers) and scaling pass `e98a51f` (info bar removed, one-row top bar down to 940 px, Events column 300-320 px, single-line Events header text, full-width map toolbar rows).
+- GDELT as an Event creator is blocked by the owner's 2026-10-02 probe of GDELT 2.0 exports (too few rows passed a strict kinetic bar, and most sampled rows were not geopolitical incidents). It is replaced by a planned explicit "Find recent reports" action on a selected Event; see `docs/design/event-automation-design.md`.
+- AdBlock re-enrollment after the bound instance disappears from the X profile: see the README section "Re-enrolling AdBlock".
+- KNOWN OPEN ISSUE: below about 1,270 px of client width the X pane is clipped at the right edge, because the native `XPaneColumn` has `MinWidth` 320 while the layout clamp can request less. Deliberately deferred by the owner.
 - Statements below that these changes contradict carry a "[Superseded 2026-10-02: ...]" note. The original text is kept.
 
 Generated after local checkpoint commit:
@@ -54,7 +59,7 @@ IMPORTANT:
 - Nothing has been pushed. [Superseded 2026-10-02: the fresh history has been pushed to the private remote.]
 - The repository has not yet completed publication-hygiene remediation.
 - The repository is not yet intended to be public.
-- The next immediate phase is repository/publication hygiene and re-audit, NOT another major feature. [Superseded 2026-10-02: event automation is in progress; next planned slice is Slice 3 (UCDP Candidate) per `docs/design/event-automation-design.md`.]
+- The next immediate phase is repository/publication hygiene and re-audit, NOT another major feature. [Superseded 2026-10-02: event automation is in progress; next planned slice is Slice 3 (UCDP Candidate) per `docs/design/event-automation-design.md`.] [Superseded 2026-10-02 (later): Slice 3 is implemented (`49c008c`); the next planned work is Slice 4 (demo data removal) and the conflict/tension reference layer (`docs/design/conflict-tension-layer-design.md`).]
 
 Before any new coding task, recover fresh repository truth.
 
@@ -1669,7 +1674,7 @@ After publication hygiene / private GitHub setup, the likely next MAJOR product 
 
 **automated Event ingestion / monitoring architecture**
 
-Do NOT implement automatically without a dedicated design pass. [Superseded 2026-10-02: the design pass is done and approved (`docs/design/event-automation-design.md`); Slices 1, 2 and 2B are implemented.]
+Do NOT implement automatically without a dedicated design pass. [Superseded 2026-10-02: the design pass is done and approved (`docs/design/event-automation-design.md`); Slices 1, 2 and 2B are implemented.] [Superseded 2026-10-02 (later): Slice 3 (`49c008c`) is implemented as well.]
 
 Future design topics:
 
@@ -1710,12 +1715,12 @@ Current map-layer UI historically includes placeholders such as:
 
 - aircraft
 - naval
-- infrastructure
+- infrastructure [Superseded 2026-10-02: the owner decided to keep the Infrastructure toggle visible; only Aircraft, Internet outages and Naval are hidden.]
 - internet outage
 
 Before public presentation:
 
-hide any layer from normal UI until it is backed by real functionality.
+hide any layer from normal UI until it is backed by real functionality. [Superseded 2026-10-02: done in `c24f6d0` for Aircraft, Internet outages and Naval, which are hidden behind `showPlaceholderMapLayers` (false); Infrastructure stays visible by owner decision.]
 
 Do not expose non-functional controls merely to show roadmap ideas.
 
@@ -1893,11 +1898,11 @@ Through commit `b4c2617`:
 
 Backend:
 
-- 530 passed [Superseded 2026-10-02: last reported at `ee5d89d`: Domain 68, Application 459, Infrastructure 184.]
+- 530 passed [Superseded 2026-10-02: last reported at `ee5d89d`: Domain 68, Application 459, Infrastructure 184.] [Superseded 2026-10-02 (later): last reported at `e98a51f`: Domain 77, Application 535, Infrastructure 233.]
 
 Frontend:
 
-- 109 passed across 9 files [Superseded 2026-10-02: last reported at `ee5d89d`: 169 passed across 11 files.]
+- 109 passed across 9 files [Superseded 2026-10-02: last reported at `ee5d89d`: 169 passed across 11 files.] [Superseded 2026-10-02 (later): last reported at `e98a51f`: 202 passed across 15 files.]
 
 ### PUBLICATION STATUS
 
@@ -1934,7 +1939,7 @@ Report:
 
 Do not immediately implement new features.
 
-Then proceed to the repository/publication hygiene remediation. [Superseded 2026-10-02: reconcile against current HEAD instead; the next planned work is Slice 3 (UCDP Candidate).]
+Then proceed to the repository/publication hygiene remediation. [Superseded 2026-10-02: reconcile against current HEAD instead; the next planned work is Slice 3 (UCDP Candidate).] [Superseded 2026-10-02 (later): Slice 3 is implemented (`49c008c`); the next planned work is Slice 4 (demo data removal) and the conflict/tension reference layer (`docs/design/conflict-tension-layer-design.md`).]
 
 ---
 
@@ -1961,7 +1966,7 @@ Current local checkpoint:
 
 NEXT:
 
-**Repository/publication hygiene remediation** [Superseded 2026-10-02: the private repository with fresh history exists and event automation is in progress; next planned slice is Slice 3 (UCDP Candidate).]
+**Repository/publication hygiene remediation** [Superseded 2026-10-02: the private repository with fresh history exists and event automation is in progress; next planned slice is Slice 3 (UCDP Candidate).] [Superseded 2026-10-02 (later): Slice 3 is implemented (`49c008c`); the next planned work is Slice 4 (demo data removal) and the conflict/tension reference layer (`docs/design/conflict-tension-layer-design.md`).]
 
 Then:
 
