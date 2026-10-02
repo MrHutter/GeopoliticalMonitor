@@ -1,4 +1,5 @@
 import { MapLayer } from '../../types/mock';
+import { getVisibleLayerToggles, showPlaceholderMapLayers } from '../../mock/dashboardData';
 import { firmsDisplayModeOptions, type FirmsDisplayMode } from './firmsMap';
 
 type MapLayersPanelProps = {
@@ -11,6 +12,8 @@ type MapLayersPanelProps = {
   onToggleLayer: (layerId: string) => void;
   onRefreshFirms: () => void;
   onFirmsDisplayModeChange: (mode: FirmsDisplayMode) => void;
+  /** Lists the placeholder Aircraft, Naval and Internet outages toggles; defaults to showPlaceholderMapLayers. */
+  showPlaceholderLayers?: boolean;
 };
 
 export type FirmsLayerStatus = {
@@ -40,12 +43,13 @@ export function MapLayersPanel({
   onToggleLayer,
   onRefreshFirms,
   onFirmsDisplayModeChange,
+  showPlaceholderLayers = showPlaceholderMapLayers,
 }: MapLayersPanelProps) {
   const totalLabel = firmsTotalCount === 1 ? 'detection' : 'detections';
   return (
     <div className="map-layer-controls">
       <div className="layer-toggles" aria-label="map layers">
-        {layers.map((layer) => (
+        {getVisibleLayerToggles(layers, showPlaceholderLayers).map((layer) => (
           <label key={layer.id} className={`${layer.enabled ? 'is-enabled' : ''} layer-status-${layer.status ?? 'pending'}`}>
             <input type="checkbox" checked={layer.enabled} onChange={() => onToggleLayer(layer.id)} />
             <span>{layer.label}</span>

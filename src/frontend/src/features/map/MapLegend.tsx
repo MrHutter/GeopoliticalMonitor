@@ -1,14 +1,5 @@
 import { eventSeverities } from '../../types/events';
-
-const legendItems = [
-  { label: 'Conflict', className: 'legend-conflict' },
-  { label: 'Security', className: 'legend-security' },
-  { label: 'Maritime', className: 'legend-maritime' },
-  { label: 'Civil', className: 'legend-civil' },
-  { label: 'Infrastructure', className: 'legend-infrastructure' },
-  { label: 'Humanitarian', className: 'legend-humanitarian' },
-  { label: 'Natural disaster', className: 'legend-natural-disaster' },
-];
+import { legendCategories, severityMarkerRadii, severityRingSeverities } from './mapEvents';
 
 type MapLegendProps = { firmsVisible: boolean; firmsHasObservations: boolean };
 
@@ -19,13 +10,18 @@ const firmsLegendItems = [
   { label: '12–24h', className: 'firms-age-12-24h' },
 ];
 
+/** Severity key glyph diameter: twice the marker radius at world zoom, so the key matches the markers. */
+export function severityGlyphDiameter(severity: keyof typeof severityMarkerRadii) {
+  return severityMarkerRadii[severity][0] * 2;
+}
+
 export function MapLegend({ firmsVisible, firmsHasObservations }: MapLegendProps) {
   return (
     <div className="map-legends">
       <div className="legend" aria-label="semantic legend">
-        {legendItems.map((item) => (
-          <span key={item.label}>
-            <i className={item.className} aria-hidden="true" />
+        {legendCategories.map((item) => (
+          <span key={item.category} data-category={item.category}>
+            <i style={{ background: item.color }} aria-hidden="true" />
             {item.label}
           </span>
         ))}
@@ -34,7 +30,13 @@ export function MapLegend({ firmsVisible, firmsHasObservations }: MapLegendProps
         <strong>Size = severity</strong>
         <span>Low</span>
         {eventSeverities.map((severity) => (
-          <i key={severity} className={`severity-size severity-size-${severity.toLowerCase()}`} title={severity} aria-hidden="true" />
+          <i
+            key={severity}
+            className={`severity-size severity-size-${severity.toLowerCase()}${severityRingSeverities.includes(severity) ? ' has-ring' : ''}`}
+            style={{ width: `${severityGlyphDiameter(severity)}px`, height: `${severityGlyphDiameter(severity)}px` }}
+            title={severity}
+            aria-hidden="true"
+          />
         ))}
         <span>Catastrophic</span>
       </div>

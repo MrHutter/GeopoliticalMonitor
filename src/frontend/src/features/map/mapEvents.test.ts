@@ -6,6 +6,7 @@ import {
   getEventCoordinates,
   mockConflictZones,
   selectedMarkerPaint,
+  defaultMarkerStrokeWidth,
   selectedMarkerRadius,
   severityMarkerRadii,
   severityRadiusExpression,
@@ -122,7 +123,9 @@ describe('mapEvents', () => {
   it('adds a light ring only for Critical and Catastrophic, distinct from the accent selection ring', () => {
     expect(severityRingSeverities).toEqual(['Critical', 'Catastrophic']);
     expect(severityStrokeColorExpression).toEqual(['match', ['get', 'severity'], ['Critical', 'Catastrophic'], severityRingColor, '#0b1016']);
-    expect(severityStrokeWidthExpression).toEqual(['match', ['get', 'severity'], ['Critical', 'Catastrophic'], severityRingWidth, 1.4]);
+    expect(severityStrokeWidthExpression).toEqual(['match', ['get', 'severity'], ['Critical', 'Catastrophic'], severityRingWidth, defaultMarkerStrokeWidth]);
+    expect(defaultMarkerStrokeWidth).toBe(1);
+    expect(severityRingWidth).toBe(1.5);
 
     for (const accent of ['orange', 'blue', 'red', 'green', 'yellow'] as Accent[]) {
       expect(selectedMarkerPaint(accent)['circle-stroke-color']).not.toBe(severityRingColor);

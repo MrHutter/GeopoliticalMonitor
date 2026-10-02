@@ -100,7 +100,7 @@ Out of scope: any service, scheduled task, startup registration or hidden proces
 - Map markers are circles filled by category color with a dark stroke (`src/frontend/src/features/map/MapLibreWorldMap.tsx:199-203`; palette at `src/frontend/src/features/map/mapEvents.ts:14-24`).
 - FIRMS uses a warm orange-to-brown age ramp (`src/frontend/src/features/map/firmsMap.ts:82-97`).
 - Accent themes redefine `--accent*` only (`styles.css:18-70`). Semantic tokens stay independent of the accent.
-- The map legend lists "Maritime", which is not an `EventCategory`, and omits PoliticalDiplomatic, Economic and Other (`src/frontend/src/features/map/MapLegend.tsx:1-9`).
+- (**As built, 2026-10-02:** the legend now lists exactly the nine Event categories in the marker colors and has no "Maritime" entry.) The map legend lists "Maritime", which is not an `EventCategory`, and omits PoliticalDiplomatic, Economic and Other (`src/frontend/src/features/map/MapLegend.tsx:1-9`).
 - Search matches status text (`src/frontend/src/features/events/eventFilters.ts:30`).
 - Source URLs in Details are shown as text, not links (`EventDetailsPanel.tsx:169-171`).
 - The ReliefWeb candidate uses an `<a target="_blank">` (`src/frontend/src/features/event-details/ReliefWebDiscovery.tsx:128`), while the app WebView registers no `NewWindowRequested` handler. What WebView2 then does with the click should be verified separately (see section 14).

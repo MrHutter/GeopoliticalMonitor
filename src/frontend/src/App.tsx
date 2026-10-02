@@ -844,64 +844,66 @@ export function App() {
 
   return (
     <main className="app-shell" data-x-pane-side={xPaneSide.toLowerCase()}>
-      <TopBar
-        searchQuery={searchQuery}
-        onSearchQueryChange={setSearchQuery}
-        selectedRange={selectedRange}
-        onRangeChange={setSelectedRange}
-        unreadAlertCount={alertUnreadCount}
-        alertsButtonRef={alertsButtonRef}
-        onOpenAlerts={openAlerts}
-        settingsButtonRef={settingsButtonRef}
-        onOpenSettings={openSettings}
-      />
-
-      <div className="desktop-status" aria-label="desktop bridge status">
-        <span>{appInfo ? `${appInfo.shell} / ${appInfo.uiHost}` : 'Waiting for desktop host'}</span>
-        <span>{appInfo?.persistence ?? 'SQLite local application data'}</span>
-        <span>{appInfo?.productionInboundPortsRequired === false ? 'No inbound ports' : 'Pending host confirmation'}</span>
-      </div>
-
-      <div className="workspace-grid" data-x-pane-side={xPaneSide.toLowerCase()} aria-label="map and events workspace">
-        <EventPanel
-          events={filteredEvents}
-          selectedEventId={selectedEventId}
+      <div className="first-screen">
+        <TopBar
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
           selectedRange={selectedRange}
-          loadError={eventLoadError}
-          watchlists={watchlists}
-          activeWatchlistId={activeWatchlistId}
-          minimumSeverity={minimumSeverity}
-          criteriaKey={`${activeWatchlistId ?? ''}|${selectedRange}|${debouncedSearch}|${minimumSeverity}`}
-          eventWindow={eventWindow}
-          emptyMessage={activeWatchlist ? (activeWatchlist.eventCount === 0 ? 'No events in this watchlist.' : 'No watchlist events match the active filters.') : 'No events match the active filters.'}
-          manageButtonRef={watchlistManageButtonRef}
-          gdacsRefresh={gdacsRefresh}
-          providerStatuses={providerStatuses}
-          onRefreshGdacs={refreshGdacs}
-          ucdpRefresh={ucdpRefresh}
-          onRefreshUcdp={refreshUcdp}
-          onSelectEvent={setSelectedEventId}
-          onSelectWatchlist={selectWatchlist}
-          onMinimumSeverityChange={setMinimumSeverity}
-          onManageWatchlists={() => setWatchlistManagerOpen(true)}
+          onRangeChange={setSelectedRange}
+          unreadAlertCount={alertUnreadCount}
+          alertsButtonRef={alertsButtonRef}
+          onOpenAlerts={openAlerts}
+          settingsButtonRef={settingsButtonRef}
+          onOpenSettings={openSettings}
         />
-        <MapWorkspace
-          accent={accent}
-          events={filteredEvents}
-          layers={mapLayers}
-          selectedEventId={selectedEvent?.id ?? ''}
-          locateRequest={locateRequest}
-          firmsObservations={visibleFirmsObservations}
-          firmsRefreshedAtUtc={firmsRefreshedAtUtc}
-          firmsStatus={firmsStatus}
-          firmsDisplayMode={firmsDisplayMode}
-          firmsTotalCount={firmsObservations.length}
-          onSelectEvent={setSelectedEventId}
-          onToggleLayer={toggleMapLayer}
-          onRefreshFirms={refreshFirms}
-          onViewportChange={setFirmsViewport}
-          onFirmsDisplayModeChange={setFirmsDisplayMode}
-        />
+
+        <div className="desktop-status" aria-label="desktop bridge status">
+          <span>{appInfo ? `${appInfo.shell} / ${appInfo.uiHost}` : 'Waiting for desktop host'}</span>
+          <span>{appInfo?.persistence ?? 'SQLite local application data'}</span>
+          <span>{appInfo?.productionInboundPortsRequired === false ? 'No inbound ports' : 'Pending host confirmation'}</span>
+        </div>
+
+        <div className="workspace-grid" data-x-pane-side={xPaneSide.toLowerCase()} aria-label="map and events workspace">
+          <EventPanel
+            events={filteredEvents}
+            selectedEventId={selectedEventId}
+            selectedRange={selectedRange}
+            loadError={eventLoadError}
+            watchlists={watchlists}
+            activeWatchlistId={activeWatchlistId}
+            minimumSeverity={minimumSeverity}
+            criteriaKey={`${activeWatchlistId ?? ''}|${selectedRange}|${debouncedSearch}|${minimumSeverity}`}
+            eventWindow={eventWindow}
+            emptyMessage={activeWatchlist ? (activeWatchlist.eventCount === 0 ? 'No events in this watchlist.' : 'No watchlist events match the active filters.') : 'No events match the active filters.'}
+            manageButtonRef={watchlistManageButtonRef}
+            gdacsRefresh={gdacsRefresh}
+            providerStatuses={providerStatuses}
+            onRefreshGdacs={refreshGdacs}
+            ucdpRefresh={ucdpRefresh}
+            onRefreshUcdp={refreshUcdp}
+            onSelectEvent={setSelectedEventId}
+            onSelectWatchlist={selectWatchlist}
+            onMinimumSeverityChange={setMinimumSeverity}
+            onManageWatchlists={() => setWatchlistManagerOpen(true)}
+          />
+          <MapWorkspace
+            accent={accent}
+            events={filteredEvents}
+            layers={mapLayers}
+            selectedEventId={selectedEvent?.id ?? ''}
+            locateRequest={locateRequest}
+            firmsObservations={visibleFirmsObservations}
+            firmsRefreshedAtUtc={firmsRefreshedAtUtc}
+            firmsStatus={firmsStatus}
+            firmsDisplayMode={firmsDisplayMode}
+            firmsTotalCount={firmsObservations.length}
+            onSelectEvent={setSelectedEventId}
+            onToggleLayer={toggleMapLayer}
+            onRefreshFirms={refreshFirms}
+            onViewportChange={setFirmsViewport}
+            onFirmsDisplayModeChange={setFirmsDisplayMode}
+          />
+        </div>
       </div>
 
       <EventDetailsPanel

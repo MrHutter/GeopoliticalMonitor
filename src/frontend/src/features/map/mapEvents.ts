@@ -1,6 +1,6 @@
 import type { FeatureCollection, Point, Polygon } from 'geojson';
 import type { Accent } from '../../types/mock';
-import type { NativeEvent, NativeEventCategory, NativeEventSeverity, NativeEventStatus } from '../../types/events';
+import { formatCategory, type NativeEvent, type NativeEventCategory, type NativeEventSeverity, type NativeEventStatus } from '../../types/events';
 
 export const eventSourceId = 'mock-events';
 export const eventLayerId = 'mock-events-circle';
@@ -27,6 +27,17 @@ export function getCategoryColor(category: NativeEventCategory) {
   return categoryColors[category];
 }
 
+/** Legend order; every entry takes its color from categoryColors and its label from the Event list's formatCategory. */
+export const legendCategoryOrder: readonly NativeEventCategory[] = [
+  'MilitaryConflict', 'Security', 'PoliticalDiplomatic', 'CivilUnrest', 'Infrastructure', 'Humanitarian', 'Economic', 'NaturalDisaster', 'Other',
+];
+
+export const legendCategories = legendCategoryOrder.map((category) => ({
+  category,
+  label: formatCategory(category),
+  color: categoryColors[category],
+}));
+
 const selectionColors: Record<Accent, string> = {
   orange: '#ff8a1f',
   blue: '#22d3ff',
@@ -39,23 +50,24 @@ export function getSelectionColor(accent: Accent) {
   return selectionColors[accent];
 }
 
-export const selectedMarkerRadius = 14;
+export const selectedMarkerRadius = 11;
 
 export const severityZoomStops = [0, 4, 7] as const;
 
+/** Circle radius per severity at zoom 0, 4 and 7 (about 28% smaller than the original 3.5-11 px; never below 3 px). */
 export const severityMarkerRadii: Record<NativeEventSeverity, readonly [number, number, number]> = {
-  Low: [3.5, 5, 6],
-  Medium: [4.5, 6.5, 8],
-  High: [5.5, 7.5, 9],
-  Critical: [6.5, 8.5, 10],
-  Catastrophic: [7.5, 9.5, 11],
+  Low: [3, 3.6, 4.4],
+  Medium: [3.6, 4.6, 5.8],
+  High: [4.2, 5.4, 6.5],
+  Critical: [4.8, 6.2, 7.2],
+  Catastrophic: [5.4, 7, 8],
 };
 
 export const severityRingSeverities: readonly NativeEventSeverity[] = ['Critical', 'Catastrophic'];
 export const severityRingColor = 'rgba(226, 228, 232, 0.82)';
-export const severityRingWidth = 2;
+export const severityRingWidth = 1.5;
 export const defaultMarkerStrokeColor = '#0b1016';
-export const defaultMarkerStrokeWidth = 1.4;
+export const defaultMarkerStrokeWidth = 1;
 
 function severityRadiusAtStop(stopIndex: 0 | 1 | 2) {
   return [

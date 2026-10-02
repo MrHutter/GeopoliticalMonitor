@@ -46,7 +46,7 @@ function roundUpToPage(count: number) {
 const countFormatter = new Intl.NumberFormat('en-US');
 
 export function formatCappedNotice(shown: number, total: number) {
-  return `Showing the newest ${countFormatter.format(shown)} of ${countFormatter.format(total)} matching Events. Narrow the time range or search to see others.`;
+  return `Newest ${countFormatter.format(shown)} of ${countFormatter.format(total)} shown. Narrow range or search.`;
 }
 
 const statusDotClass: Record<NativeEventStatus, string> = { Active: 'active', Developing: 'developing', Unverified: 'unverified', Resolved: 'resolved' };
@@ -100,10 +100,20 @@ export function EventPanel({ events, selectedEventId, selectedRange, loadError, 
 
   return (
     <aside className="event-panel panel" aria-labelledby="event-panel-title">
-      <div className="panel-header">
-        <div>
+      <div className="panel-header event-panel-header">
+        <div className="event-panel-title-row">
           <p className="eyebrow">Events</p>
           <h2 id="event-panel-title" className="sr-only">Event scope</h2>
+          <div className="summary-strip" aria-label="event summary">
+            <span>{events.length} events</span>
+            <span>{events.reduce((total, event) => total + event.sourceCount, 0)} sources</span>
+          </div>
+          <div className="event-panel-actions">
+            <button ref={manageButtonRef} type="button" className="watchlist-manage-button" onClick={onManageWatchlists}>Manage</button>
+            <span className="count-pill">{selectedRange}</span>
+          </div>
+        </div>
+        <div className="event-filter-row">
           <label className="event-scope-control">
             <span className="sr-only">Event scope</span>
             <select value={activeWatchlistId ?? ''} onChange={(event) => onSelectWatchlist(event.target.value || null)}>
@@ -118,10 +128,6 @@ export function EventPanel({ events, selectedEventId, selectedRange, loadError, 
             </select>
           </label>
         </div>
-        <div className="event-panel-actions">
-          <button ref={manageButtonRef} type="button" className="watchlist-manage-button" onClick={onManageWatchlists}>Manage</button>
-          <span className="count-pill">{selectedRange}</span>
-        </div>
       </div>
 
       <ProviderStatusStrip
@@ -132,10 +138,6 @@ export function EventPanel({ events, selectedEventId, selectedRange, loadError, 
         onRefreshUcdp={onRefreshUcdp}
       />
 
-      <div className="summary-strip" aria-label="event summary">
-        <span>{events.length} events</span>
-        <span>{events.reduce((total, event) => total + event.sourceCount, 0)} sources</span>
-      </div>
       {eventWindow.capped ? (
         <p className="event-window-notice" role="status">{formatCappedNotice(events.length, eventWindow.totalCount)}</p>
       ) : null}

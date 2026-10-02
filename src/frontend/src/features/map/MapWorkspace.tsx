@@ -51,7 +51,7 @@ export function MapWorkspace({
   return (
     <section className="map-workspace panel" aria-labelledby="map-title">
       <div className="map-toolbar">
-        <div>
+        <div className="map-title">
           <p className="eyebrow">Map</p>
           <h2 id="map-title">Local MapLibre world map</h2>
         </div>

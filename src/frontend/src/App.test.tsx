@@ -934,7 +934,7 @@ describe('App', () => {
     emitAppInfo(emit);
     emit({ type: 'events.list.result', payload: { events: [...nativeEvents, olderEvent] } });
 
-    expect(await screen.findByText('Showing the newest 2 of 3 matching Events. Narrow the time range or search to see others.')).toBeInTheDocument();
+    expect(await screen.findByText('Newest 2 of 3 shown. Narrow range or search.')).toBeInTheDocument();
     expect(screen.getByLabelText('event summary')).toHaveTextContent('2 events');
     const rowTitles = within(screen.getByRole('list', { name: 'event list' })).getAllByRole('button').map((row) => row.textContent);
     expect(rowTitles.some((text) => text?.includes(olderEvent.title))).toBe(false);
@@ -942,7 +942,7 @@ describe('App', () => {
       .toEqual([nativeEvents[0].id, nativeEvents[1].id].sort()));
 
     fireEvent.click(screen.getByRole('button', { name: '24H' }));
-    await waitFor(() => expect(screen.queryByText(/Showing the newest/)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText(/^Newest \d+ of \d+ shown/)).not.toBeInTheDocument());
   });
 
   it('keeps a selected Event that still matches even outside the cap and clears it when the criteria exclude it', async () => {

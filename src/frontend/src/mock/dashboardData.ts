@@ -50,6 +50,14 @@ export const mockXPosts: MockXPost[] = [
   },
 ];
 
+/** Toggles for layers that have no data source yet. They never affect the map; the flag only controls whether they are listed. */
+export const placeholderMapLayerIds: readonly string[] = ['aircraft', 'naval', 'internet-outages'];
+export const showPlaceholderMapLayers = false;
+
+export function getVisibleLayerToggles(layers: MapLayer[], showPlaceholders: boolean = showPlaceholderMapLayers) {
+  return showPlaceholders ? layers : layers.filter((layer) => !placeholderMapLayerIds.includes(layer.id));
+}
+
 export const initialMapLayers: MapLayer[] = [
   { id: 'events', label: 'Events', enabled: true, status: 'active' },
   { id: 'conflict-zones', label: 'Conflict zones', enabled: true, status: 'demo' },

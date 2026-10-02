@@ -74,26 +74,35 @@ export function ProviderStatusStrip({ statuses, gdacsRefreshPending, onRefreshGd
         const stateLabel = formatProviderState(status);
         const isRefreshing = status.state === 'Refreshing';
         const isUcdp = status.provider === 'UcdpCandidate';
+        const refreshLabel = isUcdp ? 'Refresh UCDP' : 'Refresh GDACS';
+        const refreshPending = isUcdp ? ucdpRefreshPending : gdacsRefreshPending;
+        const showRefresh = status.provider === 'Gdacs' || (isUcdp && !!onRefreshUcdp);
         return (
           <div key={status.provider} className={`provider-status-row is-${status.state.toLowerCase()}`} aria-label={`${status.displayName} refresh status`}>
-            <span className="provider-status-name">{status.displayName}</span>
+            <div className="provider-status-line">
+              <span className="provider-status-name">{status.displayName}</span>
+              {stateLabel ? <span className="provider-status-state" role={status.state === 'Failed' ? 'alert' : 'status'}>{stateLabel}</span> : null}
+              <span className="provider-status-updated">{formatUpdated(status.lastSuccessAtUtc, now)}</span>
+              {isUcdp ? null : <span className="provider-status-next">{formatNextRefresh(status.nextRefreshAtUtc)}</span>}
+              {showRefresh ? (
+                <button
+                  type="button"
+                  className="gdacs-refresh-button"
+                  aria-label={refreshPending ? 'Refreshing...' : refreshLabel}
+                  onClick={isUcdp ? onRefreshUcdp : onRefreshGdacs}
+                  disabled={refreshPending || isRefreshing}
+                >
+                  {refreshPending ? 'Refreshing...' : 'Refresh'}
+                </button>
+              ) : null}
+            </div>
             {isUcdp ? (
-              <span className="provider-status-cadence">
-                {status.cadenceLabel ?? 'monthly release'}, {formatDataThrough(status.dataThrough)}
-              </span>
-            ) : null}
-            <span className="provider-status-updated">{formatUpdated(status.lastSuccessAtUtc, now)}</span>
-            <span className="provider-status-next">{formatNextRefresh(status.nextRefreshAtUtc, isUcdp ? 'Next check' : 'Next')}</span>
-            {stateLabel ? <span className="provider-status-state" role={status.state === 'Failed' ? 'alert' : 'status'}>{stateLabel}</span> : null}
-            {status.provider === 'Gdacs' ? (
-              <button type="button" className="gdacs-refresh-button" onClick={onRefreshGdacs} disabled={gdacsRefreshPending || isRefreshing}>
-                {gdacsRefreshPending ? 'Refreshing...' : 'Refresh GDACS'}
-              </button>
-            ) : null}
-            {isUcdp && onRefreshUcdp ? (
-              <button type="button" className="gdacs-refresh-button" onClick={onRefreshUcdp} disabled={ucdpRefreshPending || isRefreshing}>
-                {ucdpRefreshPending ? 'Refreshing...' : 'Refresh UCDP'}
-              </button>
+              <div className="provider-status-detail">
+                <span className="provider-status-cadence">
+                  {status.cadenceLabel ?? 'monthly release'}, {formatDataThrough(status.dataThrough)}
+                </span>
+                <span className="provider-status-next">{formatNextRefresh(status.nextRefreshAtUtc, 'Next check')}</span>
+              </div>
             ) : null}
           </div>
         );
