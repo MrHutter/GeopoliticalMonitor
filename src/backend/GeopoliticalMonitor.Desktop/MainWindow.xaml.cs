@@ -209,6 +209,7 @@ public sealed partial class MainWindow : Window
 
             await XWebView.EnsureCoreWebView2Async(xEnvironment);
             ConfigureXCoreWebView();
+            XDiagnosticAdBlockSnapshot? startupAdBlockSnapshot = null;
             if (xProductionExtensionHostState == XProductionExtensionHostState.Available)
             {
                 xProductionAdBlockService = new XDiagnosticAdBlockService(
@@ -217,13 +218,14 @@ public sealed partial class MainWindow : Window
                     sourceInspector,
                     XDiagnosticAdBlockBinding.ProductionXProfileScope,
                     managedSourcePath);
-                await xProductionAdBlockService.SecureForAuthenticatedNavigationAsync().ConfigureAwait(true);
+                startupAdBlockSnapshot = await xProductionAdBlockService.SecureForAuthenticatedNavigationAsync().ConfigureAwait(true);
             }
 
             NavigateXHome();
             xRuntimeState = XBrowserRuntimeState.Ready;
             UpdateXNavigationButtons();
             UpdateXPostLinkButton();
+            ObserveXAdBlockSnapshot(startupAdBlockSnapshot, managedPayloadExists);
         }
         catch (Exception ex)
         {
@@ -234,6 +236,7 @@ public sealed partial class MainWindow : Window
             ShowXError("X website pane could not initialize.");
             UpdateXNavigationButtons();
             UpdateXPostLinkButton();
+            UpdateXAdBlockIndication();
         }
     }
 
@@ -624,6 +627,7 @@ public sealed partial class MainWindow : Window
         {
             xRuntimeState = XBrowserRuntimeState.Ready;
             HideXError();
+            _ = RunXAdBlockLiveCheckAsync();
         }
         else
         {
@@ -1421,6 +1425,8 @@ public sealed partial class MainWindow : Window
 
         RefreshPresentation();
         await dialog.ShowAsync();
+        // Read-only: reuse the dialog's last snapshot for the X pane ad blocker indication.
+        ObserveXAdBlockSnapshot(snapshot, Directory.Exists(managedSourcePath));
         if (openDiagnostic)
         {
             await ShowXExtensionDiagnosticDialogAsync();

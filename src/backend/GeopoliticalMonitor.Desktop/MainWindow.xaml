@@ -92,6 +92,7 @@
           <RowDefinition Height="Auto" />
           <RowDefinition Height="Auto" />
           <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Grid Grid.Row="0">
@@ -139,9 +140,21 @@
           <Button x:Name="XOverflowButton" Grid.Column="2" Content="..." Click="OnXOverflowClicked" Style="{StaticResource XChromeButtonStyle}" ToolTipService.ToolTip="More X actions" />
         </Grid>
 
+        <!-- Ad blocker indication: one muted line, collapsed when the ad blocker is active or its state is unknown. -->
+        <TextBlock
+            x:Name="XAdBlockIndicationText"
+            Grid.Row="2"
+            Margin="0,7,0,0"
+            Foreground="#85888E"
+            FontSize="12"
+            MaxLines="1"
+            TextWrapping="NoWrap"
+            TextTrimming="CharacterEllipsis"
+            Visibility="Collapsed" />
+
         <Border
             x:Name="XOverflowPanel"
-            Grid.Row="2"
+            Grid.Row="3"
             HorizontalAlignment="Right"
             Width="190"
             Margin="0,8,0,0"
