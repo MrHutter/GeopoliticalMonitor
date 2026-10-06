@@ -40,15 +40,26 @@ The X WebView is a separate, unprivileged browser surface for the normal X websi
 
 ## Content Security
 
-Release frontend content uses a restrictive Content Security Policy:
+Release frontend content uses this Content Security Policy, set in `src/frontend/index.html` and kept unchanged in the built `index.html`:
 
-- default content from self;
-- scripts from self;
-- styles from self;
-- images from self or data URLs;
-- no objects;
-- no framing;
-- no forms.
+- `default-src 'self'`: any resource type without its own directive loads only from the app origin;
+- `script-src 'self'`: scripts only from the app origin;
+- `style-src 'self'`: styles only from the app origin;
+- `img-src 'self' data:`: images from the app origin or data URLs;
+- `connect-src 'none'`: no fetch, XHR, WebSocket or similar connections from page script;
+- `worker-src 'self'`: workers only from the app origin;
+- `object-src 'none'`: no plugins or embedded objects;
+- `base-uri 'none'`: no `<base>` element can change the document base URL;
+- `frame-ancestors 'none'`: present in the policy, but not enforced (see Limitations);
+- `form-action 'none'`: forms cannot submit anywhere.
+
+Limitations:
+
+- The policy is delivered by a `<meta>` element, not a response header. The native host serves the bundled files through a virtual-host folder mapping and adds no CSP header.
+- The CSP specification does not support `report-uri`, `frame-ancestors` and `sandbox` in a `<meta>` policy, so they are not enforced. `frame-ancestors 'none'` is therefore ignored, and this document makes no claim of protection against framing.
+- There is no `frame-src` (and no `child-src`), so frames fall back to `default-src 'self'` and same-origin frames are allowed.
+- The control that applies is the navigation policy: the privileged WebView allows top-level navigation only to the exact app origin (see WebView Boundary above).
+- Enforcing the ignored directives would need a response-header CSP from the native host.
 
 Do not broaden the privileged app WebView CSP or navigation allow-list because the isolated X WebView needs internet access. The two WebViews have different trust roles.
 
