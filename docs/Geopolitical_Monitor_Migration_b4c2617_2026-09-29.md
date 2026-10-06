@@ -14,6 +14,7 @@
 - Slice 4 demo data removal (no seeding; one-time cleanup of `evt-demo-` and `src-demo-` rows with a one-time notice; empty state) and the draft conflict and tension reference layer are implemented in `1eaee7e`, documented in `3c55296`. Every layer entry is a draft (`ownerReviewed: false`).
 - Conflict and tension data update `9476579`: the Russia-Ukraine area now extends over Russia to the Urals as one entry; new Belarus and Gulf tension entries; Saudi Arabia is tinted by the Gulf entry; Bahrain is named but not shaded because it is absent from the 110m basemap.
 - ReliefWeb is DORMANT BY OWNER DECISION: no appname will be requested; the code stays in place and makes zero network requests.
+- On 2026-10-06 the owner began choosing a new display name. "Arctic Monitor" was considered and rejected because the owner's screening found an active public product using that exact name in the same field. "Northern Monitor" was screened (an AI-run, unverified preliminary search): no exact registered mark was found in the indexed Finnish, EU, WIPO, US or UK records, but a close name in the same field exists ("Nordic Monitor", a Stockholm-based intelligence and security publication), the words are weak as a trademark, and a UK security-monitoring business uses "Northern Monitoring Services"; rated yellow, not cleared. Alternative names are being screened. No rename has been made; the display name is still provisional and branding stays centralized in `ProductIdentity`. A professional clearance is advised before any public release or commercial use.
 - Statements below that these changes contradict carry a "[Superseded 2026-10-02: ...]" note. The original text is kept.
 
 Generated after local checkpoint commit:
@@ -597,7 +598,7 @@ Implemented:
   - 7D
   - 30D
   - 90D
-- ALL startup default; [Superseded 2026-10-02: ALL stays the startup default, but the list is now queried natively and capped at the 2,000 newest Events by last update (the selected Event is kept when it matches), with a notice when more match.]
+- ALL startup default; [Superseded 2026-10-02: ALL stays the startup default, but the list is now queried natively and capped at the 2,000 newest Events by last update (the selected Event is kept when it matches), with a notice when more match.] [Superseded 2026-10-06: ALL is no longer the startup default. The Events filters start at `30D` and `High and above` on every launch (`29c3677`); ALL still means no time limit, and Alert activation still resets to ALL, all severities, All Events and no search.]
 - search + time range use AND semantics;
 - Event rows + Map markers use same visible collection;
 - selection clears when filtered out;

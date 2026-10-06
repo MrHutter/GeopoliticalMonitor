@@ -135,6 +135,10 @@ Use near-black/neutral-charcoal surfaces, restrained silver-gray typography, ora
 
 Avoid white-heavy UI, cyberpunk effects, scanlines, fake radar sweeps, glowing HUD borders, terminal-green styling, generic SaaS dashboards, and videogame strategy-map styling.
 
+## Documentation maintenance
+
+The user-facing documents indexed in docs/README.md (README.md and docs/guide/*) must stay accurate. Any task that changes user-visible behavior, a setup or build step, a configuration value or environment variable, a data source, a data location, or an accepted architecture fact must update the affected documents in the same change, update their 'verified against' line in docs/README.md, and list the documents touched in its final response. Volatile facts (test counts, commit hashes, status of unfinished slices) belong in the design and handoff documents, not in README.md or docs/guide/*. Documents must never contain secrets, real keys, or personal paths.
+
 ## Git Discipline
 
 Do not commit or push unless explicitly requested.

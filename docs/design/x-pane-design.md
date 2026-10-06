@@ -1,8 +1,8 @@
 # Social Pane Design: Bluesky Option, Narrow-Window Fix, Ad Blocker Indication
 
-Implementation status: slice 1 (ad blocker indication) implemented, pending owner acceptance; slices 2 to 5 not implemented.
+Implementation status: slice 1 (ad blocker indication) implemented and committed (`8e9e9d4`, documentation `7af60cc`); slices 2 to 5 not implemented.
 
-Status: design proposal, not implemented. Written 2026-10-02 against `main` at `5823a94`. Every proposal is marked PROPOSED; nothing here changes code, instruction files or owner decisions.
+Status of slices 2 to 5: design proposal, not implemented. Written 2026-10-02 against `main` at `5823a94`. Every proposal is marked PROPOSED; nothing here changes code, instruction files or owner decisions.
 
 ## Owner decisions (2026-10-02)
 

@@ -27,6 +27,7 @@ Windows desktop geopolitical/OSINT situational-awareness app. WinUI 3/.NET deskt
 - Slice 4 (demo data removal) and the conflict and tension reference layer are implemented as drafts (`1eaee7e`, data update `9476579`; every entry stays `ownerReviewed: false` until the owner approves it; design: `docs/design/conflict-tension-layer-design.md`).
 - Next candidates: GDELT "find recent reports" (replacement Slice 5; GDELT as an Event creator is blocked, see the event automation design), Slice 7 (Alerts for UCDP updates and severity increases), and small deferred items.
 - Event automation design, slice plan and owner decisions: `docs/design/event-automation-design.md`.
+- Documentation index: docs/README.md; user-facing docs must stay current (AGENTS.md, Documentation maintenance).
 - Full context for anything deeper — Git history, domain model, FIRMS/AdBlock design detail, roadmap, publication audit findings — lives in `docs/Geopolitical_Monitor_Migration_b4c2617_2026-09-29.md`. Read the relevant section when a task actually needs that detail rather than assuming it's all loaded here.
 
 ## Manual testing
