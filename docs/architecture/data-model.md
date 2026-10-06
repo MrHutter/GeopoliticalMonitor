@@ -33,6 +33,23 @@ Event statuses:
 - `Resolved`
 - `Unverified`
 
+Event severity levels, in ascending order:
+
+- `Low`
+- `Medium`
+- `High`
+- `Critical`
+- `Catastrophic`
+
+Each Event carries a severity assessment and a provenance:
+
+- `Severity`: one of the levels above.
+- `SeverityRule`: the rule that produced the level, required, at most 64 characters: `gdacs-eq-v1` (GDACS alert level and magnitude), `ucdp-candidate-v1` (UCDP best fatality estimate), `manual`, or `legacy-default` (no provider data was available when the field was added).
+- `SeverityInputs`: the inputs the rule used, required, at most 256 characters.
+- `Provider`: `Gdacs` (GDACS earthquake import), `UcdpCandidate` (UCDP Candidate import), `Gdelt` (defined, but nothing creates such Events because GDELT Event creation is blocked), `Demo` (the former demo rows), or `Manual` (the column default for rows without a provider).
+- `ProviderKey`: the provider's own identifier for the record, optional, at most 256 characters.
+- `ProviderLastSeenRelease`: optional; the newest provider release that contained the Event, as year times 100 plus month (200001 to 999912), used by UCDP Candidate.
+
 For provider-ingested Events, `Unverified` means that Geopolitical Monitor has not independently verified the occurrence. Provider alert levels, magnitude, and severity metadata do not determine Event lifecycle status.
 
 Source types:
@@ -70,15 +87,15 @@ Runtime data comes from providers and explicit user actions:
 - Manual X attachment validates a public X status URL, derives its publication timestamp locally from the numeric status Snowflake, and creates or reuses a URL-only `XPost` SourceItem. The X WebView is user-operated and is not scraped; attachment does not obtain post text, author, media, engagement, cookies, or tokens.
 - GDACS refresh imports earthquake `EQ` point records only. It creates or updates provider-owned `NaturalDisaster` / `Unverified` Events and linked `DatasetRecord` SourceItems. GDACS refreshes on an in-process timer only while the app is open (every 30 minutes, first 60 seconds after the UI is ready) and on the manual `Refresh GDACS` action; both share one in-flight refresh. Nothing runs after the app closes, and scheduler state is not persisted.
 - UCDP Candidate import creates or updates provider-owned `Unverified` Events (`MilitaryConflict` for state-based and non-state violence, `Security` for one-sided violence) with `Provider = UcdpCandidate`, `ProviderKey` = the UCDP event id, Event id `evt-ucdp-cand-{id}`, and one linked `DatasetRecord` SourceItem `src-ucdp-cand-{id}` / `UCDP:CAND:{id}`. `LastUpdatedAtUtc` is the end of the event's last day. The nullable `ProviderLastSeenRelease` (year times 100 plus month, for example 202608) records the newest release that contained the Event and is the UCDP revision: a newer release updates provider-owned fields, an equal or older one is ignored, and records absent from a release are never changed or deleted. UCDP imports never create Alerts. It refreshes on the same in-process timer only while the app is open (a release check every 6 hours, first 2 minutes after the UI is ready) and on the manual `Refresh UCDP` action.
-- ReliefWeb searches reports for an already selected Event only after an explicit user action. Candidates remain transient until the user explicitly attaches a report. Attachment creates or reuses one `Other` SourceItem identified by `src-reliefweb-report-{reportId}` and `ReliefWeb:Report:{reportId}`, then creates the EventSourceAssociation. Reattaching the same report to the same Event is idempotent; the same SourceItem may support another Event.
+- ReliefWeb (dormant by owner decision; see below) searches reports for an already selected Event only after an explicit user action. Candidates remain transient until the user explicitly attaches a report. Attachment creates or reuses one `Other` SourceItem identified by `src-reliefweb-report-{reportId}` and `ReliefWeb:Report:{reportId}`, then creates the EventSourceAssociation. Reattaching the same report to the same Event is idempotent; the same SourceItem may support another Event.
 
 ReliefWeb SourceItems retain bounded metadata, contributing-organization attribution, original publication time, and the canonical report URL. They do not store report bodies, HTML, PDFs, files, images, attachments, or arbitrary provider payloads. Existing first-slice ReliefWeb metadata is not automatically synchronized.
 
-Production ReliefWeb remains intentionally unconfigured until an owner-approved V2 `appname` is supplied through native client composition. Missing configuration produces no ReliefWeb network request. ReliefWeb does not create Events, match reports automatically, attach automatically, poll, or run at startup.
+ReliefWeb is dormant by owner decision: no `appname` will be requested and the code stays in place. Production composition passes no `appname`, so every search and attachment returns `ReliefWeb integration is not configured.` and no ReliefWeb network request is made. ReliefWeb does not create Events, match reports automatically, attach automatically, poll, or run at startup.
 
 `Watchlist` is a locally persisted, user-named collection of references to existing Event IDs. IDs use the opaque `wl-` plus 32-lowercase-hex format. Names are Form-C normalized, whitespace-normalized, limited to 80 UTF-16 code units, and unique by an uppercase-invariant comparison key. Slice 1 permits at most 100 Watchlists and 2000 Events per Watchlist.
 
-`WatchlistEvents` is the explicit many-to-many membership relation, unique by `WatchlistId` + `EventId`; it copies no Event fields. A future Event deletion removes dangling memberships, while Events, SourceItems, and EventSourceAssociations are never deleted by Watchlist deletion. Startup creates no seeded Watchlists, so the deterministic 6 / 14 / 14 demo seed remains unchanged.
+`WatchlistEvents` is the explicit many-to-many membership relation, unique by `WatchlistId` + `EventId`; it copies no Event fields. A future Event deletion removes dangling memberships, while Events, SourceItems, and EventSourceAssociations are never deleted by Watchlist deletion. Startup creates no Watchlists and no longer seeds demo data; the one-time cleanup described above removes former demo rows and their Watchlist memberships.
 
 An `AlertRule` belongs to exactly one Watchlist and has the single supported trigger `GdacsEventMateriallyUpdated`. IDs use `ar-` plus 32 lowercase hexadecimal characters. A rule is enabled or disabled, retains its creation time, and records the most recent disabled-to-enabled transition. Enabling does not evaluate or backfill existing Event state. Rules do not contain dynamic criteria, thresholds, expressions, provider configuration, or new-Event matching.
 

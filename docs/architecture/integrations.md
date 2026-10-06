@@ -32,11 +32,11 @@ The MAP_KEY is read from the process environment variable `GEOPOLITICALMONITOR_F
 
 ## ReliefWeb Reports
 
-ReliefWeb is a report-discovery boundary for an already selected Event. An explicit native POST to `https://api.reliefweb.int/v2/reports` searches title, disaster name, and country name with a `date.original` range, an optional exact ISO3 filter, explicit metadata fields, `limit = 20`, and `offset = 0`. Candidates are transient and never create Events, SourceItems, associations, or map points by themselves.
+ReliefWeb is a report-discovery boundary for an already selected Event. It is dormant by owner decision: the code stays in place, but no `appname` will be requested, so it makes no requests. An explicit native POST to `https://api.reliefweb.int/v2/reports` searches title, disaster name, and country name with a `date.original` range, an optional exact ISO3 filter, explicit metadata fields, `limit = 20`, and `offset = 0`. Candidates are transient and never create Events, SourceItems, associations, or map points by themselves.
 
 Attachment accepts only Event ID and ReliefWeb report ID, then retrieves `GET /v2/reports/{id}` and revalidates the authoritative metadata. It persists one immutable `Other` SourceItem identified by `src-reliefweb-report-{reportId}` / `ReliefWeb:Report:{reportId}` and reuses it across Events. Text is a bounded metadata summary; canonical URL, original publication date, and contributing source organizations are retained. Bodies, HTML, PDFs, files, images, and arbitrary provider JSON are excluded.
 
-Both operations require a pre-approved native `appname`, use fixed-host HTTPS with redirects disabled, a 15-second timeout, caller cancellation, and a 1 MiB response cap. Production is currently unconfigured, so the client fails locally before sending a request. Automatic matching, paging, polling, startup requests, provider metadata updates, report-created Events, and a generic provider registry remain deferred.
+Both operations require a pre-approved native `appname`, use fixed-host HTTPS with redirects disabled, a 15-second timeout, caller cancellation, and a 1 MiB response cap. Production composition passes no `appname`, so the client fails locally before sending a request and every search and attachment returns `ReliefWeb integration is not configured.`. Automatic matching, paging, polling, startup requests, provider metadata updates, report-created Events, and a generic provider registry remain deferred.
 
 The current v0.1 X integration is a no-cost, user-operated website pane. It does not use X Developer access, paid X API credits, OAuth developer apps, API keys, bearer tokens, access tokens, refresh tokens, or `api.x.com`.
 
