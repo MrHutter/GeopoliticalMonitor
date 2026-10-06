@@ -14,6 +14,7 @@ Geopolitical Monitor is a Windows desktop application for geopolitical situation
 - A .NET SDK that can build `net10.0` projects. The repository does not pin an exact SDK version.
 - Node.js with npm, to build the frontend. The repository does not pin a Node.js version.
 - The WebView2 Runtime installed in Windows. The app does not bundle a fixed-version runtime.
+- The versions the project was built and tested with are listed under [Tested with](docs/guide/setup-and-configuration.md#tested-with).
 
 Exact package versions and the full build steps are in [the setup guide](docs/guide/setup-and-configuration.md).
 

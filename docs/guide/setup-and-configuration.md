@@ -15,6 +15,14 @@ This guide covers building the app from source, starting it, configuring the opt
 
 No account, API key or developer access is needed to build or run the app. The NASA FIRMS key is optional.
 
+### Tested with
+
+This is what the project was built and tested with. It is not a pinned requirement.
+
+- .NET SDK 10.0.400. Other SDKs were also installed; the repository has no `global.json`, so the newest installed SDK is used.
+- Node.js v26.10.0 with npm 11.19.1.
+- Windows 10 build 19045 (version 10.0.19045).
+
 ## Building and running
 
 The build order matters. The desktop project copies the files in `src/frontend/dist` into `wwwroot` in its output folder, and the app loads its interface from there. If the frontend was not built first, `wwwroot` stays empty and the window is blank. After rebuilding the frontend, rebuild the desktop project too.
@@ -60,6 +68,7 @@ While the app is running, its executable and build output are locked, so the des
 - The app creates its folders under `%LOCALAPPDATA%\GeopoliticalMonitor` and creates or upgrades its database.
 - The app no longer contains demo data. Fictional demo Events from older versions (ids starting `evt-demo-`) and their demo Sources (`src-demo-`) are removed once, and a one-time notice says `Demo Events were removed.`
 - With an empty database the Events list is empty at first. The first GDACS refresh starts 60 seconds after the window is ready, and the first UCDP check 2 minutes after. Both then repeat while the app is open: GDACS every 30 minutes and UCDP every 6 hours.
+- The Events list starts at the `30D` range and `High and above` severity. UCDP data is about 20 to 50 days old, so after the first UCDP import most UCDP Events do not appear at `30D`; choose `90D` or `ALL` to see them.
 - No provider is contacted before the window is ready. The app makes no request when it is closed.
 
 ## NASA FIRMS
@@ -99,7 +108,7 @@ Never paste the key into documents, issues or chat.
 
 ## X login
 
-The X pane shows the normal X website. To see your own feed, sign in on the website inside the pane. The app never receives your password. Your session is ordinary browser state in the X pane's own profile folder (see Data locations), and the app does not read it. `Clear Session` in the X pane's `...` menu signs you out by clearing that browser data. If X does not allow sign-in inside the pane, use `Open External` to use X in your system browser.
+The X pane shows the normal X website. To see your own feed, sign in on the website inside the pane. The app never receives your password. Your session is ordinary browser state in the X pane's own profile folder (see Data locations), and the app does not read it. `Clear Session` in the X pane's `...` menu deletes all cookies and clears all browsing data of that profile, which signs you out of X. Clear Session clears the X pane's browsing data; check the ad blocker status afterwards.
 
 ## AdBlock (optional)
 
@@ -117,7 +126,7 @@ Re-enroll when ads reappear in the X pane and the ad blocker dialog shows `Insta
    %LOCALAPPDATA%\Google\Chrome\User Data\Default\Extensions\gighmmpiobklfepjocnamgkkbiglidom\6.47.0_0
    ```
 
-   Select the version folder itself, not the `gighmmpiobklfepjocnamgkkbiglidom` folder above it. Chrome's `_metadata` folder inside it is ignored by the check.
+   This path assumes Chrome's `Default` profile. If you use several Chrome profiles, the folder may sit under a different profile folder name instead of `Default`, for example `Profile 1`. Select the version folder itself, the one that directly contains `manifest.json`, not the `gighmmpiobklfepjocnamgkkbiglidom` folder above it. Chrome's `_metadata` folder inside it is ignored by the check.
 
 4. If the dialog's message asks for a restart, close and reopen the app. Then open the dialog again and choose `Reconcile`, or `Install AdBlock...` if no instance remains.
 
@@ -129,7 +138,7 @@ Keep an unpacked copy of the `6.47.0` folder outside Chrome's profile, because C
 - **`Remove`:** removes it.
 - **`Test Extension Support`:** a separate diagnostic. It does not repair or install the production ad blocker.
 
-Do not use `Remove` or `Clear Session` unless you intend to remove the ad blocker or sign out of X.
+Do not use `Remove` unless you intend to remove the ad blocker, or `Clear Session` unless you intend to sign out of X.
 
 ## Data locations
 

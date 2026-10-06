@@ -10,9 +10,9 @@ These must match the current code. Their "verified against" commit names the com
 
 | Document | Audience | Covers | Verified against commit |
 |---|---|---|---|
-| [README.md](../README.md) | User, operator, developer | What the app is, status, requirements, quick start, data sources, privacy, top troubleshooting | `29c3677` |
-| [guide/user-guide.md](guide/user-guide.md) | User | The screen, Events and filters, details, X post attachment, Watchlists, Alerts, map and layers, FIRMS, Settings, the X pane | `29c3677` |
-| [guide/setup-and-configuration.md](guide/setup-and-configuration.md) | Operator, developer | Prerequisites, building and running, first launch, FIRMS key, X login, AdBlock, data locations, backups, troubleshooting | `29c3677` |
+| [README.md](../README.md) | User, operator, developer | What the app is, status, requirements, quick start, data sources, privacy, top troubleshooting | `15428b7` |
+| [guide/user-guide.md](guide/user-guide.md) | User | The screen, Events and filters, details, X post attachment, Watchlists, Alerts, map and layers, FIRMS, Settings, the X pane | `15428b7` |
+| [guide/setup-and-configuration.md](guide/setup-and-configuration.md) | Operator, developer | Prerequisites, building and running, first launch, FIRMS key, X login, AdBlock, data locations, backups, troubleshooting | `15428b7` |
 | [guide/data-sources.md](guide/data-sources.md) | User, operator | Each data source: content, freshness, keys, what it creates, attribution, limits; sources not used | `29c3677` |
 
 ## Repository policies

@@ -13,7 +13,7 @@ The main area never gets narrower than 940 px. When the window is too narrow, th
 
 ## Events list and filters
 
-The list header shows how many Events and Sources are listed, a `Manage` button for Watchlists, and the active time range. Below it are two selectors: the scope (`All Events` or one Watchlist) and the minimum severity (`All severities`, `Medium and above`, `High and above`, `Critical and above`).
+The list header shows how many Events are listed (for example `128 events`), a `Manage` button for Watchlists, and the active time range. The number of Sources is not shown in the header; it is available only to screen readers. Below it are two selectors: the scope (`All Events` or one Watchlist) and the minimum severity (`All severities`, `Medium and above`, `High and above`, `Critical and above`).
 
 Every launch starts with these filters:
 
@@ -21,9 +21,9 @@ Every launch starts with these filters:
 - minimum severity `High and above`;
 - an empty search and the `All Events` scope.
 
-These filters are not saved; the next launch starts from them again. To see everything, choose `ALL` in the top bar and `All severities` in the severity selector. Search, time range, scope and severity combine: an Event must match all of them.
+These filters are not saved; the next launch starts from them again. UCDP conflict data is about 20 to 50 days old, so at the `30D` startup range most UCDP Events do not appear; choose `90D` or `ALL` to see them. To see everything, choose `ALL` in the top bar and `All severities` in the severity selector. Search, time range, scope and severity combine: an Event must match all of them.
 
-The list shows the newest Events first, by last update. It loads 100 rows at a time as you scroll. At most the newest 2,000 matching Events are listed and shown on the map. When more match, a notice such as `Newest 2,000 of 3,100 shown. Narrow range or search for others.` appears. Search still finds older Events.
+The list shows the newest Events first, by last update. It loads 100 rows at a time as you scroll. At most the newest 2,000 matching Events are listed and shown on the map. When more match, a notice such as `Newest 2,000 of 3,100 shown.` appears. The full sentence, `Newest 2,000 of 3,100 shown. Narrow range or search for others.`, is in its hover text and its accessible name. Search still finds older Events.
 
 When nothing matches, the list says which filters are narrowing it, for example `No Events at High and above in the last 30 days. Widen the range or severity to see more.` The message `No Events yet. Automatic refresh is running.` appears only when the database has no Events at all and the filters are `ALL`, all severities, `All Events` and no search.
 
@@ -125,7 +125,7 @@ The pane header reads `MY X FEED` and `X Website`. Sign in on the X website insi
 - **`...` menu:**
   - `Open External` opens the current page in your system browser.
   - `Copy Post Link` copies the current post's link.
-  - `Clear Session` signs you out by clearing the X pane's cookies and browsing data, after a confirmation. Events and preferences are not affected.
+  - `Clear Session` asks for confirmation, then deletes all cookies and clears all browsing data of the X pane's browser profile and opens X home again. This signs you out of X. Events and preferences are not affected. Clear Session clears the X pane's browsing data; check the ad blocker status afterwards.
   - `Ad Blocker...` opens the ad blocker dialog.
 - **Links:** links to sites other than X open in your system browser.
 

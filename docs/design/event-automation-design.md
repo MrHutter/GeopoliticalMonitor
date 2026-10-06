@@ -1,6 +1,6 @@
 # Event Automation Design
 
-Status: design approved by the owner on 2026-09-30, with the changes recorded in section 14; implementation not started. Baseline: `main` at `e30d955` ("Add third-party notices and security policy"). Written 2026-09-30.
+Status: design approved by the owner on 2026-09-30, with the changes recorded in section 14; slices 1 to 4 (including 2B) are implemented, Slice 5 (GDELT provider) is blocked, the Slice 5 replacement (find recent reports) is parked, and slices 6 and 7 are not started (see the implementation status table). Baseline: `main` at `e30d955` ("Add third-party notices and security policy"). Written 2026-09-30.
 
 Values marked **PROPOSED** are approved as starting values and will be revisited after about two weeks of real data. File and line references are to the baseline commit.
 
@@ -14,11 +14,11 @@ Values marked **PROPOSED** are approved as starting values and will be revisited
 | Slice 3: UCDP Candidate provider | Implemented | `49c008c` |
 | Slice 4: Demo data removal | Implemented | `1eaee7e` (docs `3c55296`) |
 | Slice 5: GDELT provider under strict rules | **Blocked** (owner probe 2026-10-02, see 5.2) | — |
-| Slice 5 (replacement): Find recent reports | Not started | — |
+| Slice 5 (replacement): Find recent reports | **Parked** (owner test 2026-10-02, see the slice) | — |
 | Slice 6: Cross-provider deduplication | Not started; matters only if a second conflict source is added, so reassess before starting | — |
 | Slice 7: Alert integration | Not started | — |
 
-The status line above ("implementation not started") and the findings in section 2 describe the baseline. Line numbers in section 2 refer to `e30d955` and have since moved, so use the file names. **As built** notes mark where the implementation differs from the text. Owner decisions, thresholds and later slices are unchanged, except that GDELT Event creation (section 5.2 and Slice 5) was blocked on 2026-10-02, which makes Q3 and Q7 moot. ReliefWeb is dormant by owner decision: no appname will be requested, and its code stays in place with zero network requests.
+The baseline named in the status line above and the findings in section 2 describe the code before implementation began. Line numbers in section 2 refer to `e30d955` and have since moved, so use the file names. **As built** notes mark where the implementation differs from the text. Owner decisions, thresholds and later slices are unchanged, except that GDELT Event creation (section 5.2 and Slice 5) was blocked on 2026-10-02, which makes Q3 and Q7 moot. ReliefWeb is dormant by owner decision: no appname will be requested, and its code stays in place with zero network requests.
 
 ---
 
@@ -562,7 +562,7 @@ Required before Slice 3. The first UCDP import can create up to 5,000 Events, bu
 - Ordering is newest by `LastUpdatedAtUtc`, then by Id, not newest `StartedAtUtc`. The time range still compares `StartedAtUtc`.
 - `keepEventId`: the selected Event stays in the window when it matches the criteria. At the cap it replaces the oldest returned Event, so the window never exceeds 2,000.
 - The native query reproduces the frontend filter semantics through the shared rule class `EventWindowRules` (`EventWindow.cs`). Search also matches severity. A shared parity fixture (`tests/fixtures/event-window-parity.json`) is checked by both the native tests and the frontend reference filter (`eventFilters.ts`).
-- The frontend renders the returned window directly. It debounces typing and discards responses that are not for its latest `requestId`. The notice reads "Showing the newest 2,000 of N matching Events. Narrow the time range or search to see others."
+- The frontend renders the returned window directly. It debounces typing and discards responses that are not for its latest `requestId`. The notice reads "Showing the newest 2,000 of N matching Events. Narrow the time range or search to see others." (**As built:** the app shows "Newest 2,000 of N shown."; the full sentence "Newest 2,000 of N shown. Narrow range or search for others." is in its hover text and accessible name.)
 
 - **Scope (PROPOSED):**
   - `events.list` gains typed, validated request fields:
@@ -577,7 +577,7 @@ Required before Slice 3. The first UCDP import can create up to 5,000 Events, bu
   - The native side returns at most **2,000** matching Events (PROPOSED cap), newest `StartedAtUtc` first with ties broken by Id, plus the total match count. Source counts are computed only for the returned Events.
   - The frontend keeps a single visible collection that drives both the list and the map markers. It requests a new window whenever range, search or scope changes (debounced for typing) and after every refresh. It still runs its existing client-side filter over the returned window, so behavior stays identical when fewer than 2,000 Events match.
   - Selection clears when the selected Event is not in the returned window, as it already does when an Event is filtered out. Clearing filters does not reselect it.
-  - **ALL keeps its meaning** ("no time limit"), but it is bounded by the cap. It is no longer the startup default: since `29c3677` the Events filters start at `30D` and `High and above`. When more Events match than are returned, the panel shows "Showing the newest 2,000 of N Events. Narrow the time range or search to see older Events."
+  - **ALL keeps its meaning** ("no time limit"), but it is bounded by the cap. It is no longer the startup default: since `29c3677` the Events filters start at `30D` and `High and above`. When more Events match than are returned, the panel shows "Newest 2,000 of N shown."; the full sentence "Newest 2,000 of N shown. Narrow range or search for others." is in its hover text and accessible name.
   - Older Events are never hidden from search. A search runs natively over all Events in scope, so any older Event can be found by searching or by choosing a narrower scope.
   - The selected Event's Details still load by ID through `events.get`, unaffected by the window.
 - **Non-goals:** infinite scrolling or page-by-page browsing; map clustering; changes to Watchlist limits; fuzzy or ranked search.
@@ -644,6 +644,8 @@ Required before Slice 3. The first UCDP import can create up to 5,000 Events, bu
 - **Manual acceptance:** a small number of GDELT Events appear, clearly labelled; turning the toggle off stops requests (verify in the status strip); markers stay readable.
 
 ### Slice 5 (replacement): Find recent reports
+
+> **Parked (2026-10-02).** On 2026-10-02 the owner's requests to the GDELT DOC API at `api.gdeltproject.org` all returned HTTP 429 with a message asking for at most one request every 5 seconds, including requests 30 seconds apart and after a waiting period, from the owner's network. The documented limit therefore does not match what was enforced. A parse of other responses showed that errors can also arrive as HTTP 200 `text/html`. Revisit only if that behavior changes. No decision or later slice changes.
 
 - **Status:** not implemented.
 - **Scope:** an explicit user action on a selected Event. The native host runs one GDELT DOC 2.0 search (`api.gdeltproject.org`, https only, free, no key, about a three-month window, at most one request per five seconds, up to 250 articles). Errors may arrive as HTTP 200 plain text and must be recognised as errors. Results are transient candidates (title, URL, domain, date, language) shown to the user; an explicit Attach creates a SourceItem and its association with the Event. Nothing is created automatically. Citation to the GDELT Project is required.
