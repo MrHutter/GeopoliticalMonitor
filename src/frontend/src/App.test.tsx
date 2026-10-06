@@ -324,8 +324,12 @@ const latestMap = async () => {
  * Renders App with a simulated native host. Emitting a legacy-shaped `events.list.result` (no requestId) sets the
  * simulated native Event store and answers the latest windowed request; later `events.list` requests are answered
  * from that store with the shared reference filter, Watchlist membership, the cap and the keep-Event rule.
+ *
+ * Most tests exercise behavior that does not depend on the startup filter defaults, so by default the helper chooses
+ * ALL and All severities through the real controls right after render. No `events.list` request is sent before
+ * app.info, so request 1 still carries those criteria. Pass `filters: 'startup'` to keep the startup defaults.
  */
-function renderWithWebView(options: { cap?: number; autoRespond?: boolean; appProps?: AppProps } = {}) {
+function renderWithWebView(options: { cap?: number; autoRespond?: boolean; appProps?: AppProps; filters?: 'all' | 'startup' } = {}) {
   let messageHandler: ((event: { data: unknown }) => void) | undefined;
   let dataset: NativeEvent[] | null = null;
   let lastListRequest: SimulatedEventListRequest | null = null;
@@ -340,7 +344,11 @@ function renderWithWebView(options: { cap?: number; autoRespond?: boolean; appPr
   });
   window.chrome = { webview: { postMessage, addEventListener: vi.fn((_type, listener) => { messageHandler = listener; }), removeEventListener: vi.fn() } };
   const rendered = render(<App {...options.appProps} />);
-  const emit = (data: unknown) => {
+  if (options.filters !== 'startup') {
+    fireEvent.click(screen.getByRole('button', { name: 'ALL' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Minimum severity' }), { target: { value: 'All' } });
+  }
+  const emit =(data: unknown) => {
     const message = data as { type?: string; payload?: Record<string, unknown> };
     if (message?.type === 'watchlists.members.get.result' && message.payload) {
       members.set(message.payload.watchlistId as string, new Set(message.payload.eventIds as string[]));
@@ -1119,7 +1127,7 @@ describe('App', () => {
       expect(postMessage.mock.calls.filter(([message]) => (message as { type?: string }).type === 'events.list')).toHaveLength(listRequestsBefore);
     });
 
-    it('shows the store-empty state at the default criteria with the provider status strip visible', async () => {
+    it('shows the store-empty state at the all-inclusive criteria with the provider status strip visible', async () => {
       const { emit } = renderWithWebView();
       await latestMap();
       emitAppInfo(emit);
@@ -1130,7 +1138,7 @@ describe('App', () => {
       expect(screen.queryByText('No events match the active filters.')).not.toBeInTheDocument();
     });
 
-    it('keeps the filter-empty message for non-default criteria', async () => {
+    it('names the narrowed range or severity in the filter-empty message for criteria other than the all-inclusive ones', async () => {
       const { emit } = renderWithWebView();
       await latestMap();
       emitAppInfo(emit);
@@ -1138,11 +1146,11 @@ describe('App', () => {
       await screen.findByText('No Events yet. Automatic refresh is running.');
 
       fireEvent.click(screen.getByRole('button', { name: '7D' }));
-      expect(await screen.findByText('No events match the active filters.')).toBeInTheDocument();
+      expect(await screen.findByText('No Events in the last 7 days. Widen the range to see more.')).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'ALL' }));
       expect(await screen.findByText('No Events yet. Automatic refresh is running.')).toBeInTheDocument();
       fireEvent.change(screen.getByLabelText('Minimum severity'), { target: { value: 'High' } });
-      expect(await screen.findByText('No events match the active filters.')).toBeInTheDocument();
+      expect(await screen.findByText('No Events at High and above. Widen the severity to see more.')).toBeInTheDocument();
     });
 
     it('keeps the filter-empty message when matching Events exist but are filtered out', async () => {
@@ -1155,6 +1163,112 @@ describe('App', () => {
       fireEvent.change(screen.getByPlaceholderText('Search events, locations, keywords...'), { target: { value: 'no-such-event' } });
       expect(await screen.findByText('No events match the active filters.')).toBeInTheDocument();
       expect(screen.queryByText('No Events yet. Automatic refresh is running.')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Events filter startup defaults', () => {
+    const allFixtures = () => [...nativeEvents, gdacsEvent, olderEvent];
+
+    it('starts at 30D and High and above and sends them in the first and only startup request', async () => {
+      const { emit, listRequests } = renderWithWebView({ filters: 'startup' });
+      await latestMap();
+
+      expect(screen.getByRole('button', { name: '30D' })).toHaveClass('is-active');
+      expect(screen.getByRole('button', { name: 'ALL' })).not.toHaveClass('is-active');
+      expect(screen.getByRole('combobox', { name: 'Minimum severity' })).toHaveDisplayValue('High and above');
+      expect(screen.getByRole('combobox', { name: 'Event scope' })).toHaveValue('');
+      expect(screen.getByPlaceholderText('Search events, locations, keywords...')).toHaveValue('');
+      expect(listRequests()).toEqual([]);
+
+      emitAppInfo(emit);
+      expect(listRequests()).toEqual([{ requestId: 1, range: '30D', search: '', minimumSeverity: 'High' }]);
+      emit({ type: 'events.list.result', payload: { events: allFixtures() } });
+      await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('2 events'));
+      expect(screen.getByRole('button', { name: new RegExp(nativeEvents[1].title) })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Earthquake in Russia/ })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: new RegExp(nativeEvents[0].title) })).not.toBeInTheDocument();
+    });
+
+    it('restores the full list when ALL and All severities are chosen', async () => {
+      const { emit, listRequests } = renderWithWebView({ filters: 'startup' });
+      await latestMap();
+      emitAppInfo(emit);
+      emit({ type: 'events.list.result', payload: { events: allFixtures() } });
+      await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('2 events'));
+
+      fireEvent.click(screen.getByRole('button', { name: 'ALL' }));
+      fireEvent.change(screen.getByRole('combobox', { name: 'Minimum severity' }), { target: { value: 'All' } });
+
+      await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('4 events'));
+      expect(listRequests().at(-1)).toMatchObject({ range: 'ALL', search: '', minimumSeverity: 'All' });
+      expect(screen.getByRole('button', { name: 'ALL' })).toHaveClass('is-active');
+      expect(screen.getByRole('combobox', { name: 'Minimum severity' })).toHaveDisplayValue('All severities');
+    });
+
+    it('keeps the current range and severity across a refresh reload and Watchlist changes', async () => {
+      const { emit, listRequests } = renderWithWebView({ filters: 'startup' });
+      await latestMap();
+      const watchlistId = 'wl-0123456789abcdef0123456789abcdef';
+      emitAppInfo(emit);
+      emit({ type: 'events.list.result', payload: { events: allFixtures() } });
+      emit({ type: 'watchlists.list.result', payload: { watchlists: [{ id: watchlistId, name: 'Baltic security', eventCount: 2 }] } });
+      emit(providerStatus({ lastSuccessAtUtc: '2026-09-17T11:00:00Z' }));
+
+      const requestsBeforeReload = listRequests().length;
+      emit(providerStatus({ lastSuccessAtUtc: '2026-09-17T11:30:00Z' }));
+      expect(listRequests().length).toBe(requestsBeforeReload + 1);
+      expect(listRequests().at(-1)).toMatchObject({ range: '30D', minimumSeverity: 'High' });
+
+      fireEvent.click(screen.getByRole('button', { name: '7D' }));
+      fireEvent.change(screen.getByRole('combobox', { name: 'Minimum severity' }), { target: { value: 'Medium' } });
+      emit(providerStatus({ lastSuccessAtUtc: '2026-09-17T11:45:00Z' }));
+      expect(listRequests().at(-1)).toMatchObject({ range: '7D', minimumSeverity: 'Medium' });
+
+      fireEvent.change(screen.getByRole('combobox', { name: 'Event scope' }), { target: { value: watchlistId } });
+      emit({ type: 'watchlists.members.get.result', payload: { watchlistId, eventIds: [nativeEvents[0].id, olderEvent.id] } });
+      await waitFor(() => expect(listRequests().at(-1)).toMatchObject({ range: '7D', minimumSeverity: 'Medium', watchlistId }));
+      fireEvent.change(screen.getByRole('combobox', { name: 'Event scope' }), { target: { value: '' } });
+      await waitFor(() => expect(listRequests().at(-1)).not.toHaveProperty('watchlistId'));
+      expect(listRequests().at(-1)).toMatchObject({ range: '7D', minimumSeverity: 'Medium' });
+      expect(screen.getByRole('button', { name: '7D' })).toHaveClass('is-active');
+      expect(screen.getByRole('combobox', { name: 'Minimum severity' })).toHaveDisplayValue('Medium and above');
+    });
+
+    it('resets to ALL, All severities, All Events and no search on Alert activation, not to the startup defaults', async () => {
+      const { emit, listRequests } = renderWithWebView({ filters: 'startup' });
+      await latestMap();
+      emitAppInfo(emit);
+      emit({ type: 'alerts.summary.result', payload: { unreadCount: 1 } });
+      emit({ type: 'events.list.result', payload: { events: allFixtures() } });
+      await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('2 events'));
+      fireEvent.change(screen.getByPlaceholderText('Search events, locations, keywords...'), { target: { value: 'shipping' } });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Alerts, 1 unread' }));
+      emit({ type: 'alerts.rules.list.result', payload: { rules: [alertRule] } });
+      emit({ type: 'alerts.list.result', payload: { alerts: [unreadAlert], unreadCount: 1, hasMore: false } });
+      fireEvent.click(await screen.findByRole('button', { name: new RegExp(nativeEvents[0].title) }));
+
+      expect(listRequests().at(-1)).toEqual({ requestId: expect.any(Number), range: 'ALL', search: '', minimumSeverity: 'All', keepEventId: nativeEvents[0].id });
+      expect(screen.getByRole('button', { name: 'ALL' })).toHaveClass('is-active');
+      expect(screen.getByRole('combobox', { name: 'Minimum severity' })).toHaveDisplayValue('All severities');
+      expect(screen.getByRole('combobox', { name: 'Event scope' })).toHaveValue('');
+      expect(screen.getByPlaceholderText('Search events, locations, keywords...')).toHaveValue('');
+      expect(screen.getByRole('heading', { name: nativeEvents[0].title })).toBeInTheDocument();
+    });
+
+    it('names the startup criteria instead of the store-empty state when the store is empty', async () => {
+      const { emit } = renderWithWebView({ filters: 'startup' });
+      await latestMap();
+      emitAppInfo(emit);
+      emit({ type: 'events.list.result', payload: { events: [] } });
+
+      expect(await screen.findByText('No Events at High and above in the last 30 days. Widen the range or severity to see more.')).toBeInTheDocument();
+      expect(screen.queryByText('No Events yet. Automatic refresh is running.')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'ALL' }));
+      expect(await screen.findByText('No Events at High and above. Widen the severity to see more.')).toBeInTheDocument();
+      fireEvent.change(screen.getByRole('combobox', { name: 'Minimum severity' }), { target: { value: 'All' } });
+      expect(await screen.findByText('No Events yet. Automatic refresh is running.')).toBeInTheDocument();
     });
   });
 
@@ -1371,7 +1485,7 @@ describe('App', () => {
     await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('1 events'));
 
     fireEvent.change(severityFilter, { target: { value: 'Critical' } });
-    expect(await screen.findByText('No events match the active filters.')).toBeInTheDocument();
+    expect(await screen.findByText('No Events at Critical and above match the search. Clear the search or widen the severity to see more.')).toBeInTheDocument();
     await waitFor(() => expect(map.getSource(eventSourceId)?.data).toMatchObject({ features: [] }));
 
     fireEvent.change(screen.getByPlaceholderText('Search events, locations, keywords...'), { target: { value: 'critical' } });
@@ -1431,13 +1545,13 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: '7D' }));
     fireEvent.change(screen.getByPlaceholderText('Search events, locations, keywords...'), { target: { value: 'economic' } });
 
-    expect(await screen.findByText('No events match the active filters.')).toBeInTheDocument();
+    expect(await screen.findByText('No Events in the last 7 days match the search. Clear the search or widen the range to see more.')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'No event selected' })).toBeInTheDocument();
     await waitFor(() => expect(map.getSource(eventSourceId)?.data).toMatchObject({ features: [] }));
 
     fireEvent.click(screen.getByRole('button', { name: 'ALL' }));
     await waitFor(() => expect(screen.getByRole('button', { name: /Older economic briefing/i })).toBeInTheDocument());
-    expect(screen.queryByText('No events match the active filters.')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^No Events in the last 7 days/)).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'No event selected' })).toBeInTheDocument();
   });
 
@@ -1705,7 +1819,7 @@ describe('App', () => {
     await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('1 events'));
     expect(screen.queryByRole('button', { name: new RegExp(olderEvent.title) })).not.toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText('Search events, locations, keywords...'), { target: { value: 'older economic' } });
-    expect(await screen.findByText('No watchlist events match the active filters.')).toBeInTheDocument();
+    expect(await screen.findByText('No watchlist Events in the last 7 days match the search. Clear the search or widen the range to see more.')).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText('Search events, locations, keywords...'), { target: { value: '' } });
     fireEvent.click(screen.getByRole('button', { name: 'ALL' }));
     expect(await screen.findByRole('button', { name: new RegExp(olderEvent.title) })).toBeInTheDocument();

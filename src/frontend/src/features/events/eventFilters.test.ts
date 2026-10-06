@@ -1,4 +1,4 @@
-import { filterEvents, filterEventsByMinimumSeverity, sortEventsForList, type EventTimeRange, type MinimumSeverity } from './eventFilters';
+import { defaultMinimumSeverity, defaultTimeRange, filterEmptyMessage, filterEvents, filterEventsByMinimumSeverity, sortEventsForList, type EventTimeRange, type MinimumSeverity } from './eventFilters';
 import { eventSeverities, type NativeEvent } from '../../types/events';
 
 const now = Date.parse('2026-09-17T12:00:00Z');
@@ -137,5 +137,34 @@ describe('filterEvents', () => {
     const recentNonMatch = event({ id: 'recent-economic', category: 'Economic', title: 'Market update' });
 
     expect(filterEvents([matchingRecent, matchingOld, recentNonMatch], 'security', '7D', now)).toEqual([matchingRecent]);
+  });
+});
+
+describe('startup defaults', () => {
+  it('are 30D and High and above', () => {
+    expect(defaultTimeRange).toBe('30D');
+    expect(defaultMinimumSeverity).toBe('High');
+  });
+});
+
+describe('filterEmptyMessage', () => {
+  it.each<[EventTimeRange, MinimumSeverity, string, string]>([
+    ['30D', 'All', '', 'No Events in the last 30 days. Widen the range to see more.'],
+    ['24H', 'All', '', 'No Events in the last 24 hours. Widen the range to see more.'],
+    ['ALL', 'High', '', 'No Events at High and above. Widen the severity to see more.'],
+    ['30D', 'High', '', 'No Events at High and above in the last 30 days. Widen the range or severity to see more.'],
+    ['7D', 'Critical', '  ', 'No Events at Critical and above in the last 7 days. Widen the range or severity to see more.'],
+    ['90D', 'All', 'port', 'No Events in the last 90 days match the search. Clear the search or widen the range to see more.'],
+    ['ALL', 'Medium', 'port', 'No Events at Medium and above match the search. Clear the search or widen the severity to see more.'],
+    ['30D', 'High', 'port', 'No Events at High and above in the last 30 days match the search. Clear the search or widen the range or severity to see more.'],
+    ['ALL', 'All', 'port', 'No events match the active filters.'],
+  ])('names %s and %s with search "%s"', (range, minimumSeverity, search, expected) => {
+    expect(filterEmptyMessage(range, minimumSeverity, search)).toBe(expected);
+  });
+
+  it('uses the Watchlist wording inside a Watchlist scope', () => {
+    expect(filterEmptyMessage('30D', 'High', '', 'watchlist')).toBe('No watchlist Events at High and above in the last 30 days. Widen the range or severity to see more.');
+    expect(filterEmptyMessage('7D', 'All', 'port', 'watchlist')).toBe('No watchlist Events in the last 7 days match the search. Clear the search or widen the range to see more.');
+    expect(filterEmptyMessage('ALL', 'All', 'port', 'watchlist')).toBe('No watchlist events match the active filters.');
   });
 });

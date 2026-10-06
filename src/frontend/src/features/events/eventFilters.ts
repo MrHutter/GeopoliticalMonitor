@@ -15,6 +15,35 @@ export const minimumSeverityLabels: Record<MinimumSeverity, string> = {
   Critical: 'Critical and above',
 };
 
+/** Startup Events filters, applied on every launch and never persisted. Alert activation still resets to ALL and All. */
+export const defaultTimeRange: EventTimeRange = '30D';
+export const defaultMinimumSeverity: MinimumSeverity = 'High';
+
+const rangePhrases: Record<Exclude<EventTimeRange, 'ALL'>, string> = {
+  '24H': 'the last 24 hours',
+  '7D': 'the last 7 days',
+  '30D': 'the last 30 days',
+  '90D': 'the last 90 days',
+};
+
+/**
+ * Empty-list message for criteria narrower than ALL / All severities, naming the active range and severity and how to
+ * widen them. With neither narrowed (search only) the generic filter message stays.
+ */
+export function filterEmptyMessage(range: EventTimeRange, minimumSeverity: MinimumSeverity, search: string, scope: 'all' | 'watchlist' = 'all') {
+  const severityPart = minimumSeverity === 'All' ? '' : ` at ${minimumSeverityLabels[minimumSeverity]}`;
+  const rangePart = range === 'ALL' ? '' : ` in ${rangePhrases[range]}`;
+  if (!severityPart && !rangePart) {
+    return scope === 'watchlist' ? 'No watchlist events match the active filters.' : 'No events match the active filters.';
+  }
+
+  const subject = scope === 'watchlist' ? 'No watchlist Events' : 'No Events';
+  const widen = severityPart && rangePart ? 'range or severity' : rangePart ? 'range' : 'severity';
+  return search.trim().length > 0
+    ? `${subject}${severityPart}${rangePart} match the search. Clear the search or widen the ${widen} to see more.`
+    : `${subject}${severityPart}${rangePart}. Widen the ${widen} to see more.`;
+}
+
 const rangeDurationMilliseconds: Record<EventTimeRange, number> = {
   '24H': 24 * 60 * 60 * 1000,
   '7D': 7 * 24 * 60 * 60 * 1000,

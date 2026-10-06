@@ -4,7 +4,7 @@ import { AlertsPanel } from './features/alerts/AlertsPanel';
 import { DetailTab, EventDetailsPanel, type XPostAttachmentFeedback } from './features/event-details/EventDetailsPanel';
 import type { ReliefWebDiscoveryState } from './features/event-details/ReliefWebDiscovery';
 import { EventPanel } from './features/events/EventPanel';
-import { type EventTimeRange, type MinimumSeverity } from './features/events/eventFilters';
+import { defaultMinimumSeverity, defaultTimeRange, filterEmptyMessage, type EventTimeRange, type MinimumSeverity } from './features/events/eventFilters';
 import { MapWorkspace } from './features/map/MapWorkspace';
 import { filterFirmsObservations, type FirmsDisplayMode } from './features/map/firmsMap';
 import { SettingsPanel } from './features/settings/SettingsPanel';
@@ -132,8 +132,8 @@ export function App({ scrollAlertToDetails = alertScrollsToDetails }: AppProps =
   const [pendingAlertRuleWatchlistId, setPendingAlertRuleWatchlistId] = useState<string | null>(null);
   const [alertStatus, setAlertStatus] = useState<{ kind: 'info' | 'error'; message: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRange, setSelectedRange] = useState<EventTimeRange>('ALL');
-  const [minimumSeverity, setMinimumSeverity] = useState<MinimumSeverity>('All');
+  const [selectedRange, setSelectedRange] = useState<EventTimeRange>(defaultTimeRange);
+  const [minimumSeverity, setMinimumSeverity] = useState<MinimumSeverity>(defaultMinimumSeverity);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [eventQueryEnabled, setEventQueryEnabled] = useState(false);
   const [eventReloadToken, setEventReloadToken] = useState(0);
@@ -637,8 +637,9 @@ export function App({ scrollAlertToDetails = alertScrollsToDetails }: AppProps =
   }, [applyPersistedAccent, completeAlertResource, reportPersistenceError, requestAlertResource]);
 
   const activeWatchlist = watchlists.find((watchlist) => watchlist.id === activeWatchlistId) ?? null;
-  // The store-empty state applies only to the default criteria; any other criteria keep the filter-empty messages.
-  const isDefaultEventCriteria = activeWatchlistId === null && selectedRange === 'ALL' && searchQuery === '' && debouncedSearch === '' && minimumSeverity === 'All';
+  // The store-empty state applies only to the all-inclusive criteria (explicit ALL, All severities, All Events, no
+  // search), not to the startup defaults; any other criteria keep the filter-empty messages.
+  const isAllInclusiveEventCriteria = activeWatchlistId === null && selectedRange === 'ALL' && searchQuery === '' && debouncedSearch === '' && minimumSeverity === 'All';
   const activeMemberships = activeWatchlistId ? membersByWatchlist.get(activeWatchlistId) ?? null : null;
   // The native windowed query owns scope, time range, search and severity filtering; this is the one visible
   // collection shared by the Event list and the map.
@@ -781,6 +782,7 @@ export function App({ scrollAlertToDetails = alertScrollsToDetails }: AppProps =
     setActiveWatchlistId(null);
     setSearchQuery('');
     setDebouncedSearch('');
+    // Explicit all-inclusive values, not the startup defaults, so the Alert's Event is never filtered out.
     setSelectedRange('ALL');
     setMinimumSeverity('All');
     setSelectedEventId(alert.eventId);
@@ -895,8 +897,8 @@ export function App({ scrollAlertToDetails = alertScrollsToDetails }: AppProps =
             criteriaKey={`${activeWatchlistId ?? ''}|${selectedRange}|${debouncedSearch}|${minimumSeverity}`}
             eventWindow={eventWindow}
             emptyMessage={activeWatchlist
-              ? (activeWatchlist.eventCount === 0 ? 'No events in this watchlist.' : 'No watchlist events match the active filters.')
-              : eventWindow.totalCount === 0 && isDefaultEventCriteria ? noEventsYetMessage : 'No events match the active filters.'}
+              ? (activeWatchlist.eventCount === 0 ? 'No events in this watchlist.' : filterEmptyMessage(selectedRange, minimumSeverity, debouncedSearch, 'watchlist'))
+              : eventWindow.totalCount === 0 && isAllInclusiveEventCriteria ? noEventsYetMessage : filterEmptyMessage(selectedRange, minimumSeverity, debouncedSearch)}
             notice={appInfo?.demoEventsRemoved === true && !demoRemovalNoticeDismissed ? demoEventsRemovedNotice : null}
             onDismissNotice={() => setDemoRemovalNoticeDismissed(true)}
             manageButtonRef={watchlistManageButtonRef}
