@@ -127,6 +127,12 @@ If X blocks WebView2 login or embedded browsing, retain the Open External/system
 
 X post link handling is user-driven and URL-only. Permission to copy a public X status URL does not authorize scraping post content, metadata, engagement, media, DOM, cookies, tokens, or page source. The isolated X WebView must not gain privileged application bridge access.
 
+## Bluesky Website Pane Rules
+
+The isolated social pane may show either the published X website or the published Bluesky website, switched by the user. Each site uses its own WebView2 user-data folder (`%LOCALAPPDATA%\GeopoliticalMonitor\WebView2\XBrowser` and `%LOCALAPPDATA%\GeopoliticalMonitor\WebView2\BlueskyBrowser`). The Bluesky WebView follows the X rules: no native bridge or host objects, and it is never wired to the privileged message handler; no DOM inspection, injected scripts or styles, scraping, cookie or token extraction, automation or Bluesky API calls. Top-level HTTPS navigation to the exact host bsky.app stays in the pane (the navigation allowlist is bsky.app only), and other HTTPS links open in the system browser. Bluesky post links are handled URL-only, exactly like X post links.
+
+The Bluesky profile is extension-disabled until the owner installs the reviewed ad blocker for it, and no Bluesky ad blocker action may read or change the X profile's binding, payload or extension state, except that the `Use verified X copy` install source may read and re-authenticate the X managed payload as the source of a new Bluesky copy.
+
 ## Visual Direction
 
 The application is dark-native.
@@ -149,6 +155,6 @@ Desktop responsiveness must preserve the horizontal intelligence workspace. Even
 
 X page appearance and content must not be modified with injected scripts or styles merely to change scrollbar appearance. X post-link handling remains user-driven and URL-only; do not infer permission to scrape post content, metadata, DOM, page source, cookies, tokens, accessibility trees, DevTools data, or network responses.
 
-The isolated X WebView may use WebView2 environment options for Fluent overlay scrollbars and user-selected browser extensions. These capabilities belong only to the X profile. The privileged application WebView must remain extension-disabled and must not expose host objects or native bridge access to X pages or extensions.
+The isolated X WebView may use WebView2 environment options for Fluent overlay scrollbars and user-selected browser extensions. These capabilities belong only to the isolated X profile and, when the owner installs the reviewed ad blocker for it, the isolated Bluesky profile. The privileged application WebView must remain extension-disabled and must not expose host objects or native bridge access to X pages or extensions.
 
-Geopolitical Monitor may host a user-selected unpacked browser extension in the isolated X profile, but it must not bundle, download, audit, or silently install an ad blocker. Extension behavior is governed by the extension manifest and WebView2 browser-extension permissions; native application code still must not inject into, scrape, or inspect X content.
+Geopolitical Monitor may host a user-selected unpacked browser extension in the isolated X profile and the isolated Bluesky profile, each with its own verified managed copy and binding, but it must not bundle, download, audit, or silently install an ad blocker. Extension behavior is governed by the extension manifest and WebView2 browser-extension permissions; native application code still must not inject into, scrape, or inspect X content.
