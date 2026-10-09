@@ -76,6 +76,12 @@ public sealed record XDiagnosticAdBlockBinding(
     public const int CurrentSchemaVersion = 2;
     public const string DiagnosticProfileScope = "ExtensionCapabilityDiagnostic";
     public const string ProductionXProfileScope = "XBrowser";
+    public const string ProductionBlueskyProfileScope = "BlueskyBrowser";
+
+    /// <summary>The production scopes: X and the separate verified Bluesky copy. A binding only ever matches its own scope.</summary>
+    public static bool IsProductionScope(string? profileScope) =>
+        string.Equals(profileScope, ProductionXProfileScope, StringComparison.Ordinal)
+        || string.Equals(profileScope, ProductionBlueskyProfileScope, StringComparison.Ordinal);
 
     public static XDiagnosticAdBlockBinding Create(
         string runtimeExtensionId,
@@ -103,7 +109,7 @@ public sealed record XDiagnosticAdBlockBinding(
             return false;
         }
 
-        return !string.Equals(expectedProfileScope, ProductionXProfileScope, StringComparison.Ordinal)
+        return !IsProductionScope(expectedProfileScope)
             || (source.HasTrustedPayload && OfficialAdBlockTrustRecords.IsApproved(TrustRecord));
     }
 
@@ -118,7 +124,7 @@ public sealed record XDiagnosticAdBlockBinding(
             return false;
         }
 
-        if (!string.Equals(ProfileScope, ProductionXProfileScope, StringComparison.Ordinal))
+        if (!IsProductionScope(ProfileScope))
         {
             return string.Equals(ProfileScope, DiagnosticProfileScope, StringComparison.Ordinal);
         }
@@ -458,11 +464,15 @@ public sealed class XDiagnosticAdBlockService(
         "mhjfbmdgcfjbbpaeojofohoefgiehjai",
     };
 
-    private string ProfileDisplayName =>
-        profileScope == XDiagnosticAdBlockBinding.ProductionXProfileScope ? "production X" : "diagnostic";
+    private string ProfileDisplayName => profileScope switch
+    {
+        XDiagnosticAdBlockBinding.ProductionXProfileScope => "production X",
+        XDiagnosticAdBlockBinding.ProductionBlueskyProfileScope => "production Bluesky",
+        _ => "diagnostic",
+    };
 
     private string BindingActionName =>
-        profileScope == XDiagnosticAdBlockBinding.ProductionXProfileScope ? "Reconcile" : "Bind Installed AdBlock";
+        XDiagnosticAdBlockBinding.IsProductionScope(profileScope) ? "Reconcile" : "Bind Installed AdBlock";
 
     public async Task<XDiagnosticAdBlockSnapshot> GetSnapshotAsync(CancellationToken cancellationToken = default)
     {
@@ -474,7 +484,7 @@ public sealed class XDiagnosticAdBlockService(
         CancellationToken cancellationToken = default)
     {
         var snapshot = await GetSnapshotAsync(cancellationToken).ConfigureAwait(true);
-        if (!string.Equals(profileScope, XDiagnosticAdBlockBinding.ProductionXProfileScope, StringComparison.Ordinal)
+        if (!XDiagnosticAdBlockBinding.IsProductionScope(profileScope)
             || snapshot.AdBlockStatus.IsManagedInstance)
         {
             return snapshot;
@@ -622,7 +632,7 @@ public sealed class XDiagnosticAdBlockService(
                     $"The selected source folder does not match an installed extension in the {ProfileDisplayName} profile."));
         }
 
-        if (string.Equals(profileScope, XDiagnosticAdBlockBinding.ProductionXProfileScope, StringComparison.Ordinal))
+        if (XDiagnosticAdBlockBinding.IsProductionScope(profileScope))
         {
             await profile.RemoveExtensionAsync(extension.Id, cancellationToken).ConfigureAwait(true);
             var afterRemoval = await profile.GetInstalledExtensionsAsync(cancellationToken).ConfigureAwait(true);
@@ -742,7 +752,7 @@ public sealed class XDiagnosticAdBlockService(
         if (binding.SchemaVersion != XDiagnosticAdBlockBinding.CurrentSchemaVersion
             || !string.Equals(binding.ProfileScope, profileScope, StringComparison.Ordinal)
             || string.IsNullOrWhiteSpace(binding.RuntimeExtensionId)
-            || (string.Equals(profileScope, XDiagnosticAdBlockBinding.ProductionXProfileScope, StringComparison.Ordinal)
+            || (XDiagnosticAdBlockBinding.IsProductionScope(profileScope)
                 && (!OfficialAdBlockTrustRecords.IsApproved(binding.TrustRecord) || binding.Payload is null))
             || IsProtectedMicrosoftExtensionId(binding.RuntimeExtensionId))
         {
@@ -792,6 +802,6 @@ public sealed class XDiagnosticAdBlockService(
         extensionId is not null && ProtectedMicrosoftExtensionIds.Contains(extensionId);
 
     private bool IsEligibleForProfile(XDiagnosticAdBlockSourceIdentity source) =>
-        !string.Equals(profileScope, XDiagnosticAdBlockBinding.ProductionXProfileScope, StringComparison.Ordinal)
+        !XDiagnosticAdBlockBinding.IsProductionScope(profileScope)
         || source.HasTrustedPayload;
 }

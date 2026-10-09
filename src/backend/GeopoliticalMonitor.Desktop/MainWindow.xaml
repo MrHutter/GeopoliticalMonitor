@@ -24,6 +24,25 @@
         <Setter Property="BorderBrush" Value="#1F2023" />
         <Setter Property="Padding" Value="10,7" />
       </Style>
+      <Style x:Key="SocialFeedSegmentStyle" TargetType="ToggleButton">
+        <Setter Property="Background" Value="#040404" />
+        <Setter Property="BorderBrush" Value="#242426" />
+        <Setter Property="Foreground" Value="#8E9197" />
+        <Setter Property="Padding" Value="8,2" />
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+      </Style>
+      <!-- Lightweight styling for the feed switcher: neutral selected state instead of the system accent. -->
+      <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#1C1C1F" />
+      <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#242427" />
+      <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#18181A" />
+      <SolidColorBrush x:Key="ToggleButtonForegroundChecked" Color="#F0F1F3" />
+      <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPointerOver" Color="#F0F1F3" />
+      <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPressed" Color="#D4D6DA" />
+      <SolidColorBrush x:Key="ToggleButtonBorderBrushChecked" Color="#3A3A3E" />
+      <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPointerOver" Color="#46464B" />
+      <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPressed" Color="#3A3A3E" />
     </Grid.Resources>
 
     <Grid.ColumnDefinitions>
@@ -45,9 +64,7 @@
         BorderBrush="#242426"
         Foreground="#D4D6DA"
         Click="OnShowXPaneClicked"
-        Visibility="Collapsed">
-      Show X
-    </Button>
+        Visibility="Collapsed" />
 
     <local:HorizontalResizeGrip
         x:Name="XPaneSplitter"
@@ -103,8 +120,12 @@
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Border x:Name="XHeaderAccentBar" Width="3" Height="32" Background="#FF7A18" />
             <StackPanel>
-              <TextBlock x:Name="XHeaderEyebrow" Text="MY X FEED" Foreground="#FFB347" FontSize="11" FontWeight="Bold" />
-              <TextBlock Text="X Website" Foreground="#D4D6DA" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock x:Name="XHeaderEyebrow" Foreground="#FFB347" FontSize="11" FontWeight="Bold" />
+              <!-- Feed switcher: two toggle buttons in one group; labels come from SocialPaneLabels. -->
+              <StackPanel x:Name="SocialFeedSwitcher" Orientation="Horizontal" Spacing="4" Margin="0,2,0,0">
+                <ToggleButton x:Name="ShowXFeedButton" Click="OnSocialFeedSegmentClicked" Style="{StaticResource SocialFeedSegmentStyle}" />
+                <ToggleButton x:Name="ShowBlueskyFeedButton" Click="OnSocialFeedSegmentClicked" Style="{StaticResource SocialFeedSegmentStyle}" />
+              </StackPanel>
             </StackPanel>
           </StackPanel>
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
@@ -152,6 +173,18 @@
             TextTrimming="CharacterEllipsis"
             Visibility="Collapsed" />
 
+        <!-- Bluesky ad blocker indication: same cell, shown only while the Bluesky feed is active and set up. -->
+        <TextBlock
+            x:Name="BlueskyAdBlockIndicationText"
+            Grid.Row="2"
+            Margin="0,7,0,0"
+            Foreground="#85888E"
+            FontSize="12"
+            MaxLines="1"
+            TextWrapping="NoWrap"
+            TextTrimming="CharacterEllipsis"
+            Visibility="Collapsed" />
+
         <Border
             x:Name="XOverflowPanel"
             Grid.Row="3"
@@ -167,7 +200,7 @@
             <Button x:Name="XOpenExternalMenuItem" Content="Open External" Click="OnXOpenExternalClicked" Style="{StaticResource XOverflowMenuButtonStyle}" />
             <Button x:Name="XCopyPostLinkMenuItem" Content="Copy Post Link" Click="OnXCopyPostLinkClicked" Style="{StaticResource XOverflowMenuButtonStyle}" />
             <Button x:Name="XClearSessionMenuItem" Content="Clear Session" Click="OnXClearSessionClicked" Style="{StaticResource XOverflowMenuButtonStyle}" />
-            <Border Height="1" Margin="2,3" Background="#242426" />
+            <Border x:Name="XOverflowAdBlockSeparator" Height="1" Margin="2,3" Background="#242426" />
             <Button x:Name="XExtensionsMenuItem" Content="Ad Blocker..." Click="OnXExtensionsClicked" Style="{StaticResource XOverflowMenuButtonStyle}" />
           </StackPanel>
         </Border>
@@ -190,7 +223,6 @@
           <Button
               x:Name="XRetryButton"
               Grid.Column="1"
-              Content="Retry X"
               Click="OnXRetryClicked"
               Style="{StaticResource XChromeButtonStyle}" />
         </Grid>

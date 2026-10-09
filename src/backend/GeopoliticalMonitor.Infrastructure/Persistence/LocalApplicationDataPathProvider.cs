@@ -7,13 +7,16 @@ public sealed class LocalApplicationDataPathProvider
     private const string WebView2DirectoryName = "WebView2";
     private const string AppWebViewDirectoryName = "AppShell";
     private const string XBrowserDirectoryName = "XBrowser";
+    private const string BlueskyBrowserDirectoryName = "BlueskyBrowser";
     private const string XBrowserExtensionDiagnosticDirectoryName = "ExtensionCapabilityDiagnostic";
     private const string ExtensionsDirectoryName = "Extensions";
     private const string AdBlockDirectoryName = "AdBlock";
+    private const string BlueskyAdBlockDirectoryName = "AdBlockBluesky";
     private const string CurrentExtensionDirectoryName = "Current";
     private const string DatabaseFileName = "geopolitical-monitor.db";
     private const string DiagnosticAdBlockBindingFileName = "diagnostic-adblock-binding.json";
     private const string ProductionAdBlockBindingFileName = "x-adblock-binding.json";
+    private const string BlueskyAdBlockBindingFileName = "bluesky-adblock-binding.json";
 
     private readonly Func<string> getLocalApplicationDataRoot;
 
@@ -61,6 +64,20 @@ public sealed class LocalApplicationDataPathProvider
             CurrentExtensionDirectoryName);
     }
 
+    public string GetBlueskyAdBlockBindingPath()
+    {
+        return Path.Combine(GetDataDirectory(), BlueskyAdBlockBindingFileName);
+    }
+
+    public string GetBlueskyAdBlockManagedSourceDirectory()
+    {
+        return Path.Combine(
+            GetApplicationDataDirectory(),
+            ExtensionsDirectoryName,
+            BlueskyAdBlockDirectoryName,
+            CurrentExtensionDirectoryName);
+    }
+
     public string GetAppWebViewUserDataFolder()
     {
         return Path.Combine(GetApplicationDataDirectory(), WebView2DirectoryName, AppWebViewDirectoryName);
@@ -69,6 +86,11 @@ public sealed class LocalApplicationDataPathProvider
     public string GetXBrowserUserDataFolder()
     {
         return Path.Combine(GetApplicationDataDirectory(), WebView2DirectoryName, XBrowserDirectoryName);
+    }
+
+    public string GetBlueskyBrowserUserDataFolder()
+    {
+        return Path.Combine(GetApplicationDataDirectory(), WebView2DirectoryName, BlueskyBrowserDirectoryName);
     }
 
     public string GetXBrowserExtensionDiagnosticUserDataFolder()

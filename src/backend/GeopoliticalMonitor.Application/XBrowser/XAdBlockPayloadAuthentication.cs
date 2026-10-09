@@ -204,15 +204,29 @@ public sealed record XProductionAdBlockStartupDecision(
 
 public static class XProductionAdBlockStartupTrustPolicy
 {
+    /// <param name="profileScope">
+    /// The production scope whose own payload and binding are evaluated: X (the default, unchanged) or the separate
+    /// verified Bluesky copy. A clean state allows the extension environment for X only; Bluesky stays
+    /// extension-disabled until the owner installs the reviewed ad blocker for it.
+    /// </param>
     public static XProductionAdBlockStartupDecision Evaluate(
         bool managedPayloadExists,
         bool persistedBindingExists,
         XDiagnosticAdBlockBinding? binding,
-        XDiagnosticAdBlockSourceValidation? managedPayloadValidation)
+        XDiagnosticAdBlockSourceValidation? managedPayloadValidation,
+        string profileScope = XDiagnosticAdBlockBinding.ProductionXProfileScope)
     {
+        if (!XDiagnosticAdBlockBinding.IsProductionScope(profileScope))
+        {
+            throw new ArgumentOutOfRangeException(nameof(profileScope), "Only a production profile scope has a startup trust gate.");
+        }
+
         if (!managedPayloadExists && !persistedBindingExists)
         {
-            return new(true, false, null);
+            return new(
+                AttemptExtensionEnvironment: string.Equals(profileScope, XDiagnosticAdBlockBinding.ProductionXProfileScope, StringComparison.Ordinal),
+                HasTrustedManagedPayload: false,
+                Message: null);
         }
 
         if (managedPayloadExists
@@ -231,7 +245,7 @@ public static class XProductionAdBlockStartupTrustPolicy
             && binding is not null
             && managedPayloadValidation?.IsValid == true
             && managedPayloadValidation.Identity is not null
-            && binding.Matches(managedPayloadValidation.Identity, XDiagnosticAdBlockBinding.ProductionXProfileScope))
+            && binding.Matches(managedPayloadValidation.Identity, profileScope))
         {
             return new(true, true, null);
         }

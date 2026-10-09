@@ -97,6 +97,6 @@ public sealed partial class MainWindow
         XAdBlockIndicationText.Text = text ?? string.Empty;
         ToolTipService.SetToolTip(XAdBlockIndicationText, text);
         AutomationProperties.SetName(XAdBlockIndicationText, text ?? string.Empty);
-        XAdBlockIndicationText.Visibility = text is null ? Visibility.Collapsed : Visibility.Visible;
+        ApplyXAdBlockIndicationVisibility();
     }
 }

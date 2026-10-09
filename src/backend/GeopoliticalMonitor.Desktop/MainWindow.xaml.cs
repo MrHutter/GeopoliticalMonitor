@@ -96,6 +96,7 @@ public sealed partial class MainWindow : Window
         ApplyXPaneSide(XPaneSide.Right, notifyReact: false, updateWidth: false);
         UpdateXNavigationButtons();
         UpdateXPostLinkButton();
+        InitializeSocialFeedChrome();
         _ = InitializeWebViewsAsync();
     }
 
@@ -111,6 +112,9 @@ public sealed partial class MainWindow : Window
         xBrowserUserDataFolder = pathProvider.GetXBrowserUserDataFolder();
         xInitializationTask = InitializeXWebViewAsync(xBrowserUserDataFolder);
         await xInitializationTask;
+
+        // The X control initializes exactly as before whatever feed is saved; a saved Bluesky feed is restored afterwards.
+        await RestoreSocialPaneFeedAsync();
     }
 
     private void InitializeFirmsProvider()
@@ -501,6 +505,7 @@ public sealed partial class MainWindow : Window
             accentThemePreferenceService = new AccentThemePreferenceService(preferenceStore);
             xPaneWidthPreferenceService = new XPaneWidthPreferenceService(new SqliteXPaneWidthPreferenceStore(databaseInitializer.CreateDbContext));
             xPaneSidePreferenceService = new XPaneSidePreferenceService(new SqliteXPaneSidePreferenceStore(databaseInitializer.CreateDbContext));
+            socialPaneFeedPreferenceService = new SocialPaneFeedPreferenceService(new SqliteSocialPaneFeedPreferenceStore(databaseInitializer.CreateDbContext));
 
             var eventStore = new SqliteEventStore(databaseInitializer.CreateDbContext);
             eventCatalogService = new EventCatalogService(eventStore);
@@ -566,6 +571,7 @@ public sealed partial class MainWindow : Window
             accentThemePreferenceService = null;
             xPaneWidthPreferenceService = null;
             xPaneSidePreferenceService = null;
+            socialPaneFeedPreferenceService = null;
             eventCatalogService = null;
             eventWindowService = null;
             eventSourceBridgeHandler = null;
@@ -1058,6 +1064,12 @@ public sealed partial class MainWindow : Window
     private void OnXBackClicked(object sender, RoutedEventArgs args)
     {
         HideXOverflowPanel();
+        if (activeSocialFeed == SocialPaneFeed.Bluesky)
+        {
+            OnBlueskyBackClicked();
+            return;
+        }
+
         if (XWebView.CoreWebView2?.CanGoBack == true)
         {
             XWebView.CoreWebView2.GoBack();
@@ -1067,6 +1079,12 @@ public sealed partial class MainWindow : Window
     private void OnXForwardClicked(object sender, RoutedEventArgs args)
     {
         HideXOverflowPanel();
+        if (activeSocialFeed == SocialPaneFeed.Bluesky)
+        {
+            OnBlueskyForwardClicked();
+            return;
+        }
+
         if (XWebView.CoreWebView2?.CanGoForward == true)
         {
             XWebView.CoreWebView2.GoForward();
@@ -1076,12 +1094,24 @@ public sealed partial class MainWindow : Window
     private void OnXHomeClicked(object sender, RoutedEventArgs args)
     {
         HideXOverflowPanel();
+        if (activeSocialFeed == SocialPaneFeed.Bluesky)
+        {
+            NavigateBlueskyHome();
+            return;
+        }
+
         NavigateXHome();
     }
 
     private void OnXRefreshClicked(object sender, RoutedEventArgs args)
     {
         HideXOverflowPanel();
+        if (activeSocialFeed == SocialPaneFeed.Bluesky)
+        {
+            OnBlueskyRefreshClicked();
+            return;
+        }
+
         if (XWebView.CoreWebView2 is null)
         {
             NavigateXHome();
@@ -1095,6 +1125,12 @@ public sealed partial class MainWindow : Window
     private async void OnXRetryClicked(object sender, RoutedEventArgs args)
     {
         HideXOverflowPanel();
+        if (activeSocialFeed == SocialPaneFeed.Bluesky)
+        {
+            await RetryBlueskyAsync();
+            return;
+        }
+
         if (xInitializationTask is not null && !xInitializationTask.IsCompleted)
         {
             return;
@@ -1125,6 +1161,12 @@ public sealed partial class MainWindow : Window
     private void OnXOpenExternalClicked(object sender, RoutedEventArgs args)
     {
         HideXOverflowPanel();
+        if (activeSocialFeed == SocialPaneFeed.Bluesky)
+        {
+            OpenBlueskyExternal();
+            return;
+        }
+
         var currentUri = XWebView.Source?.ToString();
         OpenInSystemBrowser(XBrowserNavigationPolicy.IsAllowedInPane(currentUri) ? currentUri : XBrowserDefaults.HomeUrl);
     }
@@ -1132,6 +1174,11 @@ public sealed partial class MainWindow : Window
     private async void OnXCopyPostLinkClicked(object sender, RoutedEventArgs args)
     {
         HideXOverflowPanel();
+        if (activeSocialFeed != SocialPaneFeed.X)
+        {
+            return;
+        }
+
         await CopyXPostLinkAsync(XWebView.Source?.ToString());
     }
     private async Task CopyXPostLinkAsync(string? url)
@@ -1151,6 +1198,12 @@ public sealed partial class MainWindow : Window
     private async void OnXClearSessionClicked(object sender, RoutedEventArgs args)
     {
         HideXOverflowPanel();
+        if (activeSocialFeed == SocialPaneFeed.Bluesky)
+        {
+            await ClearBlueskySessionAsync();
+            return;
+        }
+
         if (XWebView.CoreWebView2 is null)
         {
             return;
@@ -1158,7 +1211,7 @@ public sealed partial class MainWindow : Window
 
         var dialog = new ContentDialog
         {
-            Title = "Clear X session?",
+            Title = SocialPaneLabels.ClearXSessionTitle,
             Content = $"This clears the isolated X website cookies and browsing data for {ProductIdentity.DisplayName}. Local events and preferences are not affected.",
             PrimaryButtonText = "Clear Session",
             CloseButtonText = "Cancel",
@@ -1180,6 +1233,12 @@ public sealed partial class MainWindow : Window
     private async void OnXExtensionsClicked(object sender, RoutedEventArgs args)
     {
         HideXOverflowPanel();
+        if (activeSocialFeed != SocialPaneFeed.X)
+        {
+            await ShowActiveSocialFeedAdBlockDialogAsync();
+            return;
+        }
+
         await ShowXProductionAdBlockDialogAsync();
     }
 
@@ -1989,6 +2048,11 @@ public sealed partial class MainWindow : Window
 
     private void UpdateXNavigationButtons()
     {
+        if (activeSocialFeed != SocialPaneFeed.X)
+        {
+            return;
+        }
+
         var core = XWebView.CoreWebView2;
         var state = new XToolbarCommandState(
             xRuntimeState,
@@ -2006,6 +2070,11 @@ public sealed partial class MainWindow : Window
     }
     private void UpdateXPostLinkButton()
     {
+        if (activeSocialFeed != SocialPaneFeed.X)
+        {
+            return;
+        }
+
         var state = new XToolbarCommandState(
             xRuntimeState,
             CanGoBack: XWebView.CoreWebView2?.CanGoBack == true,
@@ -2015,14 +2084,14 @@ public sealed partial class MainWindow : Window
     }
     private void ShowXError(string message)
     {
-        XStatusText.Text = $"{message} Open X in your browser if the embedded website is unavailable.";
-        XErrorBanner.Visibility = Visibility.Visible;
+        xErrorMessage = $"{message} Open X in your browser if the embedded website is unavailable.";
+        ApplySocialErrorBanner();
     }
 
     private void HideXError()
     {
-        XStatusText.Text = string.Empty;
-        XErrorBanner.Visibility = Visibility.Collapsed;
+        xErrorMessage = null;
+        ApplySocialErrorBanner();
     }
 
     private void ApplyNativeAccent(AccentTheme accentTheme)
@@ -2072,6 +2141,7 @@ public sealed partial class MainWindow : Window
         reliefWebHttpClient?.Dispose();
         firmsHttpClient?.Dispose();
         lifetimeCancellation.Dispose();
+        CloseBlueskyWebViewOnExit();
         XWebView.Close();
         AppWebView.Close();
     }

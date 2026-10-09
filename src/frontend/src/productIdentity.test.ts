@@ -1,9 +1,9 @@
 import { applyProductDocumentTitle, productDisplayName, productDisplayNameUpper } from './productIdentity';
 
 describe('product identity', () => {
-  it('provides the current provisional display name to frontend consumers', () => {
-    expect(productDisplayName).toBe('Geopolitical Monitor');
-    expect(productDisplayNameUpper).toBe('GEOPOLITICAL MONITOR');
+  it('provides the decided display name to frontend consumers', () => {
+    expect(productDisplayName).toBe('Northern Monitor');
+    expect(productDisplayNameUpper).toBe('NORTHERN MONITOR');
   });
 
   it('applies the centralized display name to the browser document title', () => {

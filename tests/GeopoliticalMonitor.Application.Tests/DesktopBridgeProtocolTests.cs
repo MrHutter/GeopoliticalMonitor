@@ -56,7 +56,7 @@ public class DesktopBridgeProtocolTests
     public void ApplicationAssemblyIsAvailable()
     {
         Assert.Equal("GeopoliticalMonitor.Application", typeof(ApplicationAssemblyMarker).Assembly.GetName().Name);
-        Assert.Equal("Geopolitical Monitor", ProductIdentity.DisplayName);
+        Assert.Equal("Northern Monitor", ProductIdentity.DisplayName);
     }
 
     [Fact]
