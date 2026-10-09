@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-This file lists third-party components used by the Geopolitical Monitor project, with the version and license identifier recorded for each. Licenses are taken from the package metadata (npm `package-lock.json`, NuGet `.nuspec`) and from the project's basemap data documentation. Refer to each component's own license text for the full terms.
+This file lists third-party components used by the Northern Monitor project, with the version and license identifier recorded for each. Licenses are taken from the package metadata (npm `package-lock.json`, NuGet `.nuspec`) and from the project's basemap data documentation. Refer to each component's own license text for the full terms.
 
 ## npm production dependencies (frontend runtime)
 

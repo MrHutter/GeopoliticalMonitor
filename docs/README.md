@@ -2,7 +2,7 @@
 
 Every document in the repository, who it is for and what it covers.
 
-The app's display name is provisional. A rename, if any, changes only the display name, which is centralized in `ProductIdentity`. The code, the data folder (`%LOCALAPPDATA%\GeopoliticalMonitor`), the executable and the repository keep the identifier `GeopoliticalMonitor` on purpose.
+The app's display name is "Northern Monitor", decided on 2026-10-06. It is centralized in `ProductIdentity`. The code, the data folder (`%LOCALAPPDATA%\GeopoliticalMonitor`), the executable and the repository keep the identifier `GeopoliticalMonitor` on purpose. The trademark screening result is yellow: the name is not cleared.
 
 ## User-facing documents
 
@@ -10,9 +10,9 @@ These must match the current code. Their "verified against" commit names the com
 
 | Document | Audience | Covers | Verified against commit |
 |---|---|---|---|
-| [README.md](../README.md) | User, operator, developer | What the app is, status, requirements, quick start, data sources, privacy, top troubleshooting | `15428b7` |
-| [guide/user-guide.md](guide/user-guide.md) | User | The screen, Events and filters, details, X post attachment, Watchlists, Alerts, map and layers, FIRMS, Settings, the X pane | `15428b7` |
-| [guide/setup-and-configuration.md](guide/setup-and-configuration.md) | Operator, developer | Prerequisites, building and running, first launch, FIRMS key, X login, AdBlock, data locations, backups, troubleshooting | `15428b7` |
+| [README.md](../README.md) | User, operator, developer | What the app is, status, requirements, quick start, data sources, privacy, top troubleshooting | `855dbaa` |
+| [guide/user-guide.md](guide/user-guide.md) | User | The screen, Events and filters, details, X post attachment, Watchlists, Alerts, map and layers, FIRMS, Settings, the social pane (X and Bluesky) | `855dbaa` |
+| [guide/setup-and-configuration.md](guide/setup-and-configuration.md) | Operator, developer | Prerequisites, building and running, first launch, FIRMS key, X and Bluesky login, AdBlock for X and Bluesky, data locations, backups, troubleshooting | `855dbaa` |
 | [guide/data-sources.md](guide/data-sources.md) | User, operator | Each data source: content, freshness, keys, what it creates, attribution, limits; sources not used | `29c3677` |
 
 ## Repository policies
@@ -41,7 +41,7 @@ These record design work and history. They may describe plans that are not imple
 | [architecture/system-overview.md](architecture/system-overview.md) | Developer | Desktop runtime, layers and hosting model |
 | [architecture/data-model.md](architecture/data-model.md) | Developer | Event, Source and related data model notes |
 | [architecture/integrations.md](architecture/integrations.md) | Developer | Provider integrations in technical detail |
-| [architecture/security.md](architecture/security.md) | Developer | Security boundaries of the desktop runtime, bridge and X pane |
+| [architecture/security.md](architecture/security.md) | Developer | Security boundaries of the desktop runtime, bridge and social pane (X and Bluesky) |
 | [product/v0.1-product-spec.md](product/v0.1-product-spec.md) | Developer | The v0.1 product specification |
 | [design/interaction-v0.1.md](design/interaction-v0.1.md) | Developer | Interaction direction for v0.1 |
 | [design/ui-v0.1.md](design/ui-v0.1.md) | Developer | Visual and layout direction for v0.1 |
@@ -49,4 +49,5 @@ These record design work and history. They may describe plans that are not imple
 | [design/event-automation-design.md](design/event-automation-design.md) | Internal | Event automation design, slice plan and owner decisions |
 | [design/conflict-tension-layer-design.md](design/conflict-tension-layer-design.md) | Internal | Conflict and tension reference layer design |
 | [design/x-pane-design.md](design/x-pane-design.md) | Internal | Social pane design: Bluesky option, narrow-window fix, ad blocker indication |
+| [design/social-pane-adblock-design.md](design/social-pane-adblock-design.md) | Internal | The ad blocker for the Bluesky pane |
 | [decisions/README.md](decisions/README.md) | Developer | Where architecture decision records go and their suggested shape |

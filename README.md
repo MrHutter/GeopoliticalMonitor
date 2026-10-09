@@ -1,11 +1,11 @@
-# Geopolitical Monitor
+# Northern Monitor
 
-Geopolitical Monitor is a Windows desktop application for geopolitical situational awareness and open-source research. It keeps a local database of Events from public data sources, shows them in a list and on a bundled world map, and places the normal X website in a separate pane beside them.
+Northern Monitor is a Windows desktop application for geopolitical situational awareness and open-source research. It keeps a local database of Events from public data sources, shows them in a list and on a bundled world map, and places the normal X website or the normal Bluesky website, switched by you, in a separate pane beside them.
 
 ## Status
 
 - Early-stage personal project in a private repository.
-- No license has been chosen yet. The display name is provisional.
+- No license has been chosen yet. The display name is Northern Monitor; the code, the data folder and the executable keep the identifier `GeopoliticalMonitor`.
 - There is no installer. The app is built from source and started from its build output.
 
 ## Requirements
@@ -63,7 +63,7 @@ Details, freshness, attribution and limits: [data sources](docs/guide/data-sourc
 - Everything runs locally. Events, Sources, Watchlists, Alerts and preferences are stored in a SQLite database under `%LOCALAPPDATA%\GeopoliticalMonitor`.
 - The app opens no inbound network ports. It installs no Windows service, scheduled task or startup entry, and leaves no background process running after its window closes.
 - Provider requests happen only while the app is open, on its in-app timer or when you ask for them.
-- The X pane is the normal X website in an isolated browser view. It has no connection to the app's internal message bridge, and the app does not scrape, read or inject anything into X pages.
+- The social pane shows the normal X website or the normal Bluesky website, each in its own isolated browser view with its own profile. Neither has a connection to the app's internal message bridge, and the app does not scrape, read or inject anything into X or Bluesky pages. Nothing from Bluesky is attached to Events.
 - The FIRMS key is read from the environment at startup and is never stored, shown or sent to the user interface.
 
 Vulnerability reports: [SECURITY.md](SECURITY.md). Third-party components and data licenses: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
@@ -72,13 +72,13 @@ Vulnerability reports: [SECURITY.md](SECURITY.md). Third-party components and da
 
 - **Blank window:** the frontend was not built before the desktop project. Run `npm run build` in `src/frontend`, then rebuild the desktop project.
 - **Slow first launch:** a cold first launch can be slow; launches right after it are fast. This is known and not an error.
-- **X pane cut off at the right edge:** below about 1,270 px of window width the X pane can be clipped. This is a known open issue.
+- **Social pane cut off at the right edge:** below about 1,270 px of window width the X or Bluesky pane can be clipped. This is a known open issue.
 
 More in [the setup guide](docs/guide/setup-and-configuration.md#troubleshooting).
 
 ## Re-enrolling AdBlock
 
-The steps for installing or re-enrolling the optional ad blocker in the X pane are in [the setup guide](docs/guide/setup-and-configuration.md#adblock-optional).
+The steps for installing or re-enrolling the optional ad blocker in the X pane, and for installing it separately for the Bluesky pane, are in [the setup guide](docs/guide/setup-and-configuration.md#adblock-optional).
 
 ## Documentation
 

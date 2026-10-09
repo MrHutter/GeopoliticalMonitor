@@ -106,13 +106,15 @@ Never paste the key into documents, issues or chat.
 - **GDACS:** no key or account.
 - **ReliefWeb:** dormant by owner decision. No setup is needed, and the app makes no ReliefWeb requests.
 
-## X login
+## X and Bluesky login
 
-The X pane shows the normal X website. To see your own feed, sign in on the website inside the pane. The app never receives your password. Your session is ordinary browser state in the X pane's own profile folder (see Data locations), and the app does not read it. `Clear Session` in the X pane's `...` menu deletes all cookies and clears all browsing data of that profile, which signs you out of X. Clear Session clears the X pane's browsing data; check the ad blocker status afterwards.
+The social pane shows the normal X website or the normal Bluesky website; choose one with the `X` and `Bluesky` buttons in the pane header. To see your own feed, sign in on the website inside the pane. The app never receives your password. Each website's session is ordinary browser state in its own profile folder (`WebView2\XBrowser` for X, `WebView2\BlueskyBrowser` for Bluesky; see Data locations), and the app does not read it. `Clear Session` in the `...` menu deletes all cookies and clears all browsing data of the profile of the website shown, which signs you out of that website only. Clear Session clears that pane's browsing data; check its ad blocker status afterwards.
+
+The Bluesky profile folder is created the first time you choose `Bluesky`; until then the app starts no Bluesky browser and sends no Bluesky request. Only top-level pages on `bsky.app` open in the Bluesky pane. If Bluesky's sign-in opens a page on another address, that page opens in your system browser instead.
 
 ## AdBlock (optional)
 
-The X pane can host the AdBlock browser extension in its own profile. The app does not download, bundle or silently install it. Only one reviewed version is accepted: Chrome Web Store AdBlock `6.47.0`, extension id `gighmmpiobklfepjocnamgkkbiglidom`, with a fixed content digest. A newer version needs a separately reviewed trust record in the code before it can be installed.
+The X pane can host the AdBlock browser extension in its own profile, and the Bluesky pane can host its own, separately verified copy in its profile. The app does not download, bundle or silently install it. Only one reviewed version is accepted: Chrome Web Store AdBlock `6.47.0`, extension id `gighmmpiobklfepjocnamgkkbiglidom`, with a fixed content digest. A newer version needs a separately reviewed trust record in the code before it can be installed.
 
 ### Install or re-enroll
 
@@ -132,13 +134,27 @@ Re-enroll when ads reappear in the X pane and the ad blocker dialog shows `Insta
 
 Keep an unpacked copy of the `6.47.0` folder outside Chrome's profile, because Chrome may delete old version folders after it updates the extension.
 
+### Install for Bluesky
+
+The Bluesky pane has no ad blocker unless you install it there. It uses its own copy of the same reviewed `6.47.0` payload, its own binding and its own status line. Installing, removing or changing it never touches the X ad blocker; the X copy is only read.
+
+1. Choose `Bluesky` in the pane header, open the `...` menu and choose `Ad Blocker...`.
+2. In the `Bluesky Ad Blocker` dialog choose one source:
+   - `Install AdBlock...` and select the reviewed `6.47.0` version folder, as for X; or
+   - `Use verified X copy`, which authenticates the X pane's managed copy again in full and copies it into the Bluesky folder. It is offered only when the X copy exists, and nothing is copied if the X copy does not match the reviewed record.
+3. The first installation for Bluesky always needs a restart, because the Bluesky pane starts without extensions until a verified Bluesky copy exists. Close and reopen the app, choose `Bluesky`, open the dialog again and choose `Install AdBlock...` or `Use verified X copy` again (the existing verified Bluesky copy is reused), or `Reconcile` when it is offered.
+
+Each time the Bluesky pane is created, the app authenticates the Bluesky copy in full before the first Bluesky page loads. A copy that fails the check keeps the Bluesky pane without extensions for that run; X is not affected.
+
 ### Other dialog buttons
 
 - **`Enable` and `Disable`:** turn the installed ad blocker on and off.
 - **`Remove`:** removes it.
-- **`Test Extension Support`:** a separate diagnostic. It does not repair or install the production ad blocker.
+- **`Test Extension Support`:** a separate diagnostic, only in the `X Ad Blocker` dialog. It does not repair or install the production ad blocker.
 
-Do not use `Remove` unless you intend to remove the ad blocker, or `Clear Session` unless you intend to sign out of X.
+In the `Bluesky Ad Blocker` dialog these buttons act on the Bluesky copy only; its `Remove` deletes only the Bluesky copy and binding.
+
+Do not use `Remove` unless you intend to remove that pane's ad blocker, or `Clear Session` unless you intend to sign out of the website shown.
 
 ## Data locations
 
@@ -146,12 +162,15 @@ All locations come from the app's path provider. The folder name `GeopoliticalMo
 
 | Location under `%LOCALAPPDATA%\GeopoliticalMonitor` | Contents | Deleting it |
 |---|---|---|
-| `Data\geopolitical-monitor.db` | The database: Events, Sources, Watchlists and memberships, Alert rules and history, preferences (accent, X pane side and width) | Removes all of that. The next launch creates an empty database, and providers fill it again from their next refreshes. Watchlists, Alerts and attached X posts are lost. |
+| `Data\geopolitical-monitor.db` | The database: Events, Sources, Watchlists and memberships, Alert rules and history, preferences (accent, pane side and width, and `SocialPaneFeed`, the selected website `X` or `Bluesky`) | Removes all of that. The next launch creates an empty database, and providers fill it again from their next refreshes. Watchlists, Alerts and attached X posts are lost. |
 | `Data\x-adblock-binding.json` | The link between the reviewed AdBlock copy and the installed instance | Do not delete by hand. Use the ad blocker dialog instead. |
+| `Data\bluesky-adblock-binding.json` | The link between the Bluesky pane's verified AdBlock copy and its installed instance; exists only after you install AdBlock for Bluesky | Do not delete by hand. Use the `Bluesky Ad Blocker` dialog instead. X is not affected either way. |
 | `Data\diagnostic-adblock-binding.json` | State for the `Test Extension Support` diagnostic | Diagnostic only. |
 | `Extensions\AdBlock\Current` (and the `Current.staging` and `Current.previous` folders during an update) | The verified AdBlock copy the X pane loads | Do not delete by hand. Use `Remove` in the ad blocker dialog. |
+| `Extensions\AdBlockBluesky\Current` (and its own `Current.staging` and `Current.previous` folders during an update) | The Bluesky pane's own verified AdBlock copy; exists only after you install AdBlock for Bluesky | Do not delete by hand. Use `Remove` in the `Bluesky Ad Blocker` dialog. Deleting it leaves the Bluesky pane without its ad blocker; X is not affected. |
 | `WebView2\AppShell` | Browser data of the app's own interface view | Contains no Events or settings; it is browser data only. |
 | `WebView2\XBrowser` | The X pane's browser profile: X sign-in, X website data and the installed ad blocker instance | Signs you out of X and removes the installed ad blocker instance. Prefer `Clear Session` for signing out. |
+| `WebView2\BlueskyBrowser` | The Bluesky pane's browser profile: Bluesky sign-in, Bluesky website data and, if installed, its ad blocker instance; created the first time you choose `Bluesky` | Signs you out of Bluesky and removes its installed ad blocker instance. Prefer `Clear Session` for signing out. X is not affected. |
 | `WebView2\ExtensionCapabilityDiagnostic` | Profile used only by `Test Extension Support` | Diagnostic only. |
 | Backup folders you create, for example `Data-backup-<date>` | Your copies of the `Data` folder | The app never reads them. |
 
@@ -159,6 +178,8 @@ All locations come from the app's path provider. The folder name `GeopoliticalMo
 
 1. Close the app.
 2. Copy the whole `%LOCALAPPDATA%\GeopoliticalMonitor\Data` folder to a backup folder, for example `%LOCALAPPDATA%\GeopoliticalMonitor\Data-backup-<date>`.
+
+The `Data` folder holds the database, including the `SocialPaneFeed` preference, and both ad blocker binding files. The verified AdBlock copies under `Extensions` are not in it; they can be installed again from the reviewed folder.
 
 Make a backup before running a build that changes the database schema. A backed-up database works only with a build whose schema matches it or is newer. A newer build upgrades the database at startup, and an older build cannot open an upgraded database. To restore, close the app and copy the backup back over `Data`.
 
@@ -171,6 +192,7 @@ Make a backup before running a build that changes the database schema. A backed-
   - `Zoom in to a smaller area before refreshing NASA FIRMS.`: the visible area is wider than 90 degrees of longitude or taller than 60 degrees of latitude.
   - `NASA FIRMS returned too much data for this area. Zoom in and refresh again.` and `Too many FIRMS detections for this area. Zoom in and refresh again.`: the area has too many detections; zoom in.
   - `NASA FIRMS refresh failed. Existing layer data was preserved.`: the request failed; the points already shown stay.
-- **Ad blocker status line:** see the [user guide](user-guide.md#x-pane) for what each line means.
+- **Ad blocker status line:** see the [user guide](user-guide.md#ad-blocker-status-lines) for what each line means.
+- **A Bluesky page does not load:** the pane shows `Bluesky website could not load` with `Retry Bluesky`. Choose `Retry Bluesky`, or `Open External` in the `...` menu to open the page in your system browser. A link to an address other than `bsky.app` always opens in your system browser, never in the pane.
 - **Minimum width:** the main area (Events and Map) never gets narrower than 940 px.
-- **X pane cut off at the right edge:** below about 1,270 px of window width the X pane can be clipped. This is a known open issue with no fix planned yet.
+- **Social pane cut off at the right edge:** below about 1,270 px of window width the X or Bluesky pane can be clipped. This is a known open issue with no fix planned yet.

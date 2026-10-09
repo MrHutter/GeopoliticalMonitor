@@ -2,6 +2,8 @@
 
 Implementation status: slice 1 (ad blocker indication) implemented and committed (`8e9e9d4`, documentation `7af60cc`); slices 2 to 5 not implemented.
 
+Implementation status, 2026-10-06: slice 3 (Bluesky switcher) and the Bluesky ad blocker of `docs/design/social-pane-adblock-design.md` (option (c), its slices 1 to 5) are implemented, pending owner acceptance. Slice 2 stays deferred; slices 4 and 5 are not implemented.
+
 Status of slices 2 to 5: design proposal, not implemented. Written 2026-10-02 against `main` at `5823a94`. Every proposal is marked PROPOSED; nothing here changes code, instruction files or owner decisions.
 
 ## Owner decisions (2026-10-02)

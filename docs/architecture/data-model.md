@@ -50,7 +50,7 @@ Each Event carries a severity assessment and a provenance:
 - `ProviderKey`: the provider's own identifier for the record, optional, at most 256 characters.
 - `ProviderLastSeenRelease`: optional; the newest provider release that contained the Event, as year times 100 plus month (200001 to 999912), used by UCDP Candidate.
 
-For provider-ingested Events, `Unverified` means that Geopolitical Monitor has not independently verified the occurrence. Provider alert levels, magnitude, and severity metadata do not determine Event lifecycle status.
+For provider-ingested Events, `Unverified` means that Northern Monitor (the app) has not independently verified the occurrence. Provider alert levels, magnitude, and severity metadata do not determine Event lifecycle status.
 
 Source types:
 

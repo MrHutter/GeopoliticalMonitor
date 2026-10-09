@@ -2,9 +2,9 @@
 
 ## Desktop Runtime
 
-Geopolitical Monitor v0.1 is a Windows desktop application. The normal runtime does not require an ASP.NET server, Vite server, Docker, PostgreSQL, X Developer account, paid X API access, or production inbound ports.
+Northern Monitor v0.1 is a Windows desktop application. The normal runtime does not require an ASP.NET server, Vite server, Docker, PostgreSQL, X Developer account, paid X API access, or production inbound ports.
 
-The isolated X website pane is intentionally online and may make outbound HTTPS connections to X-owned web infrastructure. It does not create an inbound OAuth callback listener.
+The isolated X website pane and the isolated Bluesky website pane are intentionally online and may make outbound HTTPS connections to X-owned or Bluesky-owned web infrastructure. It does not create an inbound OAuth callback listener.
 
 GDACS refresh is a separate native outbound HTTPS boundary. It runs on a native in-process timer only while the app window is open and on the manual action, is fixed to `www.gdacs.org`, credential-free, limited to the earthquake query, capped at 100 records and 1 MiB, and timed out after 15 seconds. The privileged React WebView receives only a parameterless typed refresh command, a fieldless status request, and a typed status push with fixed values; it cannot supply an endpoint, interval, or schedule, or make provider requests itself. The status push is never sent to the X WebView. The Event list request accepts only optional typed criteria (fixed range and severity values, search text of at most 200 characters, a validated Watchlist id, a validated keep Event id, and a request number); React never supplies query text or SQL, and native code binds every value as a parameter. Provider text is untrusted, bounded plain text; HTML and unsupported schemas are rejected.
 
@@ -61,7 +61,7 @@ Limitations:
 - The control that applies is the navigation policy: the privileged WebView allows top-level navigation only to the exact app origin (see WebView Boundary above).
 - Enforcing the ignored directives would need a response-header CSP from the native host.
 
-Do not broaden the privileged app WebView CSP or navigation allow-list because the isolated X WebView needs internet access. The two WebViews have different trust roles.
+Do not broaden the privileged app WebView CSP or navigation allow-list because the isolated X or Bluesky WebView needs internet access. The privileged and the isolated WebViews have different trust roles.
 
 ## Persistence
 
@@ -71,7 +71,9 @@ The current schema stores ordinary application preferences (including the native
 
 Alert evaluation runs inside every accepted GDACS refresh, manual or timer-driven. The Event update and Alert insertion share one SQLite transaction, and the uniqueness constraint on rule, Event, and provider revision prevents duplicate history; a cancelled or failed refresh rolls back and the next successful refresh creates the Alert once. No Alert action starts a network request. The only timer is the in-process provider refresh scheduler, which runs GDACS every 30 minutes (first run 60 seconds after the interface is ready) and the UCDP Candidate release check every 6 hours (first run 2 minutes after ready) while the app window is open, and stops on close. There is no Windows service, background worker process, Windows notification/toast, scheduled task, startup registration, or monitoring after the desktop process exits.
 
-The X browser profile lives under `%LOCALAPPDATA%\GeopoliticalMonitor\WebView2\XBrowser`. Session cookies may persist there solely as normal browser state controlled by X and WebView2. Geopolitical Monitor must not read those cookies for application logic.
+The X browser profile lives under `%LOCALAPPDATA%\GeopoliticalMonitor\WebView2\XBrowser`. Session cookies may persist there solely as normal browser state controlled by X and WebView2. The app must not read those cookies for application logic.
+
+The Bluesky browser profile lives under `%LOCALAPPDATA%\GeopoliticalMonitor\WebView2\BlueskyBrowser`, a separate user-data folder with its own browser process group, created only when the user first shows Bluesky. The same rule applies: its cookies are browser state only and are never read; Clear Session only deletes them. The native-only `SocialPaneFeed` preference holds only `X` or `Bluesky`.
 
 Do not place runtime databases or WebView2 profile data in the repository root, frontend assets, installation directory, or OneDrive by design.
 
@@ -87,6 +89,8 @@ Frontend variables, browser localStorage, SQLite preference rows, Event/SourceIt
 
 X-owned HTTPS top-level navigation may remain in the isolated X pane. Non-X HTTPS links from X open in the user's system browser. Non-HTTPS schemes are blocked.
 
+In the isolated Bluesky pane only top-level HTTPS navigation to the exact host `bsky.app` stays in the pane; other HTTPS links, including other Bluesky hosts, open in the system browser, and other schemes are blocked. The Bluesky WebView is never wired to the privileged message handler, has no host objects or web messages, cancels downloads, and denies every permission request (camera, microphone, location, notifications, clipboard and all others). A Bluesky page can reach its own origin's storage in the Bluesky folder and the network; it cannot reach the X profile, the privileged app WebView or its bridge, SQLite, the filesystem or native code.
+
 ## Future Deployment
 
 Installer/MSIX packaging, auto-update, public networking, and remote deployment require separate explicit task authority and security review.
@@ -95,6 +99,6 @@ X scrollbar handling is constrained by the same isolation model as all other X b
 
 Context-menu X post copying is URL-only and metadata-only. WebView2-provided link metadata may be validated and normalized; absence of that metadata is not authority to scrape. Copying a URL does not create SourceItem, Event, or EventSourceAssociation records. Creation requires a separate explicit paste-and-submit action in the privileged Event Sources UI.
 
-Browser extensions are enabled only for the isolated production X profile through the supported WebView2 environment option. The privileged app WebView remains extension-disabled. Production authenticity comes only from immutable reviewed records plus the canonical complete-runtime digest; manifest branding, folder selection, Store ID alone, diagnostic success, and the managed WebView2 runtime ID cannot self-authorize a payload. The candidate, staging tree, final `Current`, schema-2 binding, and installed runtime ID are independently reconciled. A production binding is persisted only after the exact add/enumeration transaction; Reconcile removes an unbound same-ID instance and performs a fresh add instead of adopting it. Browser-generated `_metadata/**` is excluded from the managed runtime. Unknown versions, resource-limit violations, links/reparse points, tree mutations, old bindings, interrupted activation, and final mismatches fail closed before authenticated X navigation. Exception diagnostics retain bounded type/HRESULT/category information while redacting private paths and URLs. No extension receives native host objects, the native bridge, filesystem or database APIs, cookie/token APIs, or SourceItem/Event creation authority.
+Browser extensions are enabled only for the isolated production X profile and, only when the owner installs the reviewed ad blocker for it, the isolated Bluesky profile, through the supported WebView2 environment option. The Bluesky profile is extension-disabled by default; it uses its own verified managed copy, binding and first-class `BlueskyBrowser` scope under the same compiled trust record, and no Bluesky ad blocker action changes the X profile's binding, payload or extension state (the `Use verified X copy` source only reads and re-authenticates the X copy). With the extension installed, the reviewed payload is trusted with Bluesky page content as well as X page content. The privileged app WebView remains extension-disabled. Production authenticity comes only from immutable reviewed records plus the canonical complete-runtime digest; manifest branding, folder selection, Store ID alone, diagnostic success, and the managed WebView2 runtime ID cannot self-authorize a payload. The candidate, staging tree, final `Current`, schema-2 binding, and installed runtime ID are independently reconciled. A production binding is persisted only after the exact add/enumeration transaction; Reconcile removes an unbound same-ID instance and performs a fresh add instead of adopting it. Browser-generated `_metadata/**` is excluded from the managed runtime. Unknown versions, resource-limit violations, links/reparse points, tree mutations, old bindings, interrupted activation, and final mismatches fail closed before authenticated X navigation. Exception diagnostics retain bounded type/HRESULT/category information while redacting private paths and URLs. No extension receives native host objects, the native bridge, filesystem or database APIs, cookie/token APIs, or SourceItem/Event creation authority.
 
 The X environment uses WebView2's default scrollbar style. FluentOverlay remains deferred, and the application must not inject CSS or JavaScript into X to hide or restyle scrollbars.

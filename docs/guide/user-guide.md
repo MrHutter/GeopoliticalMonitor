@@ -1,15 +1,15 @@
-# Geopolitical Monitor user guide
+# Northern Monitor user guide
 
-Geopolitical Monitor shows geopolitical Events from public data sources in a list and on a world map, with the normal X website in a pane beside them. This guide describes what you see and how to use it. Building and configuration are in [setup and configuration](setup-and-configuration.md); the sources themselves are described in [data sources](data-sources.md).
+Northern Monitor shows geopolitical Events from public data sources in a list and on a world map, with the normal X website or the normal Bluesky website in a pane beside them. This guide describes what you see and how to use it. Building and configuration are in [setup and configuration](setup-and-configuration.md); the sources themselves are described in [data sources](data-sources.md).
 
 ## Screen layout
 
 - **Top bar:** the app name with `LOCAL DESKTOP`, the search box (`Search events, locations, keywords...`), the time range buttons `24H`, `7D`, `30D`, `90D` and `ALL`, the current UTC time, `Alerts` with the unread count, and the Settings button (gear).
-- **Events and Map:** the Events panel and the map sit side by side. With the X pane on the right the order is Events, Map, X; with the X pane on the left it is X, Map, Events.
-- **X pane:** the X website at one outer edge, with its own toolbar. Drag the splitter to resize it.
+- **Events and Map:** the Events panel and the map sit side by side. With the social pane on the right the order is Events, Map, pane; with the pane on the left it is pane, Map, Events.
+- **Social pane:** the X website or the Bluesky website at one outer edge, with its own toolbar. Drag the splitter to resize it.
 - **Details:** the selected Event's details sit below the Events and Map row. Scroll the page down to reach them.
 
-The main area never gets narrower than 940 px. When the window is too narrow, the X pane gives up width first.
+The main area never gets narrower than 940 px. When the window is too narrow, the social pane gives up width first.
 
 ## Events list and filters
 
@@ -48,7 +48,7 @@ Select an Event in the list or on the map to show its details below. The tabs ar
 
 Only posts you choose are attached, and only their URL is stored. The app does not read post text, author, media or engagement.
 
-1. Open the post in the X pane.
+1. Open the post in the social pane with `X` selected.
 2. Copy its link: open the `...` menu (More X actions) and choose `Copy Post Link`, or right-click a post link and choose `Copy X Post Link`. `Copy Post Link` is available only when the X pane shows a single post.
 3. Select the Event, open its `Sources` tab and choose `Attach X post`.
 4. Paste the link into `X post URL` and choose `Attach`.
@@ -116,30 +116,40 @@ Open Settings with the gear button. It has three sections:
 - **Application:** the app's name, shell, UI host, persistence, and whether inbound ports are required (`None required`).
 - **Data sources:** the UCDP attribution: source, citation, funding acknowledgement and license.
 
-## X pane
+## Social pane (X and Bluesky)
 
-The pane header reads `MY X FEED` and `X Website`. Sign in on the X website inside the pane if you want your own feed; the app never sees your password.
+The pane header shows the label `SOCIAL FEED` and a switcher with two buttons, `X` and `Bluesky` (for screen readers, "Show X feed" and "Show Bluesky feed"). The selected button shows which website the pane displays. Switching shows the other website and hides the current one without closing or reloading it, so each keeps its page; the hidden one is muted. The choice is saved and restored at the next launch. Switching does not change the pane's side or width.
 
-- **Header:** `Move Left` or `Move Right` switches the pane side. `Collapse` hides the pane; `Show X` brings it back. The side and width are saved.
-- **Toolbar:** `Back`, `Forward`, `Home` (opens `https://x.com/home`) and `Refresh`.
+Sign in on the website inside the pane if you want your own feed; the app never sees your password. X and Bluesky each have their own browser profile, so each has its own sign-in.
+
+- **Header:** `Move Left` or `Move Right` switches the pane side. `Collapse` hides the pane; `Show X` or `Show Bluesky`, named after the selected website, brings it back. The side, width and selected website are saved.
+- **Toolbar:** `Back`, `Forward`, `Home` and `Refresh` act on the website shown. `Home` opens `https://x.com/home` for X and `https://bsky.app/` for Bluesky.
 - **`...` menu:**
-  - `Open External` opens the current page in your system browser.
-  - `Copy Post Link` copies the current post's link.
-  - `Clear Session` asks for confirmation, then deletes all cookies and clears all browsing data of the X pane's browser profile and opens X home again. This signs you out of X. Events and preferences are not affected. Clear Session clears the X pane's browsing data; check the ad blocker status afterwards.
-  - `Ad Blocker...` opens the ad blocker dialog.
-- **Links:** links to sites other than X open in your system browser.
+  - `Open External` opens the current page of the website shown in your system browser.
+  - `Copy Post Link` copies the current X post's link. It is hidden while Bluesky is shown.
+  - `Clear Session` clears only the website shown. For X it asks `Clear X session?`, then deletes all cookies and clears all browsing data of the X profile and opens X home again; this signs you out of X. For Bluesky it asks `Clear Bluesky session?` and does the same for the Bluesky profile only; this signs you out of Bluesky and leaves X untouched. Events and preferences are not affected. Clear Session clears that website's browsing data; check its ad blocker status afterwards.
+  - `Ad Blocker...` opens the ad blocker dialog of the website shown: `X Ad Blocker` or `Bluesky Ad Blocker`.
+- **Links:** in the X pane, links to sites other than X open in your system browser. In the Bluesky pane, only pages on `bsky.app` stay in the pane; every other link opens in your system browser, including other Bluesky addresses.
+- **Permissions:** the Bluesky pane refuses every permission request, such as camera, microphone, location, notifications or clipboard access.
+- **Nothing from Bluesky is attached to Events.** Copying Bluesky post links and Bluesky sources do not exist yet.
 
-When the optional ad blocker is not active, one muted line appears under the toolbar:
+### First use of Bluesky
 
-- `Ad blocker inactive: open Ad Blocker... for details`: it was set up but is not running in the X pane, for example because its installed instance has disappeared. The dialog shows the reason.
+Choose `Bluesky`. The first time, the app creates the Bluesky pane's own browser profile and opens `https://bsky.app/`. Sign in on Bluesky's own page. If the sign-in opens a page outside `bsky.app`, that page opens in your system browser instead of the pane.
+
+### Ad blocker status lines
+
+When the optional ad blocker of the website shown is not active, one muted line appears under the toolbar. Each website has its own ad blocker and its own line.
+
+- `Ad blocker inactive: open Ad Blocker... for details`: it was set up but is not running in that pane, for example because its installed instance has disappeared. The dialog shows the reason.
 - `Ad blocker off: open Ad Blocker... to turn it on`: it is installed but turned off; use `Enable` in the dialog.
-- `Ad blocker not set up`: no ad blocker is installed. It was never installed or was fully removed.
+- `Ad blocker not set up`: X only. No ad blocker is installed in the X pane. It was never installed or was fully removed.
 
-No line means it is active, or its state is unknown. The line only reports what the app can observe. It cannot tell whether an enabled ad blocker is actually filtering. Setup is in [setup and configuration](setup-and-configuration.md#adblock-optional).
+For Bluesky the ad blocker is optional and off by default: the Bluesky pane shows no line until you set it up, and no line after you remove it again. No line means it is active, its state is unknown, or (Bluesky) it is not set up. The line only reports what the app can observe. It cannot tell whether an enabled ad blocker is actually filtering. Setup is in [setup and configuration](setup-and-configuration.md#adblock-optional).
 
 ## What needs a restart
 
 - A new or changed FIRMS key: the app reads it only at startup.
 - Some ad blocker operations: the dialog's message says so when a restart is needed.
 
-Accent theme, X pane side and X pane width apply immediately.
+Accent theme, the pane side, the pane width and the selected website apply immediately.

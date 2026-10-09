@@ -14,4 +14,4 @@ Include enough detail to reproduce the problem, such as the affected commit, the
 
 ## Response expectations
 
-Geopolitical Monitor is a personal, early-stage desktop application. Reports are reviewed on a best-effort basis, and there is no guaranteed response or fix time.
+Northern Monitor is a personal, early-stage desktop application. Reports are reviewed on a best-effort basis, and there is no guaranteed response or fix time.
