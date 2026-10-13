@@ -59,6 +59,8 @@ The build order matters. The desktop project copies the files in `src/frontend/d
    & ".\src\backend\GeopoliticalMonitor.Desktop\bin\Debug\net10.0-windows10.0.19041.0\win-x64\GeopoliticalMonitor.Desktop.exe"
    ```
 
+The executable keeps the name `GeopoliticalMonitor.Desktop.exe`; its file properties (Details tab) show the product name and file description `Northern Monitor`.
+
 While the app is running, its executable and build output are locked, so the desktop project cannot be rebuilt. Close the app first, or build and test the other projects individually.
 
 `npm run dev` starts the Vite development server on `127.0.0.1:5173` for working on the interface. It is development tooling only; the app does not use it.

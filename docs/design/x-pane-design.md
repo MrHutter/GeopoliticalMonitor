@@ -19,7 +19,7 @@ Status of slices 2 to 5: design proposal, not implemented. Written 2026-10-02 ag
   - Q6 yes: the post time comes from the Bluesky identifier, labelled as such, with the 2023 lower bound.
   - Q7 yes: show "Ad blocker not set up", muted.
   - Q8 no: the single startup hash stays out of slice 1; revisit only after a measured startup gain.
-  - Q9: decided after the slice 3 login check (default: `bsky.app` only).
+  - Q9: decided after the slice 3 login check (default: `bsky.app` only). Result: during Bluesky login testing no top-level navigation left `bsky.app`, so the allowlist is `bsky.app` only.
   - Q10 yes: rename the Details `X` tab to `Posts`, in slice 4.
 
 ## 1. Summary and scope

@@ -122,7 +122,7 @@ The pane header shows the label `SOCIAL FEED` and a switcher with two buttons, `
 
 Sign in on the website inside the pane if you want your own feed; the app never sees your password. X and Bluesky each have their own browser profile, so each has its own sign-in.
 
-- **Header:** `Move Left` or `Move Right` switches the pane side. `Collapse` hides the pane; `Show X` or `Show Bluesky`, named after the selected website, brings it back. The side, width and selected website are saved.
+- **Header:** `Move Left` or `Move Right` switches the pane side. The tooltips of this button and of the `...` button name the website shown, for example `More X actions` or `More Bluesky actions`. `Collapse` hides the pane; `Show X` or `Show Bluesky`, named after the selected website, brings it back. The side, width and selected website are saved.
 - **Toolbar:** `Back`, `Forward`, `Home` and `Refresh` act on the website shown. `Home` opens `https://x.com/home` for X and `https://bsky.app/` for Bluesky.
 - **`...` menu:**
   - `Open External` opens the current page of the website shown in your system browser.

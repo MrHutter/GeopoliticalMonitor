@@ -166,7 +166,7 @@ Avoid turning it into:
 - fake hacker terminal;
 - generic SaaS dashboard.
 
-The product name “Geopolitical Monitor” remains provisional.
+The display name is “Northern Monitor”. The name has not been trademark-cleared. Internal identifiers keep “GeopoliticalMonitor”.
 
 Branding should stay centralized so the product can be renamed later without invasive code changes.
 
@@ -1072,11 +1072,7 @@ Production managed location:
 
 `%LOCALAPPDATA%\GeopoliticalMonitor\Extensions\AdBlock\Current`
 
-Historically observed managed WebView2 runtime ID:
-
-`ejmmfklccndmnifalleboolihmpaflb`
-
-This is path-derived from the stable managed location.
+Earlier builds observed a runtime ID for the managed copy that was derived from its location. A later profile held two runtime IDs for the same managed folder, and a fresh profile was assigned the extension's store ID, which is the value in the trust record. Runtime IDs vary by profile and install and are not approved identifiers. The trust authority is the store ID, version and payload digest in the trust record.
 
 It is NOT official store identity.
 
