@@ -134,6 +134,26 @@ Re-enroll when ads reappear in the X pane and the ad blocker dialog shows `Insta
 
 Keep an unpacked copy of the `6.47.0` folder outside Chrome's profile, because Chrome may delete old version folders after it updates the extension.
 
+### Restore the trusted instance (X)
+
+The ad blocker has been observed to be missing from the X profile after the app is restarted; the lifecycle log shows it is not loaded when the browser starts, while the app's own verified copy (`Extensions\AdBlock\Current`) and binding remain intact. The cause is not yet established. The dialog then shows `Installed: No`, `Managed: No` and says the bound instance is no longer installed.
+
+1. In the X pane, open the `...` menu and choose `Ad Blocker...`.
+2. Choose `Restore trusted instance`. The app checks the binding, authenticates the verified copy again against the reviewed `6.47.0` record and adds the ad blocker from that copy. No folder is chosen and nothing is written into the copy.
+3. The dialog should then show `Installed: Yes` and `Managed: Yes`.
+
+The action appears only when a valid X binding and a verified copy exist and the bound instance is missing. If the copy fails the check, nothing is changed and the dialog says so; use `Install AdBlock...` with the reviewed folder instead. The app never restores the ad blocker on its own, and the Bluesky dialog has no restore action.
+
+### Temporary ad blocker lifecycle log
+
+Until the cause of the lost X instance is known, the app writes a small diagnostic log to `%LOCALAPPDATA%\GeopoliticalMonitor\Diagnostics\adblock-lifecycle.log`. It records, with a UTC time on each line: the WebView2 runtime and app versions and whether the previous session ended normally at session start; after X starts, the ad blocker state, extension count and whether the bound instance and binding are present; the existence, size or entry count and last-write time of the X profile's extension folders and preference files at startup and at close; the state after the X Ad Blocker dialog closes; and the close itself. It never records file contents, paths, user names, cookies, page addresses or keys. The file is capped at 128 KiB with one older copy (`adblock-lifecycle.log.old`), and `adblock-lifecycle.clean-close` marks a normal close. To read the newest lines:
+
+```powershell
+Get-Content (Join-Path $env:LOCALAPPDATA "GeopoliticalMonitor\Diagnostics\adblock-lifecycle.log") -Tail 60
+```
+
+The log is temporary and will be removed from the app once the cause of the lost instance is known.
+
 ### Install for Bluesky
 
 The Bluesky pane has no ad blocker unless you install it there. It uses its own copy of the same reviewed `6.47.0` payload, its own binding and its own status line. Installing, removing or changing it never touches the X ad blocker; the X copy is only read.
@@ -172,6 +192,7 @@ All locations come from the app's path provider. The folder name `GeopoliticalMo
 | `WebView2\XBrowser` | The X pane's browser profile: X sign-in, X website data and the installed ad blocker instance | Signs you out of X and removes the installed ad blocker instance. Prefer `Clear Session` for signing out. |
 | `WebView2\BlueskyBrowser` | The Bluesky pane's browser profile: Bluesky sign-in, Bluesky website data and, if installed, its ad blocker instance; created the first time you choose `Bluesky` | Signs you out of Bluesky and removes its installed ad blocker instance. Prefer `Clear Session` for signing out. X is not affected. |
 | `WebView2\ExtensionCapabilityDiagnostic` | Profile used only by `Test Extension Support` | Diagnostic only. |
+| `Diagnostics\adblock-lifecycle.log` (with `adblock-lifecycle.log.old` and the `adblock-lifecycle.clean-close` marker) | The temporary ad blocker lifecycle log; no contents, paths or secrets | Safe to delete when the app is closed. The next launch starts a new log and records that the previous close was not marked. |
 | Backup folders you create, for example `Data-backup-<date>` | Your copies of the `Data` folder | The app never reads them. |
 
 ## Backing up
@@ -193,6 +214,7 @@ Make a backup before running a build that changes the database schema. A backed-
   - `NASA FIRMS returned too much data for this area. Zoom in and refresh again.` and `Too many FIRMS detections for this area. Zoom in and refresh again.`: the area has too many detections; zoom in.
   - `NASA FIRMS refresh failed. Existing layer data was preserved.`: the request failed; the points already shown stay.
 - **Ad blocker status line:** see the [user guide](user-guide.md#ad-blocker-status-lines) for what each line means.
+- **X ad blocker gone after a restart:** if the `X Ad Blocker` dialog says the bound instance is no longer installed, use `Restore trusted instance` (see [Restore the trusted instance](#restore-the-trusted-instance-x)).
 - **A Bluesky page does not load:** the pane shows `Bluesky website could not load` with `Retry Bluesky`. Choose `Retry Bluesky`, or `Open External` in the `...` menu to open the page in your system browser. A link to an address other than `bsky.app` always opens in your system browser, never in the pane.
 - **Minimum width:** the main area (Events and Map) never gets narrower than 940 px.
 - **Social pane cut off at the right edge:** below about 1,270 px of window width the X or Bluesky pane can be clipped. This is a known open issue with no fix planned yet.
