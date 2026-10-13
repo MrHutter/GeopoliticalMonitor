@@ -134,8 +134,7 @@
                 MinWidth="34"
                 Content="Move Left"
                 Click="OnMoveXPaneSideClicked"
-                Style="{StaticResource XChromeButtonStyle}"
-                ToolTipService.ToolTip="Move X pane to the left side" />
+                Style="{StaticResource XChromeButtonStyle}" />
             <Button
                 x:Name="CollapseXPaneButton"
                 MinWidth="34"
@@ -158,7 +157,7 @@
             <Button x:Name="XRefreshButton" Content="Refresh" Click="OnXRefreshClicked" Style="{StaticResource XChromeButtonStyle}" ToolTipService.ToolTip="Refresh" />
           </StackPanel>
           <TextBlock x:Name="XCopyStatusText" Grid.Column="1" Margin="8,0" VerticalAlignment="Center" Foreground="#FFB347" FontSize="12" TextTrimming="CharacterEllipsis" />
-          <Button x:Name="XOverflowButton" Grid.Column="2" Content="..." Click="OnXOverflowClicked" Style="{StaticResource XChromeButtonStyle}" ToolTipService.ToolTip="More X actions" />
+          <Button x:Name="XOverflowButton" Grid.Column="2" Content="..." Click="OnXOverflowClicked" Style="{StaticResource XChromeButtonStyle}" />
         </Grid>
 
         <!-- Ad blocker indication: one muted line, collapsed when the ad blocker is active or its state is unknown. -->

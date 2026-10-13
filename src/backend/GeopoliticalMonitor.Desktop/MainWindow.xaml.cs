@@ -2035,7 +2035,7 @@ public sealed partial class MainWindow : Window
         Grid.SetColumn(XPaneSplitter, 1);
         XPane.BorderThickness = xIsLeft ? new Thickness(0, 0, 1, 0) : new Thickness(1, 0, 0, 0);
         XMoveSideButton.Content = xIsLeft ? "Move Right" : "Move Left";
-        ToolTipService.SetToolTip(XMoveSideButton, xIsLeft ? "Move X pane to the right side" : "Move X pane to the left side");
+        ToolTipService.SetToolTip(XMoveSideButton, SocialPaneLabels.GetMoveTooltip(activeSocialFeed, xPaneSide));
 
         if (!isXPaneCollapsed)
         {

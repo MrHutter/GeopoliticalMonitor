@@ -12,6 +12,10 @@
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Windows file properties. Product and AssemblyTitle must equal ProductIdentity.DisplayName (guard test). -->
+    <Product>Northern Monitor</Product>
+    <AssemblyTitle>Northern Monitor</AssemblyTitle>
+    <Description>Desktop app for geopolitical situational awareness and open-source research.</Description>
   </PropertyGroup>
 
   <ItemGroup>

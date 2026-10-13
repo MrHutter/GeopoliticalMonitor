@@ -31,6 +31,20 @@ public sealed class ProductIdentifierGuardTests
         Assert.Contains("\"GEOPOLITICALMONITOR_FIRMS_MAP_KEY\"", File.ReadAllText(Path.Combine(desktop, "MainWindow.xaml.cs")), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void DesktopFilePropertiesUseTheDisplayName()
+    {
+        var project = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "backend", "GeopoliticalMonitor.Desktop", "GeopoliticalMonitor.Desktop.csproj"));
+
+        Assert.Equal(ProductIdentity.DisplayName, System.Text.RegularExpressions.Regex.Match(project, "<Product>([^<]*)</Product>").Groups[1].Value);
+        Assert.Equal(ProductIdentity.DisplayName, System.Text.RegularExpressions.Regex.Match(project, "<AssemblyTitle>([^<]*)</AssemblyTitle>").Groups[1].Value);
+        Assert.Matches("<Description>[^<]+</Description>", project);
+        Assert.DoesNotContain("<Company>", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("<Copyright>", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("\u2122", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("\u00AE", project, StringComparison.Ordinal);
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

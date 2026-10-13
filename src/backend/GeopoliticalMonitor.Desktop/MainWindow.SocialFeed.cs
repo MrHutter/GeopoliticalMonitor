@@ -34,7 +34,23 @@ public sealed partial class MainWindow
         AutomationProperties.SetName(ShowBlueskyFeedButton, SocialPaneLabels.ShowBlueskyFeed);
         ToolTipService.SetToolTip(ShowXFeedButton, SocialPaneLabels.ShowXFeed);
         ToolTipService.SetToolTip(ShowBlueskyFeedButton, SocialPaneLabels.ShowBlueskyFeed);
+        XWebView.CoreWebView2Initialized += OnSocialWebViewCoreInitialized;
         ApplySocialFeedChrome();
+    }
+
+    /// <summary>
+    /// A switch can happen before a feed's browser core exists, when the mute could not be applied yet; apply the
+    /// hidden or visible state as soon as the core is ready.
+    /// </summary>
+    private void OnSocialWebViewCoreInitialized(WebView2 sender, CoreWebView2InitializedEventArgs args)
+    {
+        if (args.Exception is not null || sender.CoreWebView2 is not { } core)
+        {
+            return;
+        }
+
+        var controlFeed = ReferenceEquals(sender, XWebView) ? SocialPaneFeed.X : SocialPaneFeed.Bluesky;
+        SetSocialWebViewHidden(core, hidden: SocialPaneCommandPolicy.IsHiddenFeed(activeSocialFeed, controlFeed));
     }
 
     private void ApplySocialFeedChrome()
@@ -42,6 +58,8 @@ public sealed partial class MainWindow
         ShowXFeedButton.IsChecked = activeSocialFeed == SocialPaneFeed.X;
         ShowBlueskyFeedButton.IsChecked = activeSocialFeed == SocialPaneFeed.Bluesky;
         ShowXPaneButton.Content = SocialPaneLabels.GetShowText(activeSocialFeed);
+        ToolTipService.SetToolTip(XMoveSideButton, SocialPaneLabels.GetMoveTooltip(activeSocialFeed, xPaneSide));
+        ToolTipService.SetToolTip(XOverflowButton, SocialPaneLabels.GetOverflowTooltip(activeSocialFeed));
         XRetryButton.Content = SocialPaneLabels.GetRetryText(activeSocialFeed);
         XCopyPostLinkMenuItem.Visibility = ToVisibility(SocialPaneCommandPolicy.IsVisible(activeSocialFeed, XToolbarCommand.CopyPostLink));
         var adBlockerVisibility = ToVisibility(SocialPaneCommandPolicy.IsVisible(activeSocialFeed, XToolbarCommand.AdBlocker));
@@ -132,11 +150,11 @@ public sealed partial class MainWindow
     {
         var blueskyActive = activeSocialFeed == SocialPaneFeed.Bluesky;
         XWebView.Visibility = ToVisibility(!blueskyActive);
-        SetSocialWebViewHidden(XWebView.CoreWebView2, hidden: blueskyActive);
+        SetSocialWebViewHidden(XWebView.CoreWebView2, hidden: SocialPaneCommandPolicy.IsHiddenFeed(activeSocialFeed, SocialPaneFeed.X));
         if (blueskyWebView is not null)
         {
             blueskyWebView.Visibility = ToVisibility(blueskyActive);
-            SetSocialWebViewHidden(blueskyWebView.CoreWebView2, hidden: !blueskyActive);
+            SetSocialWebViewHidden(blueskyWebView.CoreWebView2, hidden: SocialPaneCommandPolicy.IsHiddenFeed(activeSocialFeed, SocialPaneFeed.Bluesky));
         }
     }
 
@@ -227,6 +245,7 @@ public sealed partial class MainWindow
     private WebView2 CreateBlueskyWebViewElement()
     {
         var webView = new WebView2 { Visibility = ToVisibility(activeSocialFeed == SocialPaneFeed.Bluesky) };
+        webView.CoreWebView2Initialized += OnSocialWebViewCoreInitialized;
         Grid.SetRow(webView, 2);
         XPane.Children.Add(webView);
         return webView;

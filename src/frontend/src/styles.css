@@ -1517,7 +1517,7 @@ h2 {
 .firms-window-label {
   border-left: 1px solid var(--line);
   padding-left: 8px;
-  color: #c98f68;
+  color: var(--accent-strong);
   font-size: 0.68rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -1533,9 +1533,9 @@ h2 {
 
 .firms-refresh-control button {
   min-height: 24px;
-  border: 1px solid #805239;
-  background: #17100c;
-  color: #e2b08b;
+  border: 1px solid var(--accent-glow);
+  background: var(--surface-soft);
+  color: var(--accent-strong);
   padding: 0 9px;
   font: inherit;
   font-size: 0.72rem;
@@ -1563,7 +1563,7 @@ h2 {
 }
 
 .firms-refresh-status.is-success {
-  color: #c98f68;
+  color: var(--accent-strong);
 }
 
 .map-stage {

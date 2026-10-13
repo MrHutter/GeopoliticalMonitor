@@ -23,6 +23,15 @@ public static class SocialPaneCommandPolicy
         return command != XToolbarCommand.CopyPostLink || feed == SocialPaneFeed.X;
     }
 
+    /// <summary>
+    /// Whether a feed's WebView is hidden (muted, low memory). Applied on every switch and again as soon as a WebView's
+    /// browser core becomes ready, so a switch made while a control was still starting cannot leave it audible.
+    /// </summary>
+    public static bool IsHiddenFeed(SocialPaneFeed activeFeed, SocialPaneFeed controlFeed)
+    {
+        return activeFeed != controlFeed;
+    }
+
     /// <summary>Each feed has its own ad blocker status line, shown only while that feed is active.</summary>
     public static bool ShowsAdBlockIndication(SocialPaneFeed activeFeed, SocialPaneFeed lineFeed)
     {

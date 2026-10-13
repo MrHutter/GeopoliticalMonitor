@@ -26,4 +26,11 @@ public static class SocialPaneLabels
     public static string GetRetryText(SocialPaneFeed feed) => feed == SocialPaneFeed.Bluesky ? RetryBluesky : RetryX;
 
     public static string GetClearSessionTitle(SocialPaneFeed feed) => feed == SocialPaneFeed.Bluesky ? ClearBlueskySessionTitle : ClearXSessionTitle;
+
+    /// <summary>Tooltip of the Move button: names the active feed and the side the pane moves to.</summary>
+    public static string GetMoveTooltip(SocialPaneFeed feed, XPaneSide currentSide) =>
+        $"Move {GetSegmentName(feed)} pane to the {(currentSide == XPaneSide.Left ? "right" : "left")} side";
+
+    /// <summary>Tooltip of the overflow (...) button: names the active feed.</summary>
+    public static string GetOverflowTooltip(SocialPaneFeed feed) => $"More {GetSegmentName(feed)} actions";
 }
