@@ -18,6 +18,30 @@ public sealed record XProductionAdBlockActions(
 
 public static class XProductionAdBlockPolicy
 {
+    public const string RestoreActionText = "Restore trusted instance";
+
+    public const string RestoreHint =
+        "The trusted AdBlock instance is missing from the X profile, but its binding and verified managed copy are intact. Restore trusted instance adds it again from that copy after authenticating it; no folder is chosen.";
+
+    public const string RestoreNotPerformedMessage =
+        "Restore was not performed and nothing was changed: it needs a valid X binding, a verified managed copy and a missing bound instance.";
+
+    /// <summary>The lost-but-restorable state: a valid X binding and verified managed payload whose bound instance is gone.</summary>
+    public static bool IsRestorableState(XDiagnosticAdBlockSnapshot? snapshot) =>
+        snapshot?.AdBlockStatus is { State: XDiagnosticAdBlockState.BindingStale, BoundInstanceMissing: true };
+
+    /// <summary>Restore is offered only in the restorable state and only where the existing rules already allow an install.</summary>
+    public static bool CanRestoreTrustedInstance(
+        XProductionExtensionHostState hostState,
+        XDiagnosticAdBlockSnapshot? snapshot,
+        bool hasManagedSource,
+        bool isBusy) =>
+        !isBusy
+        && hostState == XProductionExtensionHostState.Available
+        && hasManagedSource
+        && IsRestorableState(snapshot)
+        && GetActions(hostState, snapshot, hasManagedSource, isBusy).CanInstall;
+
     public static XProductionAdBlockActions GetActions(
         XProductionExtensionHostState hostState,
         XDiagnosticAdBlockSnapshot? snapshot,

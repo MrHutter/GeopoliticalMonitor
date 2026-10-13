@@ -4,6 +4,7 @@ public sealed class LocalApplicationDataPathProvider
 {
     private const string ApplicationDirectoryName = "GeopoliticalMonitor";
     private const string DataDirectoryName = "Data";
+    private const string DiagnosticsDirectoryName = "Diagnostics";
     private const string WebView2DirectoryName = "WebView2";
     private const string AppWebViewDirectoryName = "AppShell";
     private const string XBrowserDirectoryName = "XBrowser";
@@ -38,6 +39,11 @@ public sealed class LocalApplicationDataPathProvider
     public string GetDataDirectory()
     {
         return Path.Combine(GetApplicationDataDirectory(), DataDirectoryName);
+    }
+
+    public string GetDiagnosticsDirectory()
+    {
+        return Path.Combine(GetApplicationDataDirectory(), DiagnosticsDirectoryName);
     }
 
     public string GetDatabasePath()

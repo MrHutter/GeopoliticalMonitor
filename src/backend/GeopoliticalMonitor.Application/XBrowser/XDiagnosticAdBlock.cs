@@ -168,6 +168,13 @@ public sealed record XDiagnosticAdBlockStatus(
         State is XDiagnosticAdBlockState.InstalledManagedEnabled or
             XDiagnosticAdBlockState.InstalledManagedDisabled;
 
+    /// <summary>
+    /// Set only by snapshot creation when the binding is valid for the service's scope and the managed payload
+    /// authenticated against the compiled trust record, but the bound runtime instance is no longer installed.
+    /// The state stays <see cref="XDiagnosticAdBlockState.BindingStale"/>, so every existing rule is unchanged.
+    /// </summary>
+    public bool BoundInstanceMissing { get; init; }
+
     public static XDiagnosticAdBlockStatus NotTested { get; } = new(
         XDiagnosticAdBlockState.NotTested,
         Extension: null,
@@ -602,6 +609,31 @@ public sealed class XDiagnosticAdBlockService(
                 source.TrustRecord));
     }
 
+    /// <summary>
+    /// User-invoked restore of the bound production X instance after the browser dropped it. Takes no source folder:
+    /// it re-checks the binding and authenticates the configured managed payload again, and only when the bound
+    /// instance is missing does it add the extension from that managed folder through <see cref="InstallAsync"/>,
+    /// which authenticates the payload once more and re-binds to the X scope. Nothing is written into the payload.
+    /// </summary>
+    public async Task<XDiagnosticAdBlockSnapshot> RestoreBoundInstanceAsync(CancellationToken cancellationToken = default)
+    {
+        var current = await GetSnapshotAsync(cancellationToken).ConfigureAwait(true);
+        if (!string.Equals(profileScope, XDiagnosticAdBlockBinding.ProductionXProfileScope, StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(unmanagedCandidateSourcePath)
+            || !current.AdBlockStatus.BoundInstanceMissing)
+        {
+            return RestoreNotPerformed(current);
+        }
+
+        var binding = await bindingStore.GetAsync(cancellationToken).ConfigureAwait(true);
+        if (binding is null || !IsSameFolder(binding.SourceFolderPath, unmanagedCandidateSourcePath))
+        {
+            return RestoreNotPerformed(current);
+        }
+
+        return await InstallAsync(unmanagedCandidateSourcePath, cancellationToken).ConfigureAwait(true);
+    }
+
     public async Task<XDiagnosticAdBlockSnapshot> BindInstalledAsync(
         string extensionFolderPath,
         CancellationToken cancellationToken = default)
@@ -772,7 +804,12 @@ public sealed class XDiagnosticAdBlockService(
         var extension = FindExactExtension(extensions, binding.RuntimeExtensionId);
         if (extension is null)
         {
-            return new(extensions, XDiagnosticAdBlockStatus.BindingStale($"The bound {ProfileDisplayName} AdBlock instance is no longer installed; management is disabled."));
+            return new(
+                extensions,
+                XDiagnosticAdBlockStatus.BindingStale($"The bound {ProfileDisplayName} AdBlock instance is no longer installed; management is disabled.") with
+                {
+                    BoundInstanceMissing = true,
+                });
         }
 
         return new(
@@ -783,6 +820,20 @@ public sealed class XDiagnosticAdBlockService(
                 $"The {ProfileDisplayName} managed-instance binding is valid.",
                 binding.TrustRecord));
     }
+
+    private static XDiagnosticAdBlockSnapshot RestoreNotPerformed(XDiagnosticAdBlockSnapshot current) => current with
+    {
+        AdBlockStatus = current.AdBlockStatus with
+        {
+            Message = $"{XProductionAdBlockPolicy.RestoreNotPerformedMessage} {current.AdBlockStatus.Message}".Trim(),
+        },
+    };
+
+    private static bool IsSameFolder(string first, string second) =>
+        string.Equals(
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(first)),
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(second)),
+            StringComparison.OrdinalIgnoreCase);
 
     private static XBrowserExtensionInfo? GetManagedActionTarget(XDiagnosticAdBlockSnapshot snapshot)
     {

@@ -15,7 +15,13 @@ public static partial class SafeDiagnosticExceptionFormatter
         var message = string.IsNullOrWhiteSpace(exception.Message)
             ? "No additional error message."
             : exception.Message;
+        return RedactText(message, privateValues);
+    }
 
+    /// <summary>The same redaction <see cref="GetSafeMessage"/> applies, for diagnostic text that is not an exception message.</summary>
+    public static string RedactText(string? text, params string[] privateValues)
+    {
+        var message = text ?? string.Empty;
         foreach (var privateValue in privateValues.Where(value => !string.IsNullOrWhiteSpace(value)))
         {
             message = message.Replace(privateValue, "[private value]", StringComparison.OrdinalIgnoreCase);
