@@ -2517,7 +2517,7 @@ dd {
 .firms-map-popup .maplibregl-popup-content {
   display: grid;
   gap: 4px;
-  border: 1px solid #805239;
+  border: 1px solid var(--accent-glow);
   border-radius: 0;
   background: rgba(8, 6, 5, 0.98);
   color: var(--text);
@@ -2525,7 +2525,7 @@ dd {
   box-shadow: none;
 }
 
-.firms-map-popup strong { color: #e2b08b; font-size: 0.76rem; }
+.firms-map-popup strong { color: var(--accent-strong); font-size: 0.76rem; }
 .firms-map-popup span,
 .firms-map-popup small { color: var(--muted-strong); font-size: 0.7rem; }
 .firms-map-popup .maplibregl-popup-close-button { color: var(--muted-strong); }
