@@ -17,7 +17,7 @@ The app keeps two kinds of records apart. An **Event** is a real-world occurrenc
 ## UCDP Candidate
 
 - **Provides:** conflict events from the Uppsala Conflict Data Program's monthly UCDP Candidate Events release. The app downloads one monthly CSV file from `https://ucdp.uu.se/downloads/candidateged/`.
-- **Freshness:** a release is published about 20 days after its month ends, so the data is about 20 to 50 days old. Most UCDP Events therefore fall outside the `30D` startup range; choose `90D` or `ALL` to see them. While the app is open it checks every 6 hours, first 2 minutes after the window is ready. The `Refresh` button in the UCDP Candidate status row runs the same check by hand. The first import takes the newest release and the one before it; later checks ask only for the next release. When that release is not published yet, the status row shows `No new release`.
+- **Freshness:** a release is published about 20 days after its month ends, so the data is about 20 to 50 days old. Most UCDP Events therefore fall outside the `30D` startup range; choose `90D` or `ALL` to see them. While the app is open it checks every 6 hours, first 2 minutes after the window is ready. The `Refresh` button in the UCDP Candidate status row runs the same check by hand. The first import takes the newest release and the one before it; later checks ask only for the next release, unless that release is missing although it is two or more months old, when they look for the newest published release instead. When that release is not published yet, the status row shows `No new release`.
 - **Key:** none.
 - **Creates:** one Event per record that has a fatality estimate of at least 1 and a place precise to province level or better. The Event is `Military conflict` or `Security`, marked `Unverified` and labelled `UCDP Candidate`, with a dataset-record Source. Severity is derived from the best fatality estimate. Details show the release the Event was last seen in. Article text, headlines and geometry from the file are not stored.
 - **Caveat shown in the app:** "Candidate data from the Uppsala Conflict Data Program; it may be revised in later releases." Candidate records can also be removed in later releases.
@@ -46,6 +46,14 @@ The app keeps two kinds of records apart. An **Event** is a real-world occurrenc
 - **Key:** none. You sign in to X on the website itself if you want your own feed.
 - **Creates:** a Source on an Event, and only when you paste a post's URL into that Event's Sources tab. The app stores the canonical URL, the post's numeric id, a neutral label, and the post's creation time decoded locally from that id. It does not store post text, author, media or engagement.
 - **Limits:** no scraping, no reading of X pages, cookies or tokens, and no injected scripts or styles. X posts never become Events.
+
+## Bluesky
+
+- **Provides:** the normal Bluesky website (`bsky.app`) in the social pane, when you switch the pane from X to Bluesky. The app uses no Bluesky API or token.
+- **Freshness:** whatever the Bluesky website shows.
+- **Key:** none. You sign in to Bluesky on the website itself if you want your own feed.
+- **Creates:** nothing. Bluesky posts cannot be attached to Events, and Copy Post Link is not offered for Bluesky.
+- **Limits:** only pages on `bsky.app` open in the pane; other HTTPS links open in the system browser. No scraping, no reading of Bluesky pages, cookies or tokens, and no injected scripts or styles.
 
 ## Conflict and tension layer
 

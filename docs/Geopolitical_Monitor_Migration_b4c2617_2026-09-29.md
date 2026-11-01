@@ -1074,7 +1074,7 @@ Production managed location:
 
 Earlier builds observed a runtime ID for the managed copy that was derived from its location. A later profile held two runtime IDs for the same managed folder, and a fresh profile was assigned the extension's store ID, which is the value in the trust record. Runtime IDs vary by profile and install and are not approved identifiers. The trust authority is the store ID, version and payload digest in the trust record.
 
-It is NOT official store identity.
+A runtime ID is not an official store identity.
 
 Diagnostic extension validation and production trust must remain separate.
 
