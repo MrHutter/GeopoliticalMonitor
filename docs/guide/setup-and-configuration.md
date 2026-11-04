@@ -148,23 +148,13 @@ Keep an unpacked copy of the `6.47.0` folder outside Chrome's profile, because C
 
 ### Restore the trusted instance (X)
 
-The ad blocker has been observed to be missing from the X profile after the app is restarted; the lifecycle log shows it is not loaded when the browser starts, while the app's own verified copy (`Extensions\AdBlock\Current`) and binding remain intact. The cause is not yet established. The dialog then shows `Installed: No`, `Managed: No` and says the bound instance is no longer installed.
+In one earlier browser profile the ad blocker was observed to be missing after the application was restarted; the cause was not established. `Restore trusted instance` remains available if the extension is ever missing. In that state the dialog shows `Installed: No`, `Managed: No` and says the bound instance is no longer installed.
 
 1. In the X pane, open the `...` menu and choose `Ad Blocker...`.
 2. Choose `Restore trusted instance`. The app checks the binding, authenticates the verified copy again against the reviewed `6.47.0` record and adds the ad blocker from that copy. No folder is chosen and nothing is written into the copy.
 3. The dialog should then show `Installed: Yes` and `Managed: Yes`.
 
 The action appears only when a valid X binding and a verified copy exist and the bound instance is missing. If the copy fails the check, nothing is changed and the dialog says so; use `Install AdBlock...` with the reviewed folder instead. The app never restores the ad blocker on its own, and the Bluesky dialog has no restore action.
-
-### Temporary ad blocker lifecycle log
-
-Until the cause of the lost X instance is known, the app writes a small diagnostic log to `%LOCALAPPDATA%\GeopoliticalMonitor\Diagnostics\adblock-lifecycle.log`. It records, with a UTC time on each line: the WebView2 runtime and app versions and whether the previous session ended normally at session start; after X starts, the ad blocker state, extension count and whether the bound instance and binding are present; the existence, size or entry count and last-write time of the X profile's extension folders and preference files at startup and at close; the state after the X Ad Blocker dialog closes; and the close itself. It never records file contents, paths, user names, cookies, page addresses or keys. The file is capped at 128 KiB with one older copy (`adblock-lifecycle.log.old`), and `adblock-lifecycle.clean-close` marks a normal close. To read the newest lines:
-
-```powershell
-Get-Content (Join-Path $env:LOCALAPPDATA "GeopoliticalMonitor\Diagnostics\adblock-lifecycle.log") -Tail 60
-```
-
-The log is temporary and will be removed from the app once the cause of the lost instance is known.
 
 ### Install for Bluesky
 
@@ -204,7 +194,7 @@ All locations come from the app's path provider. The folder name `GeopoliticalMo
 | `WebView2\XBrowser` | The X pane's browser profile: X sign-in, X website data and the installed ad blocker instance | Signs you out of X and removes the installed ad blocker instance. Prefer `Clear Session` for signing out. |
 | `WebView2\BlueskyBrowser` | The Bluesky pane's browser profile: Bluesky sign-in, Bluesky website data and, if installed, its ad blocker instance; created the first time you choose `Bluesky` | Signs you out of Bluesky and removes its installed ad blocker instance. Prefer `Clear Session` for signing out. X is not affected. |
 | `WebView2\ExtensionCapabilityDiagnostic` | Profile used only by `Test Extension Support` | Diagnostic only. |
-| `Diagnostics\adblock-lifecycle.log` (with `adblock-lifecycle.log.old` and the `adblock-lifecycle.clean-close` marker) | The temporary ad blocker lifecycle log; no contents, paths or secrets | Safe to delete when the app is closed. The next launch starts a new log and records that the previous close was not marked. |
+| `Diagnostics` | An old folder from earlier builds, if present; no longer used | Can be deleted manually. |
 | Backup folders you create, for example `Data-backup-<date>` | Your copies of the `Data` folder | The app never reads them. |
 
 ## Backing up
