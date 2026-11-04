@@ -3,7 +3,11 @@
 .env.*
 !.env.example
 *.secrets.json
+secrets.json
 secrets/
+*.pfx
+*.snk
+*.key
 
 # Node / frontend
 node_modules/
@@ -39,6 +43,12 @@ temp/
 # WebView2 profiles and extension payloads
 *.WebView2/
 EBWebView/
+**/WebView2/AppShell/
+**/WebView2/XBrowser/
+**/WebView2/BlueskyBrowser/
+**/WebView2/ExtensionCapabilityDiagnostic/
+**/Extensions/AdBlock/
+**/Extensions/AdBlockBluesky/
 *.crx
 *.pem
 
