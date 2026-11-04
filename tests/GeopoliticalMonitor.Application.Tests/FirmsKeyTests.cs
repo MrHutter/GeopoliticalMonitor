@@ -365,7 +365,7 @@ public class FirmsKeyTests
         foreach (var file in files)
         {
             var source = File.ReadAllText(file);
-            foreach (var forbidden in new[] { "Debug.", "Console.", "Trace.", "Logger", "AdBlockLifecycleLog", "File.Write", "Clipboard" })
+            foreach (var forbidden in new[] { "Debug.", "Console.", "Trace.", "Logger", "File.Write", "Clipboard" })
             {
                 Assert.False(source.Contains(forbidden, StringComparison.Ordinal), $"{Path.GetFileName(file)} uses {forbidden}.");
             }

@@ -103,7 +103,6 @@ public sealed partial class MainWindow : Window
 
     private async Task InitializeWebViewsAsync()
     {
-        LogAdBlockSessionStart(); // TEMPORARY diagnostic, see MainWindow.AdBlockLifecycle.cs.
         var pathProvider = new LocalApplicationDataPathProvider();
         InitializeFirmsProvider();
         await InitializePersistenceAsync(pathProvider);
@@ -236,12 +235,6 @@ public sealed partial class MainWindow : Window
             UpdateXNavigationButtons();
             UpdateXPostLinkButton();
             ObserveXAdBlockSnapshot(startupAdBlockSnapshot, managedPayloadExists);
-            LogXAdBlockStartupState( // TEMPORARY diagnostic, see MainWindow.AdBlockLifecycle.cs.
-                trustDecision.AttemptExtensionEnvironment,
-                bindingStore.HasPersistedState,
-                binding is not null,
-                managedSourcePath,
-                startupAdBlockSnapshot);
         }
         catch (Exception ex)
         {
@@ -249,7 +242,6 @@ public sealed partial class MainWindow : Window
             xProductionExtensionHostState = XProductionExtensionHostState.XUnavailable;
             xRuntimeState = XBrowserRuntimeState.Failed;
             Debug.WriteLine($"Known-good X WebView initialization failed: {ex.GetType().FullName} 0x{ex.HResult:X8}");
-            LogXAdBlockStartupFailure(ex); // TEMPORARY diagnostic, see MainWindow.AdBlockLifecycle.cs.
             ShowXError("X website pane could not initialize.");
             UpdateXNavigationButtons();
             UpdateXPostLinkButton();
@@ -1533,7 +1525,6 @@ public sealed partial class MainWindow : Window
         await dialog.ShowAsync();
         // Read-only: reuse the dialog's last snapshot for the X pane ad blocker indication.
         ObserveXAdBlockSnapshot(snapshot, Directory.Exists(managedSourcePath));
-        LogXAdBlockDialogClosed(snapshot); // TEMPORARY diagnostic, see MainWindow.AdBlockLifecycle.cs.
         if (openDiagnostic)
         {
             await ShowXExtensionDiagnosticDialogAsync();
@@ -2174,7 +2165,6 @@ public sealed partial class MainWindow : Window
 
     private void OnClosed(object sender, WindowEventArgs args)
     {
-        LogAdBlockCloseBegin(); // TEMPORARY diagnostic, see MainWindow.AdBlockLifecycle.cs.
         isClosing = true;
         lifetimeCancellation.Cancel();
         if (providerRefreshScheduler is { } scheduler)
@@ -2193,6 +2183,5 @@ public sealed partial class MainWindow : Window
         CloseBlueskyWebViewOnExit();
         XWebView.Close();
         AppWebView.Close();
-        LogAdBlockCloseEnd(); // TEMPORARY diagnostic, see MainWindow.AdBlockLifecycle.cs.
     }
 }

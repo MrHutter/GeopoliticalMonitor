@@ -381,46 +381,6 @@ public sealed class XAdBlockRestoreSourceGuardTests
         Assert.DoesNotContain("RestoreBoundInstanceAsync", File.ReadAllText(Path.Combine(Desktop, "MainWindow.BlueskyAdBlock.cs")), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void LifecycleLogHooksExistAtTheExpectedPoints()
-    {
-        var source = File.ReadAllText(Path.Combine(Desktop, "MainWindow.xaml.cs"));
-
-        Assert.Contains("LogAdBlockSessionStart();", Between(source, "private async Task InitializeWebViewsAsync()", "xInitializationTask = InitializeXWebViewAsync"), StringComparison.Ordinal);
-        var xStartup = Between(source, "private async Task InitializeXWebViewAsync(", "private static async Task<CoreWebView2Environment> CreateExtensionEnabledXEnvironmentAsync(");
-        Assert.True(xStartup.IndexOf("LogXAdBlockStartupState(", StringComparison.Ordinal) > xStartup.IndexOf("ObserveXAdBlockSnapshot(startupAdBlockSnapshot", StringComparison.Ordinal));
-        Assert.Contains("LogXAdBlockStartupFailure(ex);", xStartup, StringComparison.Ordinal);
-        Assert.Contains("LogXAdBlockDialogClosed(snapshot);", source, StringComparison.Ordinal);
-        var onClosed = Between(source, "private void OnClosed(object sender, WindowEventArgs args)", "LogAdBlockCloseEnd();");
-        Assert.StartsWith("LogAdBlockCloseBegin();", onClosed.TrimStart(' ', '\r', '\n', '{'), StringComparison.Ordinal);
-        Assert.Contains("AppWebView.Close();", onClosed, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void LifecycleLogIsTemporaryMetadataOnlyAndXOnly()
-    {
-        var files = new[]
-        {
-            Path.Combine(Root, "src", "backend", "GeopoliticalMonitor.Infrastructure", "Diagnostics", "AdBlockLifecycleLog.cs"),
-            Path.Combine(Desktop, "MainWindow.AdBlockLifecycle.cs"),
-        };
-        var forbidden = new[]
-        {
-            "ReadAllText", "ReadAllBytes", "ReadAllLines", "ReadLines", "OpenRead", "OpenText", "File.Open(", "StreamReader",
-            "FileStream", "CookieManager", "GetCookiesAsync", "ExecuteScriptAsync", "Bluesky", "bluesky", ".Source", "InspectAsync",
-            "XAdBlockPayloadDigest", "SetExtensionEnabledAsync", "AddBrowserExtensionAsync", "RemoveExtensionAsync", "hybrid",
-        };
-        foreach (var file in files)
-        {
-            var source = File.ReadAllText(file);
-            Assert.Contains("TEMPORARY DIAGNOSTIC", source, StringComparison.Ordinal);
-            foreach (var item in forbidden)
-            {
-                Assert.False(source.Contains(item, StringComparison.Ordinal), $"{Path.GetFileName(file)} references {item}.");
-            }
-        }
-    }
-
     private static string Between(string source, string start, string end)
     {
         var from = source.IndexOf(start, StringComparison.Ordinal);
