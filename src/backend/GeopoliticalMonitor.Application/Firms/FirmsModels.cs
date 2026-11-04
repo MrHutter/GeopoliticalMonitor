@@ -69,6 +69,9 @@ public enum FirmsFeedFailureKind
     ResponseTooLarge,
     InvalidProviderResponse,
     TooManyObservations,
+    KeyRejected,
+    RateLimited,
+    ProductUnavailable,
 }
 
 public sealed class FirmsFeedException : Exception
@@ -94,6 +97,10 @@ public enum FirmsRefreshStatus
     InvalidProviderResponse,
     TooManyObservations,
     Cancelled,
+    KeyRejected,
+    RateLimited,
+    TimedOut,
+    ProductUnavailable,
 }
 
 public sealed record FirmsRefreshResult(

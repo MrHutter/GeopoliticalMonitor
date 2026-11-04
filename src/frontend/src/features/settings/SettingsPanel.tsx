@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { ucdpAcknowledgement, ucdpCitation, ucdpDownloadsPage, ucdpLicense } from '../sources/ucdpAttribution';
-import type { AppInfoMessage } from '../../nativeBridge';
+import type { AppInfoMessage, FirmsKeyStatusMessage } from '../../nativeBridge';
 import { accentOptions, type Accent } from '../../types/mock';
 
 type SettingsPanelProps = {
@@ -10,6 +10,28 @@ type SettingsPanelProps = {
   triggerRef: RefObject<HTMLButtonElement | null>;
   onAccentChange: (accent: Accent) => void;
   onClose: () => void;
+  firmsKeyStatus?: FirmsKeyStatus | null;
+  firmsKeyPending?: boolean;
+  onSetFirmsKey?: () => void;
+  onRemoveFirmsKey?: () => void;
+};
+
+type FirmsKeyStatus = FirmsKeyStatusMessage['payload'];
+
+export function firmsKeyStatusLabel(status: FirmsKeyStatus | null | undefined) {
+  if (!status) return 'Checking...';
+  if (!status.configured) return 'Not configured';
+  return status.source === 'App' ? 'Configured (set in app)' : 'Configured (environment variable)';
+}
+
+const firmsKeyOutcomeMessages: Partial<Record<NonNullable<FirmsKeyStatus['outcome']>, string>> = {
+  Saved: 'Key saved. It is used from the next refresh.',
+  Removed: 'Key removed from the app.',
+  EmptyKey: 'No key was entered, so nothing was saved.',
+  KeyTooLong: 'That key is too long, so nothing was saved.',
+  NotStored: 'No key was stored in the app.',
+  StoreUnavailable: 'Windows Credential Manager could not be used. Nothing was changed.',
+  Busy: 'Another dialog is open. Close it and try again.',
 };
 
 const focusableSelector = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -20,7 +42,19 @@ function getFocusableElements(panel: HTMLElement) {
     .filter((element) => !(element instanceof HTMLInputElement && element.type === 'radio' && !element.checked));
 }
 
-export function SettingsPanel({ accent, appInfo, persistenceError, triggerRef, onAccentChange, onClose }: SettingsPanelProps) {
+export function SettingsPanel({
+  accent,
+  appInfo,
+  persistenceError,
+  triggerRef,
+  onAccentChange,
+  onClose,
+  firmsKeyStatus = null,
+  firmsKeyPending = false,
+  onSetFirmsKey,
+  onRemoveFirmsKey,
+}: SettingsPanelProps) {
+  const firmsKeyOutcome = firmsKeyStatus?.outcome ? firmsKeyOutcomeMessages[firmsKeyStatus.outcome] : undefined;
   const panelRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -130,8 +164,37 @@ export function SettingsPanel({ accent, appInfo, persistenceError, triggerRef, o
 
           <section className="settings-section" aria-labelledby="data-sources-title">
             <div className="settings-section-heading">
-              <p className="eyebrow">Attribution</p>
+              <p className="eyebrow">Keys and attribution</p>
               <h3 id="data-sources-title">Data sources</h3>
+            </div>
+            <div className="settings-firms-key" aria-labelledby="firms-key-title">
+              <dl className="settings-info settings-sources">
+                <div>
+                  <dt id="firms-key-title">NASA FIRMS key</dt>
+                  <dd role="status">{firmsKeyStatusLabel(firmsKeyStatus)}</dd>
+                </div>
+              </dl>
+              {firmsKeyStatus?.formatWarning ? (
+                <p className="settings-warning">The key in use is not 32 hexadecimal characters. NASA FIRMS keys normally are, so it may be rejected.</p>
+              ) : null}
+              {firmsKeyStatus?.storeUnavailable ? (
+                <p className="settings-error" role="alert">Windows Credential Manager could not be read. A key set in the app may not be in use.</p>
+              ) : null}
+              {firmsKeyOutcome ? <p className="settings-note" role="status">{firmsKeyOutcome}</p> : null}
+              <div className="settings-actions">
+                <button type="button" disabled={firmsKeyPending || !onSetFirmsKey || !firmsKeyStatus} onClick={onSetFirmsKey}>Set key...</button>
+                <button
+                  type="button"
+                  disabled={firmsKeyPending || !onRemoveFirmsKey || firmsKeyStatus?.source !== 'App'}
+                  onClick={onRemoveFirmsKey}
+                >
+                  Remove key
+                </button>
+              </div>
+              <p className="settings-note">
+                The key is entered in a Windows dialog and stored in Windows Credential Manager for this Windows account.
+                This window never sees it. A key set here is used instead of the GEOPOLITICALMONITOR_FIRMS_MAP_KEY environment variable.
+              </p>
             </div>
             <dl className="settings-info settings-sources">
               <div><dt>UCDP Candidate</dt><dd>Uppsala Conflict Data Program, monthly release ({ucdpDownloadsPage})</dd></div>

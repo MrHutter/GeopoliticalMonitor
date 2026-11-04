@@ -15,6 +15,7 @@ import {
   AppInfoMessage,
   AlertOccurrence,
   AlertRule,
+  FirmsKeyStatusMessage,
   FirmsObservation,
   FirmsViewport,
   ProviderRefreshStatus,
@@ -40,6 +41,7 @@ import {
   isGdacsRefreshResultMessage,
   isUcdpRefreshErrorMessage,
   isUcdpRefreshResultMessage,
+  isFirmsKeyStatusMessage,
   isFirmsRefreshErrorMessage,
   isFirmsRefreshResultMessage,
   isEventWatchlistMembershipsResultMessage,
@@ -71,6 +73,9 @@ import {
   requestGdacsRefresh,
   requestUcdpRefresh,
   requestProviderRefreshStatus,
+  requestFirmsKeyRemove,
+  requestFirmsKeySet,
+  requestFirmsKeyStatus,
   requestFirmsRefresh,
   requestWatchlistMembers,
   requestWatchlistsList,
@@ -116,6 +121,19 @@ export function App({ scrollAlertToDetails = alertScrollsToDetails }: AppProps =
   const watchlistManageButtonRef = useRef<HTMLButtonElement>(null);
   const openSettings = useCallback(() => setSettingsOpen(true), []);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
+  // FIRMS key status only (configured, source, warning). The key itself never reaches React.
+  const [firmsKeyStatus, setFirmsKeyStatus] = useState<FirmsKeyStatusMessage['payload'] | null>(null);
+  const [firmsKeyPending, setFirmsKeyPending] = useState(false);
+  const setFirmsKey = useCallback(() => {
+    if (requestFirmsKeySet()) setFirmsKeyPending(true);
+  }, []);
+  const removeFirmsKey = useCallback(() => {
+    if (requestFirmsKeyRemove()) setFirmsKeyPending(true);
+  }, []);
+
+  useEffect(() => {
+    if (settingsOpen) requestFirmsKeyStatus();
+  }, [settingsOpen]);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const alertsButtonRef = useRef<HTMLButtonElement>(null);
   const alertsOpenRef = useRef(false);
@@ -504,6 +522,12 @@ export function App({ scrollAlertToDetails = alertScrollsToDetails }: AppProps =
           kind: 'success',
           message: `Snapshot refreshed ${formatUtcTime(result.refreshedAtUtc)} UTC${newest}.`,
         });
+        return;
+      }
+
+      if (isFirmsKeyStatusMessage(event.data)) {
+        setFirmsKeyStatus(event.data.payload);
+        setFirmsKeyPending(false);
         return;
       }
 
@@ -990,6 +1014,10 @@ export function App({ scrollAlertToDetails = alertScrollsToDetails }: AppProps =
           triggerRef={settingsButtonRef}
           onAccentChange={setAccent}
           onClose={closeSettings}
+          firmsKeyStatus={firmsKeyStatus}
+          firmsKeyPending={firmsKeyPending}
+          onSetFirmsKey={setFirmsKey}
+          onRemoveFirmsKey={removeFirmsKey}
         />
       ) : null}
     </main>

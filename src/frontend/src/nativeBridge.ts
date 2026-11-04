@@ -195,11 +195,29 @@ export type FirmsRefreshResultMessage = {
 export const firmsRefreshErrorStatuses = [
   'AlreadyInProgress', 'ConfigurationUnavailable', 'InvalidViewport', 'AreaTooLarge',
   'RequestFailed', 'ResponseTooLarge', 'InvalidProviderResponse', 'TooManyObservations', 'Cancelled',
+  'KeyRejected', 'RateLimited', 'TimedOut', 'ProductUnavailable',
 ] as const;
 
 export type FirmsRefreshErrorMessage = {
   type: 'providers.firms.refresh.error';
   payload: { status: (typeof firmsRefreshErrorStatuses)[number]; message: string };
+};
+
+export const firmsKeySources = ['App', 'Environment', 'None'] as const;
+export const firmsKeyChangeOutcomes = [
+  'Saved', 'Removed', 'Cancelled', 'EmptyKey', 'KeyTooLong', 'NotStored', 'StoreUnavailable', 'Busy',
+] as const;
+
+/** FIRMS key status only. The key itself is entered in a native dialog and never reaches this UI. */
+export type FirmsKeyStatusMessage = {
+  type: 'providers.firms.key.status';
+  payload: {
+    configured: boolean;
+    source: (typeof firmsKeySources)[number];
+    formatWarning: boolean;
+    storeUnavailable: boolean;
+    outcome: (typeof firmsKeyChangeOutcomes)[number] | null;
+  };
 };
 
 export type ReliefWebSearchResultMessage = {
@@ -544,6 +562,20 @@ export function requestFirmsRefresh(viewport: FirmsViewport) {
   return postNativeMessage({ type: 'providers.firms.refresh', payload: viewport });
 }
 
+export function requestFirmsKeyStatus() {
+  return postNativeMessage({ type: 'providers.firms.key.status.get', payload: {} });
+}
+
+/** Asks the native host to open its key dialog. No key is sent from here. */
+export function requestFirmsKeySet() {
+  return postNativeMessage({ type: 'providers.firms.key.set', payload: {} });
+}
+
+/** Asks the native host to confirm and remove the app-stored key. The environment variable is never changed. */
+export function requestFirmsKeyRemove() {
+  return postNativeMessage({ type: 'providers.firms.key.remove', payload: {} });
+}
+
 export function requestEventSources(eventId: string) {
   window.chrome?.webview?.postMessage({ type: 'events.sources.get', payload: { id: eventId } });
 }
@@ -710,6 +742,17 @@ export function isFirmsRefreshErrorMessage(value: unknown): value is FirmsRefres
   return isMessage(value, 'providers.firms.refresh.error', ['status', 'message'])
     && isOneOf(value.payload.status, firmsRefreshErrorStatuses)
     && isBoundedString(value.payload.message, 256, true);
+}
+
+export function isFirmsKeyStatusMessage(value: unknown): value is FirmsKeyStatusMessage {
+  if (!isMessage(value, 'providers.firms.key.status', ['configured', 'source', 'formatWarning', 'storeUnavailable', 'outcome'])) return false;
+  const payload = value.payload;
+  return typeof payload.configured === 'boolean'
+    && isOneOf(payload.source, firmsKeySources)
+    && typeof payload.formatWarning === 'boolean'
+    && typeof payload.storeUnavailable === 'boolean'
+    && (payload.outcome === null || isOneOf(payload.outcome, firmsKeyChangeOutcomes))
+    && payload.configured === (payload.source !== 'None');
 }
 
 export function isReliefWebSearchResultMessage(value: unknown): value is ReliefWebSearchResultMessage {

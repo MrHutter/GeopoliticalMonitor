@@ -52,6 +52,7 @@ public sealed partial class MainWindow : Window
     private UcdpRefreshBridgeHandler? ucdpRefreshBridgeHandler;
     private HttpClient? ucdpHttpClient;
     private FirmsRefreshBridgeHandler? firmsRefreshBridgeHandler;
+    private FirmsKeyService? firmsKeyService;
     private HttpClient? firmsHttpClient;
     private ReliefWebBridgeHandler? reliefWebBridgeHandler;
     private WatchlistBridgeHandler? watchlistBridgeHandler;
@@ -121,10 +122,14 @@ public sealed partial class MainWindow : Window
     private void InitializeFirmsProvider()
     {
         firmsHttpClient = FirmsObservationFeed.CreateProductionHttpClient();
-        var options = new FirmsClientOptions(
-            Environment.GetEnvironmentVariable("GEOPOLITICALMONITOR_FIRMS_MAP_KEY", EnvironmentVariableTarget.Process));
-        var feed = new FirmsObservationFeed(firmsHttpClient, new FirmsCsvParser(), options);
-        firmsRefreshBridgeHandler = new FirmsRefreshBridgeHandler(new FirmsRefreshService(feed));
+        // The key is resolved at each request: the app-stored key wins, then this process's environment variable.
+        var keyStore = new WindowsCredentialFirmsKeyStore();
+        var keyResolver = new FirmsKeyResolver(
+            keyStore,
+            () => Environment.GetEnvironmentVariable("GEOPOLITICALMONITOR_FIRMS_MAP_KEY", EnvironmentVariableTarget.Process));
+        firmsKeyService = new FirmsKeyService(keyStore, keyResolver);
+        var feed = new FirmsObservationFeed(firmsHttpClient, new FirmsCsvParser(), keyResolver);
+        firmsRefreshBridgeHandler = new FirmsRefreshBridgeHandler(new FirmsRefreshService(feed), firmsKeyService.GetStatus);
     }
 
     private async Task InitializeAppWebViewAsync(string userDataFolder)
@@ -741,6 +746,11 @@ public sealed partial class MainWindow : Window
                 break;
             case DesktopBridgeProtocol.FirmsRefreshMessageType:
                 await RefreshFirmsAsync(sender, request);
+                break;
+            case DesktopBridgeProtocol.FirmsKeyStatusGetMessageType:
+            case DesktopBridgeProtocol.FirmsKeySetMessageType:
+            case DesktopBridgeProtocol.FirmsKeyRemoveMessageType:
+                await HandleFirmsKeyRequestAsync(sender, request);
                 break;
             case DesktopBridgeProtocol.ReliefWebSearchMessageType:
                 await SearchReliefWebAsync(sender, request);

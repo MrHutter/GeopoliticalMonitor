@@ -189,7 +189,9 @@ describe('UCDP Candidate frontend', () => {
     expect(section).toHaveTextContent(ucdpCitation);
     expect(section).toHaveTextContent(ucdpAcknowledgement);
     expect(section).toHaveTextContent('Licensed under CC BY 4.0.');
-    expect(within(section).queryByRole('button')).toBeNull();
+    // The only controls are the FIRMS key buttons, which open native dialogs; there is no key input here.
+    expect(within(section).getAllByRole('button').map((button) => button.textContent)).toEqual(['Set key...', 'Remove key']);
     expect(within(section).queryByRole('textbox')).toBeNull();
+    expect(section.querySelector('input, textarea')).toBeNull();
   });
 });

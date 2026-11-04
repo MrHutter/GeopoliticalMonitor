@@ -50,6 +50,11 @@ public static class DesktopBridgeProtocol
     public const string FirmsRefreshMessageType = "providers.firms.refresh";
     public const string FirmsRefreshResultMessageType = "providers.firms.refresh.result";
     public const string FirmsRefreshErrorMessageType = "providers.firms.refresh.error";
+    // FIRMS key status only: these requests carry no fields, and no response ever carries the key.
+    public const string FirmsKeyStatusGetMessageType = "providers.firms.key.status.get";
+    public const string FirmsKeySetMessageType = "providers.firms.key.set";
+    public const string FirmsKeyRemoveMessageType = "providers.firms.key.remove";
+    public const string FirmsKeyStatusMessageType = "providers.firms.key.status";
     public const string XPaneSideValueMessageType = "xPane.side.value";
     public const string WatchlistsListMessageType = "watchlists.list";
     public const string WatchlistsListResultMessageType = "watchlists.list.result";
@@ -148,6 +153,9 @@ public static class DesktopBridgeProtocol
                 UcdpRefreshMessageType => TryCreateEmptyRequest(UcdpRefreshMessageType, payload, "providers.ucdp.refresh", out request, out error),
                 ProvidersRefreshStatusGetMessageType => TryCreateEmptyRequest(ProvidersRefreshStatusGetMessageType, payload, "providers.refresh.status.get", out request, out error),
                 FirmsRefreshMessageType => TryCreateFirmsRefreshRequest(payload, out request, out error),
+                FirmsKeyStatusGetMessageType => TryCreateEmptyRequest(FirmsKeyStatusGetMessageType, payload, "providers.firms.key.status.get", out request, out error),
+                FirmsKeySetMessageType => TryCreateEmptyRequest(FirmsKeySetMessageType, payload, "providers.firms.key.set", out request, out error),
+                FirmsKeyRemoveMessageType => TryCreateEmptyRequest(FirmsKeyRemoveMessageType, payload, "providers.firms.key.remove", out request, out error),
                 WatchlistsListMessageType => TryCreateEmptyRequest(WatchlistsListMessageType, payload, "watchlists.list", out request, out error),
                 AlertsSummaryMessageType => TryCreateEmptyRequest(AlertsSummaryMessageType, payload, "alerts.summary", out request, out error),
                 AlertRulesListMessageType => TryCreateEmptyRequest(AlertRulesListMessageType, payload, "alerts.rules.list", out request, out error),
@@ -512,6 +520,24 @@ public static class DesktopBridgeProtocol
         {
             type = FirmsRefreshErrorMessageType,
             payload = new { status = status.ToString(), message },
+        };
+        return JsonSerializer.Serialize(response, JsonSerializerOptions.Web);
+    }
+
+    /// <summary>Key status only: configured, source, format warning and store availability. Never the key.</summary>
+    public static string CreateFirmsKeyStatusResponseJson(FirmsKeyStatus status, FirmsKeyChangeOutcome? outcome = null)
+    {
+        var response = new
+        {
+            type = FirmsKeyStatusMessageType,
+            payload = new
+            {
+                configured = status.Configured,
+                source = status.Source.ToString(),
+                formatWarning = status.FormatWarning,
+                storeUnavailable = status.StoreUnavailable,
+                outcome = outcome?.ToString(),
+            },
         };
         return JsonSerializer.Serialize(response, JsonSerializerOptions.Web);
     }

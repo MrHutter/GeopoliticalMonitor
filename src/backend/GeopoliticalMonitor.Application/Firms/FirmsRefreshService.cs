@@ -99,6 +99,10 @@ public sealed class FirmsRefreshService
                 FirmsFeedFailureKind.ResponseTooLarge => FirmsRefreshStatus.ResponseTooLarge,
                 FirmsFeedFailureKind.InvalidProviderResponse => FirmsRefreshStatus.InvalidProviderResponse,
                 FirmsFeedFailureKind.TooManyObservations => FirmsRefreshStatus.TooManyObservations,
+                FirmsFeedFailureKind.KeyRejected => FirmsRefreshStatus.KeyRejected,
+                FirmsFeedFailureKind.RateLimited => FirmsRefreshStatus.RateLimited,
+                FirmsFeedFailureKind.TimedOut => FirmsRefreshStatus.TimedOut,
+                FirmsFeedFailureKind.ProductUnavailable => FirmsRefreshStatus.ProductUnavailable,
                 _ => FirmsRefreshStatus.RequestFailed,
             });
         }

@@ -21,8 +21,12 @@ import {
   isProviderRefreshStatusMessage,
   isGdacsRefreshErrorMessage,
   isGdacsRefreshResultMessage,
+  isFirmsKeyStatusMessage,
   isFirmsRefreshErrorMessage,
   isFirmsRefreshResultMessage,
+  requestFirmsKeyRemove,
+  requestFirmsKeySet,
+  requestFirmsKeyStatus,
   isReliefWebAttachResultMessage,
   isReliefWebSearchErrorMessage,
   isReliefWebSearchResultMessage,
@@ -447,6 +451,44 @@ describe('nativeBridge', () => {
       type: 'providers.firms.refresh.error',
       payload: { status: 'Unknown', message: 'bad' },
     })).toBe(false);
+    delete window.chrome;
+  });
+});
+
+describe('NASA FIRMS key status bridge', () => {
+  const status = { type: 'providers.firms.key.status', payload: { configured: true, source: 'App', formatWarning: false, storeUnavailable: false, outcome: null } };
+
+  it('accepts only exact status payloads with no key field', () => {
+    expect(isFirmsKeyStatusMessage(status)).toBe(true);
+    expect(isFirmsKeyStatusMessage({ ...status, payload: { ...status.payload, outcome: 'Saved' } })).toBe(true);
+    expect(isFirmsKeyStatusMessage({ ...status, payload: { configured: false, source: 'None', formatWarning: false, storeUnavailable: true, outcome: 'StoreUnavailable' } })).toBe(true);
+    expect(isFirmsKeyStatusMessage({ ...status, payload: { ...status.payload, key: 'fake-key-zz-never-real-zz-0000' } })).toBe(false);
+    expect(isFirmsKeyStatusMessage({ ...status, payload: { ...status.payload, mapKey: null } })).toBe(false);
+    expect(isFirmsKeyStatusMessage({ ...status, payload: { ...status.payload, source: 'Clipboard' } })).toBe(false);
+    expect(isFirmsKeyStatusMessage({ ...status, payload: { ...status.payload, outcome: 'Revealed' } })).toBe(false);
+    expect(isFirmsKeyStatusMessage({ ...status, payload: { ...status.payload, configured: 'true' } })).toBe(false);
+    expect(isFirmsKeyStatusMessage({ ...status, payload: { ...status.payload, configured: false } })).toBe(false);
+    expect(isFirmsKeyStatusMessage({ ...status, extra: true })).toBe(false);
+  });
+
+  it('accepts the categorized FIRMS refresh errors', () => {
+    for (const statusName of ['KeyRejected', 'RateLimited', 'TimedOut', 'ProductUnavailable']) {
+      expect(isFirmsRefreshErrorMessage({ type: 'providers.firms.refresh.error', payload: { status: statusName, message: 'Bounded message.' } })).toBe(true);
+    }
+  });
+
+  it('sends key requests with an empty payload only', () => {
+    const postMessage = vi.fn();
+    window.chrome = { webview: { postMessage, addEventListener: vi.fn(), removeEventListener: vi.fn() } } as unknown as typeof window.chrome;
+
+    expect(requestFirmsKeyStatus()).toBe(true);
+    expect(requestFirmsKeySet()).toBe(true);
+    expect(requestFirmsKeyRemove()).toBe(true);
+    expect(postMessage.mock.calls.map(([message]) => message)).toEqual([
+      { type: 'providers.firms.key.status.get', payload: {} },
+      { type: 'providers.firms.key.set', payload: {} },
+      { type: 'providers.firms.key.remove', payload: {} },
+    ]);
     delete window.chrome;
   });
 });

@@ -457,16 +457,20 @@ describe('App', () => {
     expect(screen.queryByRole('dialog', { name: 'Settings' })).not.toBeInTheDocument();
     expect(postMessage).toHaveBeenCalledWith({ type: 'app.ready', payload: {} });
     expect(postMessage).toHaveBeenCalledWith({ type: 'preferences.get', payload: { key: 'AccentTheme' } });
+    expect(postMessage.mock.calls.some(([message]) => (message as { type?: string }).type?.startsWith('providers.firms.key'))).toBe(false);
     const startupRequestCount = postMessage.mock.calls.length;
 
+    // Opening Settings asks only for the local FIRMS key status, with an empty payload.
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Application' })).not.toBeInTheDocument();
-    expect(postMessage).toHaveBeenCalledTimes(startupRequestCount);
+    expect(postMessage).toHaveBeenCalledTimes(startupRequestCount + 1);
+    expect(postMessage).toHaveBeenLastCalledWith({ type: 'providers.firms.key.status.get', payload: {} });
 
     fireEvent.click(screen.getByRole('button', { name: 'Close settings' }));
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    expect(postMessage).toHaveBeenCalledTimes(startupRequestCount);
+    expect(postMessage).toHaveBeenCalledTimes(startupRequestCount + 2);
+    expect(postMessage).toHaveBeenLastCalledWith({ type: 'providers.firms.key.status.get', payload: {} });
   });
 
   it('loads only the alert summary at startup and presents bounded monitoring and history on demand', async () => {
@@ -2125,7 +2129,75 @@ describe('App', () => {
   });
 
   it.each([
-    ['ConfigurationUnavailable', 'NASA FIRMS is not configured.'],
+    ['KeyRejected', 'NASA FIRMS rejected the key. Check it in Settings, Data sources. Existing layer data was preserved.'],
+    ['RateLimited', 'NASA FIRMS reported too many requests for this key. Wait a few minutes and refresh again. Existing layer data was preserved.'],
+    ['TimedOut', 'NASA FIRMS did not respond in time. Refresh again later. Existing layer data was preserved.'],
+    ['ProductUnavailable', 'NASA FIRMS did not accept a requested VIIRS product. Refresh again later. Existing layer data was preserved.'],
+    ['ConfigurationUnavailable', 'NASA FIRMS is not configured. Set a key in Settings, Data sources.'],
+  ])('shows the FIRMS %s category and preserves the previous snapshot', async (status, message) => {
+    const { emit } = renderWithWebView();
+    const map = await latestMap();
+    emit(firmsFilterResult);
+    const source = map.getSource(firmsSourceId)!;
+    await waitFor(() => expect((source.data as { features: unknown[] }).features.length).toBeGreaterThan(0));
+    const before = (source.data as { features: unknown[] }).features.length;
+
+    emit({ type: 'providers.firms.refresh.error', payload: { status, message } });
+
+    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect((source.data as { features: unknown[] }).features).toHaveLength(before);
+  });
+
+  it('shows FIRMS key status in Settings and sends only empty typed requests', async () => {
+    const { postMessage, emit } = renderWithWebView();
+    await latestMap();
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const dialog = screen.getByRole('dialog', { name: 'Settings' });
+    const setButton = within(dialog).getByRole('button', { name: 'Set key...' });
+    const removeButton = within(dialog).getByRole('button', { name: 'Remove key' });
+    expect(within(dialog).getByText('Checking...')).toBeInTheDocument();
+    expect(setButton).toBeDisabled();
+    expect(removeButton).toBeDisabled();
+
+    emit({ type: 'providers.firms.key.status', payload: { configured: false, source: 'None', formatWarning: false, storeUnavailable: false, outcome: null } });
+    expect(await within(dialog).findByText('Not configured')).toBeInTheDocument();
+    expect(setButton).toBeEnabled();
+    expect(removeButton).toBeDisabled();
+
+    fireEvent.click(setButton);
+    expect(postMessage).toHaveBeenLastCalledWith({ type: 'providers.firms.key.set', payload: {} });
+    expect(setButton).toBeDisabled();
+
+    emit({ type: 'providers.firms.key.status', payload: { configured: true, source: 'App', formatWarning: true, storeUnavailable: false, outcome: 'Saved' } });
+    expect(await within(dialog).findByText('Configured (set in app)')).toBeInTheDocument();
+    expect(within(dialog).getByText(/not 32 hexadecimal characters/)).toBeInTheDocument();
+    expect(within(dialog).getByText('Key saved. It is used from the next refresh.')).toBeInTheDocument();
+    expect(removeButton).toBeEnabled();
+
+    fireEvent.click(removeButton);
+    expect(postMessage).toHaveBeenLastCalledWith({ type: 'providers.firms.key.remove', payload: {} });
+
+    emit({ type: 'providers.firms.key.status', payload: { configured: true, source: 'Environment', formatWarning: false, storeUnavailable: false, outcome: 'Removed' } });
+    expect(await within(dialog).findByText('Configured (environment variable)')).toBeInTheDocument();
+    expect(within(dialog).queryByText(/not 32 hexadecimal characters/)).not.toBeInTheDocument();
+    expect(removeButton).toBeDisabled();
+    expect(dialog.querySelector('input:not([type="radio"]), textarea')).toBeNull();
+  });
+
+  it('ignores FIRMS key status messages that carry a key field', async () => {
+    const { emit } = renderWithWebView();
+    await latestMap();
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const dialog = screen.getByRole('dialog', { name: 'Settings' });
+
+    emit({ type: 'providers.firms.key.status', payload: { configured: true, source: 'App', formatWarning: false, storeUnavailable: false, outcome: null, key: 'fake-key-zz-never-real-zz-0000' } });
+
+    expect(within(dialog).getByText('Checking...')).toBeInTheDocument();
+    expect(dialog).not.toHaveTextContent('fake-key-zz-never-real-zz-0000');
+  });
+
+  it.each([
+    ['ConfigurationUnavailable', 'NASA FIRMS is not configured. Set a key in Settings, Data sources.'],
     ['AreaTooLarge', 'Zoom in to a smaller area before refreshing NASA FIRMS.'],
     ['ResponseTooLarge', 'NASA FIRMS returned too much data for this area. Zoom in and refresh again.'],
     ['TooManyObservations', 'Too many FIRMS detections for this area. Zoom in and refresh again.'],

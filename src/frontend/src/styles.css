@@ -1094,6 +1094,60 @@ input:focus-visible {
   color: var(--critical);
 }
 
+/* NASA FIRMS key status in Settings, Data sources: status and buttons only; the key is entered natively. */
+.settings-firms-key {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.settings-warning,
+.settings-note {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.settings-warning {
+  border-left: 2px solid var(--medium);
+  padding-left: 10px;
+  color: var(--medium);
+}
+
+.settings-note {
+  color: var(--muted);
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-actions button {
+  min-height: 26px;
+  border: 1px solid var(--accent-glow);
+  background: var(--surface-soft);
+  color: var(--accent-strong);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.settings-actions button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.settings-actions button:disabled {
+  border-color: var(--line);
+  color: var(--muted);
+  cursor: default;
+}
+
 .workspace-grid {
   min-height: 0;
   min-width: 0;
