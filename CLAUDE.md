@@ -1,4 +1,4 @@
-# Geopolitical Monitor — Claude Code Instructions
+# Northern Monitor — Claude Code Instructions
 
 ## Project
 Northern Monitor (display name; internal identifiers keep GeopoliticalMonitor) is a Windows desktop geopolitical/OSINT situational-awareness app. WinUI 3/.NET desktop host → privileged WebView2 → React/TypeScript + MapLibre, plus a separately isolated, normal (unprivileged) social pane that shows either the X website or the Bluesky website, each in its own WebView2 profile. Domain/Application/Infrastructure/Desktop layered architecture, SQLite/EF Core persistence.
@@ -29,7 +29,6 @@ Northern Monitor (display name; internal identifiers keep GeopoliticalMonitor) i
 - Display name: Northern Monitor (`ProductIdentity.DisplayName`, and the Desktop project's Product and AssemblyTitle). Internal identifiers keep GeopoliticalMonitor: the `%LOCALAPPDATA%\GeopoliticalMonitor` data folder, the trusted origin, the `GEOPOLITICALMONITOR_FIRMS_MAP_KEY` environment variable, the executable, namespaces and the repository.
 - Social pane: the user switches the isolated pane between the X and Bluesky websites. Each has its own WebView2 profile (`WebView2\XBrowser`, `WebView2\BlueskyBrowser`) and its own verified managed ad blocker copy and binding (`Extensions\AdBlock\Current`, `Extensions\AdBlockBluesky\Current`). Rules: AGENTS.md, Bluesky Website Pane Rules.
 - The X Ad Blocker dialog has Restore trusted instance: when the binding and the verified managed copy are intact but the instance is missing from the X profile, it adds the extension again from that copy, with no folder picker.
-- A temporary ad blocker lifecycle log (`AdBlockLifecycleLog`, `Diagnostics\adblock-lifecycle.log`, capped at 128 KiB, code marked TEMPORARY) is still in place. It is meant to be removed later; do not remove or extend it without an explicit task.
 - The work queue is kept in the owner's handoff and the design docs; this file does not list next candidates.
 - Event automation design, slice plan and owner decisions: `docs/design/event-automation-design.md`.
 - Documentation index: docs/README.md; user-facing docs must stay current (AGENTS.md, Documentation maintenance).
