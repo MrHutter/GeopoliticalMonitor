@@ -30,7 +30,7 @@ The app keeps two kinds of records apart. An **Event** is a real-world occurrenc
 
 - **Provides:** satellite fire and thermal anomaly detections (VIIRS NOAA-20 and NOAA-21 near-real-time) from the NASA FIRMS Area API.
 - **Freshness:** a rolling window of the latest 24 hours for the visible map area. Fetched only when you choose `Refresh FIRMS`.
-- **Key:** a free MAP_KEY from NASA, set in `GEOPOLITICALMONITOR_FIRMS_MAP_KEY` before launch. See [setup and configuration](setup-and-configuration.md#nasa-firms). Without it, no FIRMS request is made.
+- **Key:** a free MAP_KEY from NASA, set in the app (Settings, Data sources, `Set key...`; stored in Windows Credential Manager) or in the `GEOPOLITICALMONITOR_FIRMS_MAP_KEY` environment variable; the key set in the app wins. See [setup and configuration](setup-and-configuration.md#nasa-firms). Without a key, no FIRMS request is made. The app has no key-status check, because NASA's documentation describes no endpoint for one.
 - **Creates:** a transient map layer only. Detections are never stored, and they are not Events, Sources, Watchlist members or Alerts.
 - **Limits:**
   - Area: at most 90 degrees of longitude by 60 degrees of latitude per refresh.

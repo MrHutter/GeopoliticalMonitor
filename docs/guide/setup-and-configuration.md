@@ -77,19 +77,29 @@ While the app is running, its executable and build output are locked, so the des
 
 The FIRMS fire and thermal layer needs a MAP_KEY from NASA. NASA's [MAP_KEY page](https://firms.modaps.eosdis.nasa.gov/api/map_key/) describes the key as free. You request it with your email address, and it is sent by email. NASA states a limit of 5000 transactions per 10-minute interval, and larger requests may count as more than one. The [FIRMS API page](https://firms.modaps.eosdis.nasa.gov/api/) lists the other services.
 
-The app reads the key from the `GEOPOLITICALMONITOR_FIRMS_MAP_KEY` environment variable once, at startup. It never stores the key, shows it or passes it to the user interface. A key set or changed later takes effect only after a restart.
+There are two ways to give the app the key. If both are set, the key set in the app is used.
 
-**Recommended: for one PowerShell session.** Set the variable in the window you start the app from. It disappears when that window closes.
+**Recommended: set it in the app.** Open Settings and go to Data sources. Under `NASA FIRMS key`, choose `Set key...`. A Windows dialog opens; paste the key into its password box and choose `Save`. The status then shows `Configured (set in app)`. The key takes effect at the next `Refresh FIRMS`, without a restart. `Remove key` deletes only the key stored in the app; after that the environment variable below is used, if it is set.
+
+- **Format check:** a NASA FIRMS key is normally 32 hexadecimal characters. If the text you enter is not, the dialog warns you, and you can still save it. Settings then shows the warning, and NASA may reject the key.
+- **Where it is stored:** in Windows Credential Manager, as a generic credential for your Windows account on this computer (it does not roam to other computers). Windows protects it with your account, but other programs running as your Windows user can still read it. It is not a vault.
+- **Never in the app's data:** the key is not written to the database, the `Data` folder, its backups, logs or the user interface. Settings shows only whether a key is configured and where it comes from. The app has no way to show the stored key again.
+
+**Fallback: the environment variable.** The app also reads `GEOPOLITICALMONITOR_FIRMS_MAP_KEY` from its own process environment, each time you refresh FIRMS. A program's environment is fixed when it starts, so a variable set or changed while the app is running takes effect only after the app is started again from a window that has it. Spaces and one pair of surrounding quotes are removed from the value, as in the app dialog.
+
+To avoid typing the key into a terminal where others can see it, copy the key from where you keep it, then set the variable from the clipboard and clear the clipboard. For one PowerShell session only (the variable disappears when that window closes):
 
 ```powershell
-$env:GEOPOLITICALMONITOR_FIRMS_MAP_KEY = "<your MAP_KEY>"
+$env:GEOPOLITICALMONITOR_FIRMS_MAP_KEY = (Get-Clipboard -Raw).Trim()
+Set-Clipboard -Value $null
 & ".\src\backend\GeopoliticalMonitor.Desktop\bin\Debug\net10.0-windows10.0.19041.0\win-x64\GeopoliticalMonitor.Desktop.exe"
 ```
 
-**Option: as a user-level environment variable.** This keeps the key between sessions, but it stores the key unencrypted in your user environment. Other programs running as your user can read it there.
+As a user-level environment variable, which keeps the key between sessions but stores it unencrypted in your user environment, where other programs running as your user can read it:
 
 ```powershell
-[Environment]::SetEnvironmentVariable("GEOPOLITICALMONITOR_FIRMS_MAP_KEY", "<your MAP_KEY>", "User")
+[Environment]::SetEnvironmentVariable("GEOPOLITICALMONITOR_FIRMS_MAP_KEY", (Get-Clipboard -Raw).Trim(), "User")
+Set-Clipboard -Value $null
 ```
 
 The value reaches programs started after it was set, so open a new PowerShell window before launching. To remove it:
@@ -98,7 +108,7 @@ The value reaches programs started after it was set, so open a new PowerShell wi
 [Environment]::SetEnvironmentVariable("GEOPOLITICALMONITOR_FIRMS_MAP_KEY", $null, "User")
 ```
 
-**Without a key,** everything else works. `Refresh FIRMS` shows `NASA FIRMS is not configured.` and sends no request.
+**Without a key,** everything else works. `Refresh FIRMS` shows `NASA FIRMS is not configured. Set a key in Settings, Data sources.` and sends no request.
 
 Never paste the key into documents, issues or chat.
 
@@ -211,7 +221,11 @@ Make a backup before running a build that changes the database schema. A backed-
 - **Blank window:** the frontend was not built before the desktop project. Run `npm run build` in `src/frontend`, then rebuild the desktop project.
 - **Slow first launch:** a cold first launch can be slow; launches right after it are fast. This is known and not an error.
 - **FIRMS messages:**
-  - `NASA FIRMS is not configured.`: no key was set when the app started. See [NASA FIRMS](#nasa-firms).
+  - `NASA FIRMS is not configured. Set a key in Settings, Data sources.`: no key is set in the app and the environment variable is not set for the running app. See [NASA FIRMS](#nasa-firms).
+  - `NASA FIRMS rejected the key. ...`: NASA answered that the key is invalid. Check the key in Settings, Data sources, or set it again. If the message also says the key is not 32 hexadecimal characters, the key in use has the wrong format.
+  - `NASA FIRMS reported too many requests for this key. ...`: NASA answered with HTTP 429 (too many requests). Wait a few minutes and refresh again.
+  - `NASA FIRMS did not respond in time. ...`: no answer within 15 seconds. Refresh again later.
+  - `NASA FIRMS did not accept a requested VIIRS product. ...`: NASA answered that a requested product is not available. Refresh again later.
   - `Zoom in to a smaller area before refreshing NASA FIRMS.`: the visible area is wider than 90 degrees of longitude or taller than 60 degrees of latitude.
   - `NASA FIRMS returned too much data for this area. Zoom in and refresh again.` and `Too many FIRMS detections for this area. Zoom in and refresh again.`: the area has too many detections; zoom in.
   - `NASA FIRMS refresh failed. Existing layer data was preserved.`: the request failed; the points already shown stay.

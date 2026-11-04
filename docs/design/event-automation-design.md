@@ -124,7 +124,7 @@ Out of scope: any service, scheduled task, startup registration or hidden proces
 **Other observations**
 
 - `GetEventsAsync` loads every Event without paging and sorts in memory (`SqliteEventStore.cs:15-23`). The frontend renders all of them. This matters for volume (section 11). (**As built:** since Slice 2B, `events.list` uses the windowed native query (`EventWindowService` and `SqliteEventStore.QueryEventWindowAsync`), capped at 2,000 Events, and the selected Event is kept in the window when it matches the criteria. `GetEventsAsync` remains, but only tests call it.)
-- The FIRMS key is read from the process environment variable `GEOPOLITICALMONITOR_FIRMS_MAP_KEY` (`MainWindow.xaml.cs:111`).
+- The FIRMS key was read from the process environment variable `GEOPOLITICALMONITOR_FIRMS_MAP_KEY` when this design was written. It is now resolved for each request: a key entered in the native key dialog (Windows Credential Manager) wins, and the environment variable is the fallback (`FirmsKeyResolver`).
 
 ### 2.2 Differences between the handoff doc and the code
 

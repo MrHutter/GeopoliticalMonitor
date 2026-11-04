@@ -97,7 +97,14 @@ The legend lists the Event categories and the severity size scale. While the mat
 - **Area limit:** the visible area may span at most 90 degrees of longitude and 60 degrees of latitude. Otherwise the app asks you to `Zoom in to a smaller area before refreshing NASA FIRMS.`
 - **Point popup:** click a point to see its acquisition time, satellite, confidence, fire radiative power, day or night, and coordinates.
 - **Not stored:** FIRMS points are never saved, and they are not Events.
-- **No key:** without a MAP_KEY, the refresh shows `NASA FIRMS is not configured.`
+- **Key:** set it in Settings, Data sources, with `Set key...` (see [setup and configuration](setup-and-configuration.md#nasa-firms)). The status there reads `Not configured`, `Configured (set in app)` or `Configured (environment variable)`, and warns when the key in use is not 32 hexadecimal characters. A key set or removed there applies at the next refresh, without a restart.
+- **Messages:** a failed refresh always keeps the points already shown.
+  - `NASA FIRMS is not configured. Set a key in Settings, Data sources.`: no key is set; nothing was sent.
+  - `NASA FIRMS rejected the key. ...`: NASA says the key is invalid. Check it in Settings, Data sources, or set it again. If the message adds that the key is not 32 hexadecimal characters, the key in use has the wrong format.
+  - `NASA FIRMS reported too many requests for this key. ...`: NASA's request limit for the key was reached. Wait a few minutes and refresh again.
+  - `NASA FIRMS did not respond in time. ...`: no answer within 15 seconds. Refresh again later.
+  - `NASA FIRMS did not accept a requested VIIRS product. ...`: a satellite product is not available from NASA right now. Refresh again later.
+  - `NASA FIRMS refresh failed. ...`: any other failure.
 
 ## Provider status and manual refresh
 
@@ -114,7 +121,7 @@ Open Settings with the gear button. It has three sections:
 
 - **Accent theme:** `Orange` (default), `Blue`, `Red`, `Green` or `Yellow`. The choice applies at once and is saved.
 - **Application:** the app's name, shell, UI host, persistence, and whether inbound ports are required (`None required`).
-- **Data sources:** the UCDP attribution: source, citation, funding acknowledgement and license.
+- **Data sources:** the NASA FIRMS key status with `Set key...` and `Remove key` (see [NASA FIRMS](#nasa-firms)), and the UCDP attribution: source, citation, funding acknowledgement and license.
 
 ## Social pane (X and Bluesky)
 
@@ -151,7 +158,7 @@ For Bluesky the ad blocker is optional and off by default: the Bluesky pane show
 
 ## What needs a restart
 
-- A new or changed FIRMS key: the app reads it only at startup.
+- A new or changed FIRMS key in the `GEOPOLITICALMONITOR_FIRMS_MAP_KEY` environment variable: the running app keeps the environment it was started with. A key set or removed in Settings applies without a restart.
 - Some ad blocker operations: the dialog's message says so when a restart is needed.
 
 Accent theme, the pane side, the pane width and the selected website apply immediately.

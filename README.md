@@ -42,7 +42,7 @@ The app runs only while its window is open. Closing the window ends it.
 
 ## NASA FIRMS key
 
-The fire and thermal anomaly layer needs a free NASA FIRMS MAP_KEY, passed in the `GEOPOLITICALMONITOR_FIRMS_MAP_KEY` environment variable before launch. Without a key everything else works, and Refresh FIRMS reports that NASA FIRMS is not configured without sending a request. See [NASA FIRMS](docs/guide/setup-and-configuration.md#nasa-firms) in the setup guide.
+The fire and thermal anomaly layer needs a free NASA FIRMS MAP_KEY. Set it in the app under Settings, Data sources, with `Set key...`: a Windows dialog stores it in Windows Credential Manager for your Windows account. The `GEOPOLITICALMONITOR_FIRMS_MAP_KEY` environment variable still works as a fallback. Without a key everything else works, and Refresh FIRMS reports that NASA FIRMS is not configured without sending a request. See [NASA FIRMS](docs/guide/setup-and-configuration.md#nasa-firms) in the setup guide.
 
 ## Data sources
 
@@ -64,7 +64,7 @@ Details, freshness, attribution and limits: [data sources](docs/guide/data-sourc
 - The app opens no inbound network ports. It installs no Windows service, scheduled task or startup entry, and leaves no background process running after its window closes.
 - Provider requests happen only while the app is open, on its in-app timer or when you ask for them.
 - The social pane shows the normal X website or the normal Bluesky website, each in its own isolated browser view with its own profile. Neither has a connection to the app's internal message bridge, and the app does not scrape, read or inject anything into X or Bluesky pages. Nothing from Bluesky is attached to Events.
-- The FIRMS key is read from the environment at startup and is never stored, shown or sent to the user interface.
+- The FIRMS key is entered only in a Windows dialog and stored only in Windows Credential Manager, or read from the environment variable. It is never shown again, never sent to the user interface, and never written to the database, logs or backups of the `Data` folder.
 
 Vulnerability reports: [SECURITY.md](SECURITY.md). Third-party components and data licenses: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
