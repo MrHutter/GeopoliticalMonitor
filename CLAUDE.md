@@ -5,12 +5,12 @@ Northern Monitor (display name; internal identifiers keep GeopoliticalMonitor) i
 
 @AGENTS.md
 
-(Keep this import if AGENTS.md stays the single source of truth shared with Codex/ChatGPT. Everything below is either a Claude-Code-specific addition or a restatement of rules important enough to never depend on being "read elsewhere.")
+(Keep this import if AGENTS.md stays the single source of truth shared with Claude in a chat (drafting and reviewing tasks) and Claude Code (executing them). Everything below is either a Claude-Code-specific addition or a restatement of rules important enough to never depend on being "read elsewhere.")
 
 ## Every task, no exceptions
 1. Read AGENTS.md (above) and any nested AGENTS.md in the area you're touching, in full, before doing anything else.
 2. Recover fresh repo truth first: branch, exact full HEAD SHA + subject, `git status`, staged/untracked files, remotes/upstream. Do not trust this file, or any handoff doc, for current state — they go stale.
-3. This repo assumes multiple coding tools (Codex, ChatGPT-as-coordinator, Claude Code) may work on it. Default is single writer per overlapping area. Check the current dirty worktree before touching anything, and never reset, stash, clean, discard, commit, or push work you didn't create — without the owner's explicit request.
+3. Workflow: Claude in a chat drafts and reviews tasks; Claude Code executes them; the owner reviews and manually accepts, and commits happen only on the owner's explicit request. Check the current dirty worktree before touching anything, and never reset, stash, clean, discard, commit, or push work you didn't create — without the owner's explicit request.
 4. When you finish a task that another tool or a future session will continue, report: exact files changed and why, exact test commands/results, and final `git status` + a concise diff summary. Don't assume a future session will trust your summary blindly — it should verify against fresh repo state itself, and so should you when picking up someone else's work.
 5. Never commit or push unless the owner explicitly asks, in that specific request.
 
@@ -22,9 +22,9 @@ Northern Monitor (display name; internal identifiers keep GeopoliticalMonitor) i
 - `SourceItem != Event`. Don't collapse that distinction to make a task simpler.
 
 ## Current status (verify against fresh repo state — this goes stale fast)
-- Working repository: `C:\Dev\GeopoliticalMonitor-github`, branch `main`, with a private GitHub remote (`origin`, MrHutter/GeopoliticalMonitor). History begins at the single initial commit `1222d52`; older history exists only in the owner's local archive repository. The repo is not yet intended to be public.
+- Remote: the GitHub repository `MrHutter/GeopoliticalMonitor` (`origin`), branch `main`. Only the owner pushes.
 - Event automation Slice 1 (`46db700`, severity and provider identity), Slice 2 (`0dba536`, GDACS refresh scheduler and provider status), Slice 2B (`ee5d89d`, native Event list windowing, cap 2,000) and Slice 3 (`49c008c`, UCDP Candidate provider) are implemented. Dashboard layout: layout fix `3e94b4a`, density pass `c24f6d0`, scaling pass `e98a51f`.
-- Slice 4 (demo data removal, `1eaee7e`) is implemented. The conflict and tension reference layer is implemented as a draft (`1eaee7e`, data update `9476579`; every entry stays `ownerReviewed: false` until the owner approves it; design: `docs/design/conflict-tension-layer-design.md`).
+- Slice 4 (demo data removal, `1eaee7e`) is implemented. The conflict and tension reference layer is implemented (`1eaee7e`, data update `9476579`; the current entries were reviewed by the owner on 2026-11-04, and new or changed entries start as `ownerReviewed: false` until the owner approves them; design: `docs/design/conflict-tension-layer-design.md`).
 - GDELT "find recent reports" (replacement Slice 5) is parked after the owner's 2026-10-02 test returned HTTP 429 for every request, and GDELT as an Event creator is blocked; slices 6 and 7 are not started. See the event automation design.
 - Display name: Northern Monitor (`ProductIdentity.DisplayName`, and the Desktop project's Product and AssemblyTitle). Internal identifiers keep GeopoliticalMonitor: the `%LOCALAPPDATA%\GeopoliticalMonitor` data folder, the trusted origin, the `GEOPOLITICALMONITOR_FIRMS_MAP_KEY` environment variable, the executable, namespaces and the repository.
 - Social pane: the user switches the isolated pane between the X and Bluesky websites. Each has its own WebView2 profile (`WebView2\XBrowser`, `WebView2\BlueskyBrowser`) and its own verified managed ad blocker copy and binding (`Extensions\AdBlock\Current`, `Extensions\AdBlockBluesky\Current`). Rules: AGENTS.md, Bluesky Website Pane Rules.
@@ -32,7 +32,7 @@ Northern Monitor (display name; internal identifiers keep GeopoliticalMonitor) i
 - The work queue is kept in the owner's handoff and the design docs; this file does not list next candidates.
 - Event automation design, slice plan and owner decisions: `docs/design/event-automation-design.md`.
 - Documentation index: docs/README.md; user-facing docs must stay current (AGENTS.md, Documentation maintenance).
-- Full context for anything deeper — Git history, domain model, FIRMS/AdBlock design detail, roadmap, publication audit findings — lives in `docs/Geopolitical_Monitor_Migration_b4c2617_2026-09-29.md`. Read the relevant section when a task actually needs that detail rather than assuming it's all loaded here.
+- Deeper context (domain model, FIRMS and ad blocker design detail) lives in the design and architecture documents listed in docs/README.md. Read the relevant document when a task actually needs that detail rather than assuming it's all loaded here.
 
 ## Manual testing
 Always give the exact current PowerShell launch command for the owner to test with — confirm the actual `bin/` build output path rather than reusing one from an older doc.
