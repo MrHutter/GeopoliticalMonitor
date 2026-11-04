@@ -84,7 +84,7 @@ Layer toggles:
 - **`NASA FIRMS — Fire / Thermal Anomalies`:** fire and thermal detection points. Off by default; see the FIRMS section below.
 - **`Infrastructure`:** marked `Pending` and has no data yet.
 
-The conflict and tension entries are assessed, owner-curated reference material, not verified facts. Click an area where no marker or point is to open a popup with the entry's name, class, parties, basis and as-of date. While an entry is unreviewed, the popup says `Draft, not yet reviewed by the owner`; currently every entry is a draft. The layer never creates or selects Events.
+The conflict and tension entries are assessed, owner-curated reference material, not verified facts. Click an area where no marker or point is to open a popup with the entry's name, class, parties, basis and as-of date. A reviewed entry's popup says `Assessed, owner-curated`; an entry not yet reviewed would say `Draft, not yet reviewed by the owner`. Every current entry has been reviewed. The layer never creates or selects Events.
 
 The legend lists the Event categories and the severity size scale. While the matching layers are on, it also shows `Armed conflict (approx.)`, `Elevated tension` and the FIRMS detection ages.
 

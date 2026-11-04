@@ -61,7 +61,7 @@ The app keeps two kinds of records apart. An **Event** is a real-world occurrenc
 - **Freshness:** static. It changes only when the bundled file is edited; each entry names its basis and an as-of date.
 - **Key:** none. Bundled with the app; no network use.
 - **Creates:** map shading and popups only. It never creates or selects Events.
-- **Status:** the entries are assessed and owner-curated. Every current entry is a draft not yet reviewed by the owner, and its popup says so. The armed-conflict polygons are rough outlines drawn by an AI assistant for owner review from general geographic knowledge; no third-party dataset or tracker geometry was used. Treat the layer as orientation, not verified fact.
+- **Status:** the entries are assessed and owner-curated. Every current entry has been reviewed by the owner, and its popup says `Assessed, owner-curated`. The armed-conflict polygons are rough outlines drawn by an AI assistant from general geographic knowledge; no third-party dataset or tracker geometry was used. The owner reviewed them on 2026-11-04. Treat the layer as orientation, not verified fact.
 
 ## Basemap
 
@@ -72,10 +72,10 @@ The app keeps two kinds of records apart. An **Event** is a real-world occurrenc
 
 ## ReliefWeb
 
-Dormant by owner decision. The code for searching and attaching ReliefWeb reports to an Event remains. It needs an approved ReliefWeb `appname` that will not be requested, so it stays unconfigured and makes no requests. Search and attachment report `ReliefWeb integration is not configured.`
+Not active and not configured by default. The code for searching and attaching ReliefWeb reports to an Event remains. It needs an approved ReliefWeb `appname` that will not be requested, so it stays unconfigured and makes no requests. Search and attachment report `ReliefWeb integration is not configured.`
 
 ## Not used
 
 - **GDELT as an Event source:** blocked. The owner's testing of GDELT 2.0 exports found too few usable records under strict rules.
-- **GDELT search for related reports:** parked. Requests from the owner's network were rejected as rate-limited during testing.
+- **GDELT search for related reports:** parked. Requests were rejected as rate-limited during testing.
 - **ACLED:** out of scope, because of its access and license terms.

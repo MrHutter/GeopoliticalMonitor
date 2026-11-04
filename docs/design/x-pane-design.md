@@ -227,7 +227,7 @@ No key for auto-collapse (it is transient) and none for the ad blocker line (com
    - Risk to X: low.
    - Manual acceptance: attach a handle URL and a DID URL; a duplicate on the same Event; the same URL on another Event; the `Posts` tab lists both providers.
 5. **Instruction and architecture documentation.**
-   - Scope: AGENTS.md (the section 4 wording), README, `docs/architecture/*`, the migration handoff note, this document's "As built".
+   - Scope: AGENTS.md (the section 4 wording), README, `docs/architecture/*`, this document's "As built".
    - Migration and backup: no. Risk: none.
    - Reviewed separately, like every instruction-file change.
 

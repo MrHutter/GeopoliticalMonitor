@@ -77,7 +77,7 @@ Vulnerability reports: [SECURITY.md](SECURITY.md).
   They include source guards for security rules, for example that only the app's own WebView is wired to the bridge, and that only the FIRMS client and the key store can read a key's value.
 - **Builds:** zero compiler and analyzer warnings, with code-style analysis enforced in the build.
 - **Documentation:** user-facing documents carry a stamp naming the commit they were last checked against; see the [documentation index](docs/README.md).
-- **AI-assisted development:** development uses AI coding agents working under the repository's instruction files ([AGENTS.md](AGENTS.md), [CLAUDE.md](CLAUDE.md)), with human review and manual acceptance of every change.
+- **AI-assisted development:** development uses AI coding agents working under the repository's instruction files ([AGENTS.md](AGENTS.md), [CLAUDE.md](CLAUDE.md)), with human review of every change and manual acceptance of behavior changes.
 
 ## Requirements, build and run
 
@@ -150,9 +150,9 @@ The social pane must be empty or blurred in every screenshot.
 | UCDP Candidate | Monthly conflict Events, about 20 to 50 days old | Nothing; checked while the app is open |
 | NASA FIRMS | Transient fire and thermal points for the visible map area, never stored | A free MAP_KEY |
 | X | Posts you attach to an Event by pasting their URL | Your own X login in the X pane |
-| Conflict and tension layer | Owner-curated reference areas on the map; all entries are drafts | Nothing; bundled |
+| Conflict and tension layer | Curated reference areas on the map; all entries have been reviewed | Nothing; bundled |
 | Natural Earth basemap | The bundled world map | Nothing; bundled |
-| ReliefWeb | Not active (dormant by owner decision) | Nothing to set up |
+| ReliefWeb | Not active; not configured by default | Nothing to set up |
 
 Details, freshness, attribution and limits: [data sources](docs/guide/data-sources.md). Third-party components and data licences: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 

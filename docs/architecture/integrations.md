@@ -34,7 +34,7 @@ Failed responses are classified into bounded categories from observed behavior: 
 
 ## ReliefWeb Reports
 
-ReliefWeb is a report-discovery boundary for an already selected Event. It is dormant by owner decision: the code stays in place, but no `appname` will be requested, so it makes no requests. An explicit native POST to `https://api.reliefweb.int/v2/reports` searches title, disaster name, and country name with a `date.original` range, an optional exact ISO3 filter, explicit metadata fields, `limit = 20`, and `offset = 0`. Candidates are transient and never create Events, SourceItems, associations, or map points by themselves.
+ReliefWeb is a report-discovery boundary for an already selected Event. It is not active and not configured by default: the code stays in place, but no `appname` will be requested, so it makes no requests. An explicit native POST to `https://api.reliefweb.int/v2/reports` searches title, disaster name, and country name with a `date.original` range, an optional exact ISO3 filter, explicit metadata fields, `limit = 20`, and `offset = 0`. Candidates are transient and never create Events, SourceItems, associations, or map points by themselves.
 
 Attachment accepts only Event ID and ReliefWeb report ID, then retrieves `GET /v2/reports/{id}` and revalidates the authoritative metadata. It persists one immutable `Other` SourceItem identified by `src-reliefweb-report-{reportId}` / `ReliefWeb:Report:{reportId}` and reuses it across Events. Text is a bounded metadata summary; canonical URL, original publication date, and contributing source organizations are retained. Bodies, HTML, PDFs, files, images, and arbitrary provider JSON are excluded.
 

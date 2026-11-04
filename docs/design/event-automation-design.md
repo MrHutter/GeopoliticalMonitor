@@ -18,7 +18,7 @@ Values marked **PROPOSED** are approved as starting values and will be revisited
 | Slice 6: Cross-provider deduplication | Not started; matters only if a second conflict source is added, so reassess before starting | — |
 | Slice 7: Alert integration | Not started | — |
 
-The baseline named in the status line above and the findings in section 2 describe the code before implementation began. Line numbers in section 2 refer to `e30d955` and have since moved, so use the file names. **As built** notes mark where the implementation differs from the text. Owner decisions, thresholds and later slices are unchanged, except that GDELT Event creation (section 5.2 and Slice 5) was blocked on 2026-10-02, which makes Q3 and Q7 moot. ReliefWeb is dormant by owner decision: no appname will be requested, and its code stays in place with zero network requests.
+The baseline named in the status line above and the findings in section 2 describe the code before implementation began. Line numbers in section 2 refer to `e30d955` and have since moved, so use the file names. **As built** notes mark where the implementation differs from the text. Owner decisions, thresholds and later slices are unchanged, except that GDELT Event creation (section 5.2 and Slice 5) was blocked on 2026-10-02, which makes Q3 and Q7 moot. ReliefWeb is not active and not configured by default: no appname will be requested, and its code stays in place with zero network requests.
 
 ---
 
@@ -126,11 +126,11 @@ Out of scope: any service, scheduled task, startup registration or hidden proces
 - `GetEventsAsync` loads every Event without paging and sorts in memory (`SqliteEventStore.cs:15-23`). The frontend renders all of them. This matters for volume (section 11). (**As built:** since Slice 2B, `events.list` uses the windowed native query (`EventWindowService` and `SqliteEventStore.QueryEventWindowAsync`), capped at 2,000 Events, and the selected Event is kept in the window when it matches the criteria. `GetEventsAsync` remains, but only tests call it.)
 - The FIRMS key was read from the process environment variable `GEOPOLITICALMONITOR_FIRMS_MAP_KEY` when this design was written. It is now resolved for each request: a key entered in the native key dialog (Windows Credential Manager) wins, and the environment variable is the fallback (`FirmsKeyResolver`).
 
-### 2.2 Differences between the handoff doc and the code
+### 2.2 Differences between earlier project notes and the code
 
-The code is treated as the authority. References are to sections of `docs/Geopolitical_Monitor_Migration_b4c2617_2026-09-29.md`.
+The code is treated as the authority. The section numbers refer to earlier internal project notes, which are not part of this repository.
 
-| Handoff says | Code shows |
+| Earlier notes said | Code shows |
 | :- | :- |
 | §14 lists categories with Economic before NaturalDisaster | Enum order is NaturalDisaster, Economic (`EventCategory.cs:11-12`). Stored as strings, so no functional impact. |
 | §18 and §21 imply provider identity is a modelled concept | Identity exists only as ID and ExternalId string prefixes; there are no provider columns. |
@@ -231,11 +231,11 @@ Nothing waits on shutdown and nothing outlives the window.
 
 ### 3.5 Permanent rules versus relaxed slice rules
 
-None of this violates the permanent rules (handoff §7, AGENTS.md). There is no inbound port, service, scheduled task, startup registration, registry autorun or hidden process. The timer is an in-process task owned by the main window and cancelled when it closes. Networking stays native, uses fixed hosts, and applies timeouts, response caps and cancellation.
+None of this violates the permanent rules (AGENTS.md). There is no inbound port, service, scheduled task, startup registration, registry autorun or hidden process. The timer is an in-process task owned by the main window and cancelled when it closes. Networking stays native, uses fixed hosts, and applies timeouts, response caps and cancellation.
 
 The following **slice-level** rules from the accepted GDACS and Alerts slices are deliberately relaxed. They were acceptance criteria for manual-first slices, not permanent security rules:
 
-| Slice rule (handoff) | Relaxed to |
+| Earlier slice rule | Relaxed to |
 | :- | :- |
 | GDACS: "no startup refresh", "no startup networking" | The first automatic refresh starts shortly after the UI signals ready, never before the window exists. |
 | GDACS: "no polling", "no background task" | Interval refresh by an in-process timer, only while the window is open. |
@@ -432,7 +432,7 @@ The approach is rule-based and deterministic. GDACS is excluded, because natural
 
 **Recommendation: keep the Slice 1 semantics and extend them minimally.**
 
-1. `GdacsEventMateriallyUpdated` fires on timer refreshes as well as manual ones. The code already does this once there is a second caller; the handoff wording changes.
+1. `GdacsEventMateriallyUpdated` fires on timer refreshes as well as manual ones. The code already does this once there is a second caller.
 2. Add `UcdpEventMateriallyUpdated`, using the same material-field rule with the newer-release revision.
 3. Add `SeverityIncreased`, for watchlisted Events whose recomputed severity rises from any curated provider (GDACS or UCDP). It is keyed on (rule, Event, provider revision) through the existing unique index (`GeopoliticalMonitorDbContext.cs:146`).
 4. **GDELT never creates Alerts** in this design; the data is too noisy.
@@ -645,7 +645,7 @@ Required before Slice 3. The first UCDP import can create up to 5,000 Events, bu
 
 ### Slice 5 (replacement): Find recent reports
 
-> **Parked (2026-10-02).** On 2026-10-02 the owner's requests to the GDELT DOC API at `api.gdeltproject.org` all returned HTTP 429 with a message asking for at most one request every 5 seconds, including requests 30 seconds apart and after a waiting period, from the owner's network. The documented limit therefore does not match what was enforced. A parse of other responses showed that errors can also arrive as HTTP 200 `text/html`. Revisit only if that behavior changes. No decision or later slice changes.
+> **Parked (2026-10-02).** On 2026-10-02 test requests to the GDELT DOC API at `api.gdeltproject.org` all returned HTTP 429 with a message asking for at most one request every 5 seconds, including requests 30 seconds apart and after a waiting period. The documented limit therefore does not match what was enforced. A parse of other responses showed that errors can also arrive as HTTP 200 `text/html`. Revisit only if that behavior changes. No decision or later slice changes.
 
 - **Status:** not implemented.
 - **Scope:** an explicit user action on a selected Event. The native host runs one GDELT DOC 2.0 search (`api.gdeltproject.org`, https only, free, no key, about a three-month window, at most one request per five seconds, up to 250 articles). Errors may arrive as HTTP 200 plain text and must be recognised as errors. Results are transient candidates (title, URL, domain, date, language) shown to the user; an explicit Attach creates a SourceItem and its association with the Event. Nothing is created automatically. Citation to the GDELT Project is required.

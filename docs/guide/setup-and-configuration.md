@@ -116,7 +116,7 @@ Never paste the key into documents, issues or chat.
 
 - **UCDP Candidate:** no key or account. The required citation, funding acknowledgement and CC BY 4.0 license are shown in the app (Settings, Data sources, and the Details of each UCDP Event) and in [data sources](data-sources.md#ucdp-candidate).
 - **GDACS:** no key or account.
-- **ReliefWeb:** dormant by owner decision. No setup is needed, and the app makes no ReliefWeb requests.
+- **ReliefWeb:** not active and not configured by default. No setup is needed, and the app makes no ReliefWeb requests.
 
 ## X and Bluesky login
 

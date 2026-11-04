@@ -2,7 +2,7 @@
 
 Every document in the repository, who it is for and what it covers.
 
-The app's display name is "Northern Monitor", decided on 2026-10-06. It is centralized in `ProductIdentity`. The code, the data folder (`%LOCALAPPDATA%\GeopoliticalMonitor`), the executable and the repository keep the identifier `GeopoliticalMonitor` on purpose. The trademark screening result is yellow: the name is not cleared.
+"Northern Monitor" is the app's working title and display name. It is centralized in `ProductIdentity`. The code, the data folder (`%LOCALAPPDATA%\GeopoliticalMonitor`), the executable and the repository keep the identifier `GeopoliticalMonitor` on purpose.
 
 ## User-facing documents
 
@@ -37,7 +37,6 @@ These record design work and history. They may describe plans that are not imple
 
 | Document | Audience | Covers |
 |---|---|---|
-| [Geopolitical_Monitor_Migration_b4c2617_2026-09-29.md](Geopolitical_Monitor_Migration_b4c2617_2026-09-29.md) | Internal | Migration handoff: history, domain model, decisions and roadmap; later changes are marked as superseded notes |
 | [architecture/system-overview.md](architecture/system-overview.md) | Developer | Desktop runtime, layers and hosting model |
 | [architecture/data-model.md](architecture/data-model.md) | Developer | Event, Source and related data model notes |
 | [architecture/integrations.md](architecture/integrations.md) | Developer | Provider integrations in technical detail |

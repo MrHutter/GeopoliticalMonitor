@@ -1,6 +1,6 @@
 # Conflict and Tension Reference Layer Design
 
-Status: design, decided with the owner; implemented as drafts in `1eaee7e` and updated in `9476579` (see sections 10 and 11); every entry awaits owner review. Written 2026-10-02.
+Status: design, decided with the owner; implemented in `1eaee7e` and updated in `9476579` (see sections 10 and 11); the owner reviewed and accepted all 14 entries on 2026-11-04 (section 12). Written 2026-10-02.
 
 This document records the owner's decisions for a map reference layer that shows where armed conflicts and elevated tensions are, as assessed by the owner. Entries are reference material, not Events.
 
@@ -76,7 +76,7 @@ Every label, legend line and popup uses a plain description of what happened. On
 ## 8. Open items
 
 - The exact country list for the "Russian attacks on Europe" entry, per source.
-- The approximate conflict polygons, for owner review.
+- The approximate conflict polygons, for owner review (closed on 2026-11-04, section 12).
 - The legend entries.
 
 ## 9. Not part of this layer
@@ -85,7 +85,7 @@ The Aircraft, Internet outages and Naval toggles are hidden behind `showPlacehol
 
 ## 10. As built (2026-10-02, `1eaee7e`)
 
-**Data file:** `src/frontend/src/data/conflictTensionLayer.json`, bundled with the frontend. Top level: `schemaVersion` (1), `fileVersion` (1), `updated` (ISO date) and `entries`. Each entry has the fields in section 1; `parties` is an array of plain strings, `basis` is one plain sentence without URLs, and `asOf` is an ISO date. `armed_conflict` geometry is a GeoJSON Polygon (counter-clockwise exterior ring, `[lon, lat]` rounded to 2 decimals, at most 30 vertices, no antimeridian crossing). `elevated_tension` geometry is an array of ISO 3166-1 alpha-3 country codes, resolved to the bundled Natural Earth countries through one mapping in `src/frontend/src/features/map/conflictTensionLayer.ts`. A test validates the whole file.
+**Data file:** `src/frontend/src/data/conflictTensionLayer.json`, bundled with the frontend. Top level: `schemaVersion` (1), `fileVersion` (1), `updated` (ISO date) and `entries`. Each entry has the fields in section 1; `parties` is an array of plain strings, `basis` is one line of plain text without URLs, and `asOf` is an ISO date. `armed_conflict` geometry is a GeoJSON Polygon (counter-clockwise exterior ring, `[lon, lat]` rounded to 2 decimals, at most 30 vertices, no antimeridian crossing). `elevated_tension` geometry is an array of ISO 3166-1 alpha-3 country codes, resolved to the bundled Natural Earth countries through one mapping in `src/frontend/src/features/map/conflictTensionLayer.ts`. A test validates the whole file.
 
 **Implementation details added beyond section 1:**
 
@@ -93,13 +93,13 @@ The Aircraft, Internet outages and Naval toggles are hidden behind `showPlacehol
 - `countryCodes` on every `armed_conflict` entry: the countries whose territory its polygons cover, used only for the precedence rule in section 3 (not the parties).
 - `approximate: true` on every polygon entry.
 
-**Status of every entry:** all twelve entries are drafts (`ownerReviewed: false`, `asOf` 2026-10-02). The six conflict polygons are rough hulls drawn by an AI assistant for owner review from general geographic knowledge; no third-party dataset or tracker geometry was used.
+**Status of every entry at that time:** all twelve entries were drafts (`ownerReviewed: false`, `asOf` 2026-10-02); section 12 records the later review. The six conflict polygons are rough hulls drawn by an AI assistant for owner review from general geographic knowledge; no third-party dataset or tracker geometry was used.
 
 **Precedence result:** Israel-Iran is fully suppressed (Israel and Iran are covered by conflict entries). The tinted countries are the 22 countries of "Russian attacks on Europe", plus India, Pakistan, Afghanistan, China, Taiwan, North Korea and South Korea.
 
 **"Russian attacks on Europe" country check (2 October 2026):** a country is listed when at least one agreed source that could be read lists it. Read: the Sahaidachnyi Security Center article on its tracker (the tracker page itself did not show its data), the ICCT and GLOBSEC update, the AP map report, and the IISS paper (country labels in its incident chart). The ISW map could not be read directly and was checked through Newsweek's reproduction of it. Listed: Albania, Bulgaria, Czechia, Denmark, Estonia, Finland, France, Germany, Greece, Italy, Latvia, Lithuania, Moldova, Netherlands, Norway, Poland, Romania, Slovakia, Spain, Sweden, United Kingdom and the United States. Moldova rests only on the ISW map as reproduced by Newsweek. Countries the sources name outside the EU and NATO (and Ukraine, Russia and Belarus) are not listed.
 
-**Remaining open items:** owner review of every polygon and every entry, including the country list above; the sources' tiers (officially attributed or fitting the pattern) are not shown in this version.
+**Remaining open item:** the sources' tiers (officially attributed or fitting the pattern) are not shown in this version. Owner review of every polygon and every entry, including the country list above, is recorded in section 12.
 
 ## 11. Update 2026-10-02 (`9476579`)
 
@@ -112,4 +112,8 @@ These changes follow owner decisions of 2026-10-02; the decisions recorded above
 - **Display:** the map toolbar's column gap is 6 px (was 8 px), and the conflict legend swatch reads "Armed conflict (approx.)".
 - **Tinted countries now:** the 22 countries of "Russian attacks on Europe", Belarus, Saudi Arabia, the United Arab Emirates, Kuwait, Qatar, Oman, Jordan, India, Pakistan, Afghanistan, China, Taiwan, North Korea and South Korea. Israel-Iran stays suppressed; Russia and Ukraine are never tinted.
 
-**Remaining open items:** owner review of every entry and polygon; whether the conflict area should cover all of Ukraine; whether the Iran and Myanmar extents are right.
+**Items closed by the owner review (section 12):** review of every entry and polygon; whether the conflict area should cover all of Ukraine; whether the Iran and Myanmar extents are right.
+
+## 12. Owner review (2026-11-04)
+
+The owner reviewed all 14 entries on 2026-11-04 and accepted them as they are. `ownerReviewed` is `true` on every entry, so popups show "Assessed, owner-curated". No entry's name, class, parties, geometry, country codes or `asOf` changed. The `basis` of 11 entries changed to record this review: the 6 polygon entries now begin "Polygon drawn by an AI assistant from general geographic knowledge" and end with the separate sentence "Reviewed by the owner on 2026-11-04.", and the 5 tension entries now say "reviewed by the owner on 2026-11-04".
