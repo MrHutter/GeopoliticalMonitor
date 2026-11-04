@@ -75,6 +75,8 @@ Persisted v0.1 data currently includes the `AccentTheme`, `XPaneWidth`, and `XPa
 
 Narrow exception: the approved design `docs/design/event-automation-design.md` is the authority for timer-based provider refresh while the application is open, implemented by the in-process native `ProviderRefreshScheduler` that starts after the UI is ready and stops when the main window closes. Nothing runs when the application is closed. This does not authorize any Windows Service, scheduled task, startup registration, hidden process, inbound port, or app-closed activity, and it does not authorize providers beyond those the design names (GDACS, UCDP Candidate, GDELT), each only in its approved slice.
 
+Provider API keys may be stored only in native OS-protected storage tied to the owner's Windows account, and entered only through a native desktop dialog. A key must never enter React, localStorage, sessionStorage, SQLite, bridge messages, logs, Events, Sources or any committed file. The bridge may carry only a key status (configured or not, and its source), never the key. Keys are used only by native provider clients for requests to their fixed official hosts. This does not authorize a general secret-management framework, a generic credential bridge, or any key storage outside this mechanism.
+
 The X website pane uses normal WebView2 browser profile state under `%LOCALAPPDATA%\GeopoliticalMonitor\WebView2\XBrowser`. Session cookies may persist there as browser state only. Do not read those cookies for application logic.
 
 Do not place runtime databases or WebView2 profiles in the repository root, frontend assets, installation directory, or OneDrive by design.
