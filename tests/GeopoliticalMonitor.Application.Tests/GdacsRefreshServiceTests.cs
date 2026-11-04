@@ -21,16 +21,16 @@ public sealed class GdacsRefreshServiceTests
         Assert.Equal(Now.AddDays(-4), feed.FromUtc);
         Assert.Equal(Now, feed.ToUtc);
         var import = Assert.Single(store.Imports!);
-        Assert.Equal("evt-gdacs-eq-1500811", import.Event.Id.Value);
+        Assert.Equal("evt-gdacs-eq-9000001", import.Event.Id.Value);
         Assert.Equal(EventCategory.NaturalDisaster, import.Event.Category);
         Assert.Equal(EventStatus.Unverified, import.Event.Status);
         Assert.Equal(CreateRecord().StartedAtUtc, import.Event.StartedAtUtc);
         Assert.Equal(CreateRecord().ProviderUpdatedAtUtc, import.Event.LastUpdatedAtUtc);
         Assert.Equal(53.1928, import.Event.Location.Latitude);
         Assert.Equal(160.5129, import.Event.Location.Longitude);
-        Assert.Equal("src-gdacs-eq-1500811-1661062", import.Source.Id.Value);
+        Assert.Equal("src-gdacs-eq-9000001-9100001", import.Source.Id.Value);
         Assert.Equal(SourceType.DatasetRecord, import.Source.SourceType);
-        Assert.Equal("GDACS:EQ:1500811:1661062", import.Source.ExternalId);
+        Assert.Equal("GDACS:EQ:9000001:9100001", import.Source.ExternalId);
         Assert.Equal(CreateRecord().ProviderUpdatedAtUtc, import.Source.PublishedAtUtc);
         Assert.Equal(Now, import.Source.RetrievedAtUtc);
         Assert.Equal(GdacsRefreshService.Attribution, import.Source.AuthorDisplayName);
@@ -52,7 +52,7 @@ public sealed class GdacsRefreshServiceTests
         Assert.Equal(GdacsSeverityRule.RuleId, import.Event.SeverityRule);
         Assert.Equal("alert=Orange; magnitude=7.8", import.Event.SeverityInputs);
         Assert.Equal(EventProvider.Gdacs, import.Event.Provider);
-        Assert.Equal("1500811", import.Event.ProviderKey);
+        Assert.Equal("9000001", import.Event.ProviderKey);
 
         Assert.True(GdacsSeverityRule.TryAssessFromProvenanceText(import.Source.Text, out var fromText));
         Assert.Equal(import.Event.SeverityAssessment, fromText);
@@ -105,17 +105,17 @@ public sealed class GdacsRefreshServiceTests
     }
 
     private static GdacsEarthquakeRecord CreateRecord() => new(
-        1500811,
-        1661062,
-        "Earthquake in Russia",
-        "Earthquake in Russia",
+        9000001,
+        9100001,
+        "Earthquake in Testland",
+        "Earthquake in Testland",
         DateTimeOffset.Parse("2025-09-18T18:58:12Z"),
         DateTimeOffset.Parse("2025-09-19T20:01:59Z"),
         "Orange",
         7.8,
         "Russia",
         "RUS",
-        new Uri("https://www.gdacs.org/report.aspx?eventid=1500811&episodeid=1661062&eventtype=EQ"),
+        new Uri("https://www.gdacs.org/report.aspx?eventid=9000001&episodeid=9100001&eventtype=EQ"),
         160.5129,
         53.1928);
 

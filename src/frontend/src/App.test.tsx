@@ -156,9 +156,9 @@ const olderEvent: NativeEvent = {
 
 const gdacsEvent: NativeEvent = {
   ...nativeEvents[0],
-  id: 'evt-gdacs-eq-1500811',
-  title: 'Earthquake in Russia',
-  summary: 'Earthquake in Russia',
+  id: 'evt-gdacs-eq-9000001',
+  title: 'Earthquake in Testland',
+  summary: 'Earthquake in Testland',
   category: 'NaturalDisaster',
   status: 'Unverified',
   startedAtUtc: '2026-09-17T10:00:00Z',
@@ -243,12 +243,12 @@ const firmsFilterResult = {
 };
 
 const gdacsSource: NativeSourceItem = {
-  id: 'src-gdacs-eq-1500811-1661062',
+  id: 'src-gdacs-eq-9000001-9100001',
   sourceType: 'DatasetRecord',
-  externalId: 'GDACS:EQ:1500811:1661062',
-  title: 'Earthquake in Russia - GDACS episode 1661062',
+  externalId: 'GDACS:EQ:9000001:9100001',
+  title: 'Earthquake in Testland - GDACS episode 9100001',
   text: 'Provider: Global Disaster Awareness and Coordination System, GDACS\nGDACS alert level: Orange\nMagnitude: 7.8 M',
-  url: 'https://www.gdacs.org/report.aspx?eventid=1500811&episodeid=1661062&eventtype=EQ',
+  url: 'https://www.gdacs.org/report.aspx?eventid=9000001&episodeid=9100001&eventtype=EQ',
   authorDisplayName: 'Global Disaster Awareness and Coordination System, GDACS',
   publishedAtUtc: '2026-09-17T10:05:00Z',
   retrievedAtUtc: '2026-09-17T12:00:00Z',
@@ -679,15 +679,15 @@ describe('App', () => {
     expect(postMessage).toHaveBeenCalledWith({ type: 'events.list', payload: expect.objectContaining({ range: 'ALL', search: '', minimumSeverity: 'All' }) });
 
     emit({ type: 'events.list.result', payload: { events: [...nativeEvents, gdacsEvent] } });
-    expect(await screen.findByRole('button', { name: /Earthquake in Russia/i })).toHaveTextContent('Natural Disaster');
+    expect(await screen.findByRole('button', { name: /Earthquake in Testland/i })).toHaveTextContent('Natural Disaster');
     await waitFor(() => expect(map.getSource(eventSourceId)?.data).toMatchObject({ features: expect.arrayContaining([
       expect.objectContaining({ properties: expect.objectContaining({ id: gdacsEvent.id, category: 'NaturalDisaster' }), geometry: { type: 'Point', coordinates: [160.5129, 53.1928] } }),
     ]) }));
 
-    fireEvent.click(screen.getByRole('button', { name: /Earthquake in Russia/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Earthquake in Testland/i }));
     fireEvent.click(screen.getByRole('tab', { name: 'Sources' }));
     emit({ type: 'events.sources.result', payload: { eventId: gdacsEvent.id, sources: [gdacsSource] } });
-    expect(await screen.findByText('GDACS:EQ:1500811:1661062')).toBeInTheDocument();
+    expect(await screen.findByText('GDACS:EQ:9000001:9100001')).toBeInTheDocument();
     expect(screen.getByText(/Canonical source: https:\/\/www.gdacs.org/)).toBeInTheDocument();
     expect(screen.getAllByText(/Global Disaster Awareness and Coordination System, GDACS/).length).toBeGreaterThan(0);
   });
@@ -1080,7 +1080,8 @@ describe('App', () => {
       expect(html.match(/<section>/g)).toHaveLength(3);
       expect(html).toContain('Russia-Ukraine');
       expect(html).toContain('India-Pakistan');
-      expect(html).toContain('Draft, not yet reviewed by the owner');
+      expect(html).toContain('Assessed, owner-curated');
+      expect(html).not.toContain('Draft, not yet reviewed by the owner');
       expect(referencePopup.addTo).toHaveBeenCalled();
       expect(screen.getByRole('heading', { name: nativeEvents[0].title })).toBeInTheDocument();
     });
@@ -1189,7 +1190,7 @@ describe('App', () => {
       emit({ type: 'events.list.result', payload: { events: allFixtures() } });
       await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('2 events'));
       expect(screen.getByRole('button', { name: new RegExp(nativeEvents[1].title) })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Earthquake in Russia/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Earthquake in Testland/ })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: new RegExp(nativeEvents[0].title) })).not.toBeInTheDocument();
     });
 
@@ -1428,7 +1429,7 @@ describe('App', () => {
     expect(rows.map((row) => row.textContent)).toEqual([
       expect.stringContaining('Reported security activity'),
       expect.stringContaining('Commercial shipping disruption'),
-      expect.stringContaining('Earthquake in Russia'),
+      expect.stringContaining('Earthquake in Testland'),
       expect.stringContaining('Older economic briefing'),
     ]);
     expect(within(rows[2]).getByText('Critical')).toHaveClass('severity-badge', 'severity-critical');
@@ -1494,7 +1495,7 @@ describe('App', () => {
 
     fireEvent.change(screen.getByPlaceholderText('Search events, locations, keywords...'), { target: { value: 'critical' } });
     await waitFor(() => expect(screen.getByLabelText('event summary')).toHaveTextContent('1 events'));
-    expect(screen.getByRole('button', { name: /Earthquake in Russia/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Earthquake in Testland/i })).toBeInTheDocument();
 
     fireEvent.change(severityFilter, { target: { value: 'All' } });
     fireEvent.change(screen.getByPlaceholderText('Search events, locations, keywords...'), { target: { value: '' } });
@@ -1507,7 +1508,7 @@ describe('App', () => {
     emitAppInfo(emit);
     emit({ type: 'events.list.result', payload: { events: [...nativeEvents, gdacsEvent] } });
 
-    fireEvent.click(await screen.findByRole('button', { name: /Earthquake in Russia/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /Earthquake in Testland/i }));
     const severityBlock = await screen.findByRole('region', { name: 'Severity' });
     expect(severityBlock).toHaveTextContent('GDACS Red alert, magnitude 7.1, Critical');
     expect(severityBlock).toHaveTextContent('Inputs: alert=Red; magnitude=7.1');

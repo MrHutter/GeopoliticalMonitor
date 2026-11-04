@@ -50,13 +50,13 @@ public sealed class GdacsPersistenceTests : IDisposable
         var original = CreateImport();
         await store.PersistGdacsEarthquakesAsync([original], CreatedAt);
 
-        var nextEpisode = CreateImport(episodeId: 1661063);
+        var nextEpisode = CreateImport(episodeId: 9100002);
         var episodeResult = await store.PersistGdacsEarthquakesAsync([nextEpisode], CreatedAt);
         Assert.Equal(0, episodeResult.NewEvents);
         Assert.Equal(1, episodeResult.NewSources);
 
         var newer = CreateImport(
-            episodeId: 1661062,
+            episodeId: 9100001,
             providerUpdatedAt: original.Event.LastUpdatedAtUtc.AddHours(1),
             title: "Corrected earthquake title",
             latitude: 54);
@@ -178,7 +178,7 @@ public sealed class GdacsPersistenceTests : IDisposable
 
         var revisionResult = await store.PersistGdacsEarthquakesAsync([revisionOnly], CreatedAt.AddHours(1));
         var nextEpisode = CreateImport(
-            episodeId: 1661063,
+            episodeId: 9100002,
             providerUpdatedAt: revisionOnly.Event.LastUpdatedAtUtc);
         var episodeResult = await store.PersistGdacsEarthquakesAsync([nextEpisode], CreatedAt.AddHours(2));
 
@@ -337,7 +337,7 @@ public sealed class GdacsPersistenceTests : IDisposable
         Assert.Equal(GdacsSeverityRule.RuleId, persisted.SeverityRule);
         Assert.Equal("alert=Red; magnitude=7.8", persisted.SeverityInputs);
         Assert.Equal("Gdacs", persisted.Provider);
-        Assert.Equal("1500811", persisted.ProviderKey);
+        Assert.Equal("9000001", persisted.ProviderKey);
     }
 
     [Fact]
@@ -389,7 +389,7 @@ public sealed class GdacsPersistenceTests : IDisposable
 
         Assert.Equal(1, result.Conflicts);
         var persisted = await ReadSingleEventAsync(initializer);
-        Assert.Equal("Earthquake in Russia", persisted.Title);
+        Assert.Equal("Earthquake in Testland", persisted.Title);
         Assert.Equal(EventSeverityAssessment.LegacyDefaultRule, persisted.SeverityRule);
         Assert.Equal("Low", persisted.Severity);
     }
@@ -459,7 +459,7 @@ public sealed class GdacsPersistenceTests : IDisposable
             db.WatchlistEvents.Add(new WatchlistEventEntity
             {
                 WatchlistId = watchlistId,
-                EventId = "evt-gdacs-eq-1500811",
+                EventId = "evt-gdacs-eq-9000001",
             });
             await db.SaveChangesAsync();
         }
@@ -486,9 +486,9 @@ public sealed class GdacsPersistenceTests : IDisposable
     }
 
     private static GdacsEarthquakeImport CreateImport(
-        long episodeId = 1661062,
+        long episodeId = 9100001,
         DateTimeOffset? providerUpdatedAt = null,
-        string title = "Earthquake in Russia",
+        string title = "Earthquake in Testland",
         double latitude = 53.1928,
         string alertLevel = "Orange",
         double? magnitude = 6.4)
@@ -496,9 +496,9 @@ public sealed class GdacsPersistenceTests : IDisposable
         var updated = providerUpdatedAt ?? DateTimeOffset.Parse("2025-09-19T20:01:59Z");
         var location = new Location(latitude, 160.5129, "Russia", "RUS");
         var eventItem = Event.Create(
-            new EventId("evt-gdacs-eq-1500811"),
+            new EventId("evt-gdacs-eq-9000001"),
             title,
-            "Earthquake in Russia",
+            "Earthquake in Testland",
             EventCategory.NaturalDisaster,
             EventStatus.Unverified,
             DateTimeOffset.Parse("2025-09-18T18:58:12Z"),
@@ -507,21 +507,21 @@ public sealed class GdacsPersistenceTests : IDisposable
             CreatedAt,
             CreatedAt,
             GdacsSeverityRule.Assess(alertLevel, magnitude),
-            new EventProvenance(EventProvider.Gdacs, "1500811"));
+            new EventProvenance(EventProvider.Gdacs, "9000001"));
         var source = SourceItem.Create(
-            new SourceItemId($"src-gdacs-eq-1500811-{episodeId}"),
+            new SourceItemId($"src-gdacs-eq-9000001-{episodeId}"),
             SourceType.DatasetRecord,
-            $"GDACS:EQ:1500811:{episodeId}",
+            $"GDACS:EQ:9000001:{episodeId}",
             $"{title} - GDACS episode {episodeId}",
             $"Provider record for {title}",
-            new Uri($"https://www.gdacs.org/report.aspx?eventid=1500811&episodeid={episodeId}&eventtype=EQ"),
+            new Uri($"https://www.gdacs.org/report.aspx?eventid=9000001&episodeid={episodeId}&eventtype=EQ"),
             GdacsRefreshService.Attribution,
             null,
             updated,
             CreatedAt,
             location,
             CreatedAt);
-        return new GdacsEarthquakeImport(1500811, episodeId, eventItem, source);
+        return new GdacsEarthquakeImport(9000001, episodeId, eventItem, source);
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider

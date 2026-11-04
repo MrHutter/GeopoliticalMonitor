@@ -15,7 +15,7 @@ namespace GeopoliticalMonitor.Infrastructure.Tests;
 /// </summary>
 public sealed class ScheduledGdacsRefreshTests : IDisposable
 {
-    private const string EventId = "evt-gdacs-eq-1500811";
+    private const string EventId = "evt-gdacs-eq-9000001";
     private static readonly DateTimeOffset Start = new(2026, 9, 30, 12, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset FirstRevision = DateTimeOffset.Parse("2026-09-29T20:01:59Z");
     private readonly string directory = Path.Combine(Path.GetTempPath(), "GeopoliticalMonitorSchedulerTests", Guid.NewGuid().ToString("N"));
@@ -96,7 +96,7 @@ public sealed class ScheduledGdacsRefreshTests : IDisposable
         Assert.Equal(ProviderRefreshState.Failed, failed.State);
         Assert.Equal(ProviderStatusMessage.PersistenceFailure, failed.Message);
         Assert.Equal(0, await harness.CountAlertsAsync());
-        Assert.Equal("Earthquake in Russia", (await harness.ReadEventAsync()).Title);
+        Assert.Equal("Earthquake in Testland", (await harness.ReadEventAsync()).Title);
 
         harness.Interceptor.FailOnSave = false;
         harness.Clock.SetNow(failed.NextRefreshAtUtc!.Value);
@@ -131,24 +131,24 @@ public sealed class ScheduledGdacsRefreshTests : IDisposable
             .Options;
         var store = new SqliteEventStore(() => new GeopoliticalMonitorDbContext(interceptedOptions));
         var clock = new MutableTimeProvider(Start);
-        var feed = new MutableFeed { Record = CreateRecord(FirstRevision, "Earthquake in Russia") };
+        var feed = new MutableFeed { Record = CreateRecord(FirstRevision, "Earthquake in Testland") };
         var service = new GdacsRefreshService(feed, store, clock);
         var scheduler = new ProviderRefreshScheduler([new GdacsScheduledProvider(service)], clock, () => 0.5);
         return new Harness(initializer, scheduler, service, feed, clock, interceptor);
     }
 
     private static GdacsEarthquakeRecord CreateRecord(DateTimeOffset revision, string title) => new(
-        1500811,
-        1661062,
+        9000001,
+        9100001,
         title,
-        "Earthquake in Russia",
+        "Earthquake in Testland",
         DateTimeOffset.Parse("2026-09-29T18:58:12Z"),
         revision,
         "Orange",
         6.4,
         "Russia",
         "RUS",
-        new Uri("https://www.gdacs.org/report.aspx?eventid=1500811&episodeid=1661062&eventtype=EQ"),
+        new Uri("https://www.gdacs.org/report.aspx?eventid=9000001&episodeid=9100001&eventtype=EQ"),
         160.5129,
         53.1928);
 

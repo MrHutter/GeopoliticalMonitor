@@ -11,7 +11,7 @@ public sealed class GdacsGeoJsonParserTests
     private readonly GdacsGeoJsonParser parser = new();
 
     [Fact]
-    public void ParsesRecordedEarthquakeFeaturesAndOptionalMetadata()
+    public void ParsesFixtureEarthquakeFeaturesAndOptionalMetadata()
     {
         var payload = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "gdacs-earthquakes.json"));
 
@@ -19,30 +19,30 @@ public sealed class GdacsGeoJsonParserTests
 
         Assert.Equal(2, batch.Records.Count);
         var first = batch.Records[0];
-        Assert.Equal(1500811, first.EventId);
-        Assert.Equal(1661062, first.EpisodeId);
-        Assert.Equal(DateTimeOffset.Parse("2025-09-18T18:58:12Z"), first.StartedAtUtc);
-        Assert.Equal(DateTimeOffset.Parse("2025-09-19T20:01:59Z"), first.ProviderUpdatedAtUtc);
-        Assert.Equal(160.5129, first.Longitude);
-        Assert.Equal(53.1928, first.Latitude);
+        Assert.Equal(9000001, first.EventId);
+        Assert.Equal(9100001, first.EpisodeId);
+        Assert.Equal(DateTimeOffset.Parse("2026-01-15T10:00:00Z"), first.StartedAtUtc);
+        Assert.Equal(DateTimeOffset.Parse("2026-01-16T11:30:00Z"), first.ProviderUpdatedAtUtc);
+        Assert.Equal(-140.25, first.Longitude);
+        Assert.Equal(-45.5, first.Latitude);
         Assert.Equal("Orange", first.AlertLevel);
-        Assert.Equal(7.8, first.Magnitude);
-        Assert.Equal("Russia", first.Country);
-        Assert.Equal("RUS", first.Iso3);
-        Assert.Equal("https://www.gdacs.org/report.aspx?eventid=1500811&episodeid=1661062&eventtype=EQ", first.CanonicalUrl.AbsoluteUri);
+        Assert.Equal(6.5, first.Magnitude);
+        Assert.Equal("Testland", first.Country);
+        Assert.Equal("TST", first.Iso3);
+        Assert.Equal("https://www.gdacs.org/report.aspx?eventid=9000001&episodeid=9100001&eventtype=EQ", first.CanonicalUrl.AbsoluteUri);
         Assert.Null(batch.Records[1].Magnitude);
         Assert.Null(batch.Records[1].Country);
-        Assert.Equal("Earthquake near Iceland", batch.Records[1].Description);
+        Assert.Equal("Earthquake near Test Island", batch.Records[1].Description);
     }
 
     [Theory]
-    [InlineData("TC", "[160.5,53.1]", "1500811", "1661062", "2025-09-18T18:58:12", "https://www.gdacs.org/report.aspx?eventid=1")]
-    [InlineData("EQ", "[160.5,91]", "1500811", "1661062", "2025-09-18T18:58:12", "https://www.gdacs.org/report.aspx?eventid=1")]
-    [InlineData("EQ", "[181,53.1]", "1500811", "1661062", "2025-09-18T18:58:12", "https://www.gdacs.org/report.aspx?eventid=1")]
-    [InlineData("EQ", "[160.5,53.1]", "0", "1661062", "2025-09-18T18:58:12", "https://www.gdacs.org/report.aspx?eventid=1")]
-    [InlineData("EQ", "[160.5,53.1]", "1500811", "1661062", "not-a-date", "https://www.gdacs.org/report.aspx?eventid=1")]
-    [InlineData("EQ", "[160.5,53.1]", "1500811", "1661062", "2025-09-18T18:58:12", "http://www.gdacs.org/report.aspx?eventid=1")]
-    [InlineData("EQ", "[160.5,53.1]", "1500811", "1661062", "2025-09-18T18:58:12", "https://example.com/report.aspx?eventid=1")]
+    [InlineData("TC", "[160.5,53.1]", "9000001", "9100001", "2025-09-18T18:58:12", "https://www.gdacs.org/report.aspx?eventid=1")]
+    [InlineData("EQ", "[160.5,91]", "9000001", "9100001", "2025-09-18T18:58:12", "https://www.gdacs.org/report.aspx?eventid=1")]
+    [InlineData("EQ", "[181,53.1]", "9000001", "9100001", "2025-09-18T18:58:12", "https://www.gdacs.org/report.aspx?eventid=1")]
+    [InlineData("EQ", "[160.5,53.1]", "0", "9100001", "2025-09-18T18:58:12", "https://www.gdacs.org/report.aspx?eventid=1")]
+    [InlineData("EQ", "[160.5,53.1]", "9000001", "9100001", "not-a-date", "https://www.gdacs.org/report.aspx?eventid=1")]
+    [InlineData("EQ", "[160.5,53.1]", "9000001", "9100001", "2025-09-18T18:58:12", "http://www.gdacs.org/report.aspx?eventid=1")]
+    [InlineData("EQ", "[160.5,53.1]", "9000001", "9100001", "2025-09-18T18:58:12", "https://example.com/report.aspx?eventid=1")]
     public void RejectsCompletelyInvalidFeature(string eventType, string coordinates, string eventId, string episodeId, string startedAt, string url)
     {
         var json = CreateFeatureCollection(eventType, coordinates, eventId, episodeId, startedAt, url);
@@ -55,7 +55,7 @@ public sealed class GdacsGeoJsonParserTests
     [Fact]
     public void SkipsMalformedSiblingAndRetainsValidRecord()
     {
-        var valid = CreateFeatureCollection("EQ", "[160.5,53.1]", "1500811", "1661062", "2025-09-18T18:58:12", "https://www.gdacs.org/report.aspx?eventid=1");
+        var valid = CreateFeatureCollection("EQ", "[160.5,53.1]", "9000001", "9100001", "2025-09-18T18:58:12", "https://www.gdacs.org/report.aspx?eventid=1");
         var json = valid.Insert(valid.LastIndexOf("]}", StringComparison.Ordinal), ",{\"type\":\"Feature\",\"geometry\":null,\"properties\":{}}");
 
         var batch = parser.Parse(Encoding.UTF8.GetBytes(json));
@@ -67,12 +67,12 @@ public sealed class GdacsGeoJsonParserTests
     [Fact]
     public void RejectsMarkupAndOverlongText()
     {
-        var markup = CreateFeatureCollection("EQ", "[160.5,53.1]", "1500811", "1661062", "2025-09-18T18:58:12", "https://www.gdacs.org/report.aspx?eventid=1")
-            .Replace("Earthquake in Russia", "<b>Earthquake</b>", StringComparison.Ordinal);
+        var markup = CreateFeatureCollection("EQ", "[160.5,53.1]", "9000001", "9100001", "2025-09-18T18:58:12", "https://www.gdacs.org/report.aspx?eventid=1")
+            .Replace("Earthquake in Testland", "<b>Earthquake</b>", StringComparison.Ordinal);
         Assert.Throws<GdacsFeedException>(() => parser.Parse(Encoding.UTF8.GetBytes(markup)));
 
-        var tooLong = CreateFeatureCollection("EQ", "[160.5,53.1]", "1500811", "1661062", "2025-09-18T18:58:12", "https://www.gdacs.org/report.aspx?eventid=1")
-            .Replace("Earthquake in Russia", new string('x', 221), StringComparison.Ordinal);
+        var tooLong = CreateFeatureCollection("EQ", "[160.5,53.1]", "9000001", "9100001", "2025-09-18T18:58:12", "https://www.gdacs.org/report.aspx?eventid=1")
+            .Replace("Earthquake in Testland", new string('x', 221), StringComparison.Ordinal);
         Assert.Throws<GdacsFeedException>(() => parser.Parse(Encoding.UTF8.GetBytes(tooLong)));
     }
 
@@ -100,8 +100,8 @@ public sealed class GdacsGeoJsonParserTests
                         eventtype = eventType,
                         eventid = long.Parse(eventId),
                         episodeid = long.Parse(episodeId),
-                        name = "Earthquake in Russia",
-                        description = "Earthquake in Russia",
+                        name = "Earthquake in Testland",
+                        description = "Earthquake in Testland",
                         alertlevel = "Orange",
                         fromdate = startedAt,
                         datemodified = "2025-09-19T20:01:59",

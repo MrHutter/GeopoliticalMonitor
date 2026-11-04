@@ -84,8 +84,9 @@ describe('conflict and tension data file', () => {
     }
   });
 
-  it('starts every entry as an unreviewed draft, as of the current date', () => {
-    expect(conflictTensionEntries.every((item) => item.ownerReviewed === false)).toBe(true);
+  it('records every entry as owner-reviewed, keeping its assessment date', () => {
+    expect(conflictTensionEntries).toHaveLength(14);
+    expect(conflictTensionEntries.every((item) => item.ownerReviewed === true)).toBe(true);
     expect(conflictTensionEntries.every((item) => item.asOf === '2026-10-02')).toBe(true);
   });
 
@@ -125,8 +126,8 @@ describe('conflict and tension data file', () => {
     }
   });
 
-  it('labels every polygon as an assistant draft for owner review', () => {
-    conflicts.forEach((item) => expect(item.basis).toMatch(/drawn by an AI assistant for owner review/));
+  it('labels every polygon as drawn by an AI assistant from general geographic knowledge and states the owner review', () => {
+    conflicts.forEach((item) => expect(item.basis).toMatch(/drawn by an AI assistant from general geographic knowledge.*no third-party dataset or tracker geometry was used\. Reviewed by the owner on 2026-11-04\.$/));
   });
 
   it('resolves every country code to the bundled Natural Earth geometry through one mapping', () => {
@@ -244,7 +245,7 @@ describe('conflict and tension GeoJSON builders', () => {
 
 describe('conflict and tension popup', () => {
   it('shows every field and the draft status for an unreviewed polygon', () => {
-    const html = conflictTensionPopupHtml([conflicts[0]]);
+    const html = conflictTensionPopupHtml([{ ...conflicts[0], ownerReviewed: false }]);
 
     expect(html).toContain('<strong>Russia-Ukraine war</strong>');
     expect(html).toContain('Armed conflict · approximate');
@@ -257,8 +258,7 @@ describe('conflict and tension popup', () => {
   });
 
   it('shows the owner-curated status once an entry is reviewed and lists overlapping entries', () => {
-    const reviewed = { ...tensions[1], ownerReviewed: true };
-    const html = conflictTensionPopupHtml([reviewed, tensions[2]]);
+    const html = conflictTensionPopupHtml([tensions[1], { ...tensions[2], ownerReviewed: false }]);
 
     expect(html).toContain('Elevated tension');
     expect(html).not.toContain('approximate');

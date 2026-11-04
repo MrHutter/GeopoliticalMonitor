@@ -147,9 +147,9 @@
         "UKR",
         "RUS"
       ],
-      "basis": "Draft polygon drawn by an AI assistant for owner review from general geographic knowledge, covering the front area of heavy armed clashes, Russia's border regions and European Russia east to the Urals where long-range Ukrainian strikes are recorded (Kyiv Post on drone strikes on Yekaterinburg and Chelyabinsk in April 2026 and The War Zone on the deeper Novy Urengoy strike in September 2026, read on 2 October 2026), not ground fighting everywhere in it; no third-party dataset or tracker geometry was used.",
+      "basis": "Polygon drawn by an AI assistant from general geographic knowledge, covering the front area of heavy armed clashes, Russia's border regions and European Russia east to the Urals where long-range Ukrainian strikes are recorded (Kyiv Post on drone strikes on Yekaterinburg and Chelyabinsk in April 2026 and The War Zone on the deeper Novy Urengoy strike in September 2026, read on 2 October 2026), not ground fighting everywhere in it; no third-party dataset or tracker geometry was used. Reviewed by the owner on 2026-11-04.",
       "asOf": "2026-10-02",
-      "ownerReviewed": false
+      "ownerReviewed": true
     },
     {
       "id": "iran-gulf-us",
@@ -240,9 +240,9 @@
       "countryCodes": [
         "IRN"
       ],
-      "basis": "Draft polygon drawn by an AI assistant for owner review from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used.",
+      "basis": "Polygon drawn by an AI assistant from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used. Reviewed by the owner on 2026-11-04.",
       "asOf": "2026-10-02",
-      "ownerReviewed": false
+      "ownerReviewed": true
     },
     {
       "id": "yemen-saudi-arabia",
@@ -311,9 +311,9 @@
       "countryCodes": [
         "YEM"
       ],
-      "basis": "Draft polygon drawn by an AI assistant for owner review from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used.",
+      "basis": "Polygon drawn by an AI assistant from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used. Reviewed by the owner on 2026-11-04.",
       "asOf": "2026-10-02",
-      "ownerReviewed": false
+      "ownerReviewed": true
     },
     {
       "id": "israel-lebanon-hamas",
@@ -381,9 +381,9 @@
         "LBN",
         "PSE"
       ],
-      "basis": "Draft polygon drawn by an AI assistant for owner review from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used.",
+      "basis": "Polygon drawn by an AI assistant from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used. Reviewed by the owner on 2026-11-04.",
       "asOf": "2026-10-02",
-      "ownerReviewed": false
+      "ownerReviewed": true
     },
     {
       "id": "myanmar",
@@ -463,9 +463,9 @@
       "countryCodes": [
         "MMR"
       ],
-      "basis": "Draft polygon drawn by an AI assistant for owner review from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used.",
+      "basis": "Polygon drawn by an AI assistant from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used. Reviewed by the owner on 2026-11-04.",
       "asOf": "2026-10-02",
-      "ownerReviewed": false
+      "ownerReviewed": true
     },
     {
       "id": "sudan",
@@ -541,9 +541,9 @@
       "countryCodes": [
         "SDN"
       ],
-      "basis": "Draft polygon drawn by an AI assistant for owner review from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used.",
+      "basis": "Polygon drawn by an AI assistant from general geographic knowledge of the main areas of fighting; no third-party dataset or tracker geometry was used. Reviewed by the owner on 2026-11-04.",
       "asOf": "2026-10-02",
-      "ownerReviewed": false
+      "ownerReviewed": true
     },
     {
       "id": "russian-attacks-on-europe",
@@ -580,7 +580,7 @@
       ],
       "basis": "Each country is listed by at least one of the agreed sources as read on 2 October 2026: the Sahaidachnyi Security Center tracker article, the ICCT and GLOBSEC update on Russia-linked sabotage, the AP map report, the IISS paper on Russian sabotage operations, and the ISW drone-incursion map as reproduced by Newsweek.",
       "asOf": "2026-10-02",
-      "ownerReviewed": false
+      "ownerReviewed": true
     },
     {
       "id": "india-pakistan",
@@ -594,9 +594,9 @@
         "IND",
         "PAK"
       ],
-      "basis": "Listed in the owner's starting set of elevated tensions (India and Pakistan); not yet reviewed against current reporting.",
+      "basis": "Listed in the owner's starting set of elevated tensions (India and Pakistan); reviewed by the owner on 2026-11-04.",
       "asOf": "2026-10-02",
-      "ownerReviewed": false
+      "ownerReviewed": true
     },
     {
       "id": "pakistan-afghanistan",
@@ -610,9 +610,9 @@
         "PAK",
         "AFG"
       ],
-      "basis": "Listed in the owner's starting set of elevated tensions (Pakistan and Afghanistan); not yet reviewed against current reporting.",
+      "basis": "Listed in the owner's starting set of elevated tensions (Pakistan and Afghanistan); reviewed by the owner on 2026-11-04.",
       "asOf": "2026-10-02",
-      "ownerReviewed": false
+      "ownerReviewed": true
     },
     {
       "id": "israel-iran",
@@ -626,9 +626,9 @@
         "ISR",
         "IRN"
       ],
-      "basis": "Listed in the owner's starting set of elevated tensions (Israel and Iran); not yet reviewed against current reporting.",
+      "basis": "Listed in the owner's starting set of elevated tensions (Israel and Iran); reviewed by the owner on 2026-11-04.",
       "asOf": "2026-10-02",
-      "ownerReviewed": false
+      "ownerReviewed": true
     },
     {
       "id": "china-taiwan",
@@ -642,9 +642,9 @@
         "CHN",
         "TWN"
       ],
-      "basis": "Listed in the owner's starting set of elevated tensions (China and Taiwan); not yet reviewed against current reporting.",
+      "basis": "Listed in the owner's starting set of elevated tensions (China and Taiwan); reviewed by the owner on 2026-11-04.",
       "asOf": "2026-10-02",
-      "ownerReviewed": false
+      "ownerReviewed": true
     },
     {
       "id": "north-south-korea",
@@ -658,9 +658,9 @@
         "PRK",
         "KOR"
       ],
-      "basis": "Listed in the owner's starting set of elevated tensions (North Korea and South Korea); not yet reviewed against current reporting.",
+      "basis": "Listed in the owner's starting set of elevated tensions (North Korea and South Korea); reviewed by the owner on 2026-11-04.",
       "asOf": "2026-10-02",
-      "ownerReviewed": false
+      "ownerReviewed": true
     },
     {
       "id": "belarus-eu-nato-tension",
@@ -682,7 +682,7 @@
       ],
       "basis": "Border and airspace incidents between Belarus and its EU and NATO neighbours, as read on 2 October 2026 in Euronews reports on Lithuania closing its border crossings with Belarus over smuggling balloons (November 2025) and on migrant-crossing pressure at Latvia's border with Belarus (August 2026), and a United24 Media report on balloons from Belarus entering Polish airspace (February 2026).",
       "asOf": "2026-10-02",
-      "ownerReviewed": false
+      "ownerReviewed": true
     },
     {
       "id": "gulf-iran-houthi-tension",
@@ -709,7 +709,7 @@
       ],
       "basis": "Iranian missile and drone attacks on Qatar, the United Arab Emirates, Bahrain, Kuwait, Jordan and Oman (Al Jazeera and Euronews, July 2026) and Houthi attacks on southern Saudi cities and energy sites (Al Jazeera, September 2026), as read on 2 October 2026; Bahrain is named but not shaded because the bundled 110m basemap has no Bahrain shape.",
       "asOf": "2026-10-02",
-      "ownerReviewed": false
+      "ownerReviewed": true
     }
   ]
 }
