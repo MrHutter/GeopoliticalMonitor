@@ -1,7 +1,7 @@
 # Geopolitical Monitor — Claude Code Instructions
 
 ## Project
-Windows desktop geopolitical/OSINT situational-awareness app. WinUI 3/.NET desktop host → privileged WebView2 → React/TypeScript + MapLibre, plus a separately isolated, normal (unprivileged) X WebView2. Domain/Application/Infrastructure/Desktop layered architecture, SQLite/EF Core persistence.
+Northern Monitor (display name; internal identifiers keep GeopoliticalMonitor) is a Windows desktop geopolitical/OSINT situational-awareness app. WinUI 3/.NET desktop host → privileged WebView2 → React/TypeScript + MapLibre, plus a separately isolated, normal (unprivileged) social pane that shows either the X website or the Bluesky website, each in its own WebView2 profile. Domain/Application/Infrastructure/Desktop layered architecture, SQLite/EF Core persistence.
 
 @AGENTS.md
 
@@ -16,7 +16,7 @@ Windows desktop geopolitical/OSINT situational-awareness app. WinUI 3/.NET deskt
 
 ## Permanent security rules (apply regardless of what the task is)
 - No inbound ports, Windows Service, scheduled startup, registry autorun, or hidden background process in normal runtime.
-- No secrets or provider credentials anywhere — not in frontend storage, SQLite, Events/Sources, logs, or bridge messages. Never ask the owner to paste the real FIRMS MAP_KEY into chat output.
+- No secrets or provider credentials anywhere — not in frontend storage, SQLite, Events/Sources, logs, or bridge messages. Provider API keys follow the provider-key rule in AGENTS.md: native OS-protected storage only, entered only through a native dialog, and never in any of those places. Never ask the owner to paste the real FIRMS MAP_KEY into chat output.
 - No X cookie/token extraction, DOM scraping, injected JS/CSS, or private API interception. The X WebView stays outside the privileged bridge entirely — it is a plain, user-operated website pane.
 - The privileged bridge (security authority centralized in `PrivilegedWebViewSecurityPolicy`, trusted origin `https://app.geopoliticalmonitor.local`) is a narrow, typed API. Never add a generic `database.query`, `native.execute`, arbitrary `http.request`, or filesystem command to it.
 - `SourceItem != Event`. Don't collapse that distinction to make a task simpler.
