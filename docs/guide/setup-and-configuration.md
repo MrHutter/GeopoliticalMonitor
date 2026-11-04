@@ -83,7 +83,7 @@ There are two ways to give the app the key. If both are set, the key set in the 
 
 - **Format check:** a NASA FIRMS key is normally 32 hexadecimal characters. If the text you enter is not, the dialog warns you, and you can still save it. Settings then shows the warning, and NASA may reject the key.
 - **Where it is stored:** in Windows Credential Manager, as a generic credential for your Windows account on this computer (it does not roam to other computers). Windows protects it with your account, but other programs running as your Windows user can still read it. It is not a vault.
-- **Never in the app's data:** the key is not written to the database, the `Data` folder, its backups, logs or the user interface. Settings shows only whether a key is configured and where it comes from. The app has no way to show the stored key again.
+- **Never in the app's data:** the key is not written to the database, the `Data` folder, its backups, logs or the user interface. Settings shows only key status: whether a key is configured, where it comes from, whether its format looks valid, whether the credential store could be reached, and the result of your last set or remove. The app has no way to show the stored key again.
 
 **Fallback: the environment variable.** The app also reads `GEOPOLITICALMONITOR_FIRMS_MAP_KEY` from its own process environment, each time you refresh FIRMS. A program's environment is fixed when it starts, so a variable set or changed while the app is running takes effect only after the app is started again from a window that has it. Spaces and one pair of surrounding quotes are removed from the value, as in the app dialog.
 
@@ -225,7 +225,7 @@ Make a backup before running a build that changes the database schema. A backed-
   - `NASA FIRMS rejected the key. ...`: NASA answered that the key is invalid. Check the key in Settings, Data sources, or set it again. If the message also says the key is not 32 hexadecimal characters, the key in use has the wrong format.
   - `NASA FIRMS reported too many requests for this key. ...`: NASA answered with HTTP 429 (too many requests). Wait a few minutes and refresh again.
   - `NASA FIRMS did not respond in time. ...`: no answer within 15 seconds. Refresh again later.
-  - `NASA FIRMS did not accept a requested VIIRS product. ...`: NASA answered that a requested product is not available. Refresh again later.
+  - `NASA FIRMS did not accept a requested VIIRS product. ...`: NASA answered that it does not accept the product name the app requested. Refresh again later.
   - `Zoom in to a smaller area before refreshing NASA FIRMS.`: the visible area is wider than 90 degrees of longitude or taller than 60 degrees of latitude.
   - `NASA FIRMS returned too much data for this area. Zoom in and refresh again.` and `Too many FIRMS detections for this area. Zoom in and refresh again.`: the area has too many detections; zoom in.
   - `NASA FIRMS refresh failed. Existing layer data was preserved.`: the request failed; the points already shown stay.

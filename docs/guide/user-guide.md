@@ -103,7 +103,7 @@ The legend lists the Event categories and the severity size scale. While the mat
   - `NASA FIRMS rejected the key. ...`: NASA says the key is invalid. Check it in Settings, Data sources, or set it again. If the message adds that the key is not 32 hexadecimal characters, the key in use has the wrong format.
   - `NASA FIRMS reported too many requests for this key. ...`: NASA's request limit for the key was reached. Wait a few minutes and refresh again.
   - `NASA FIRMS did not respond in time. ...`: no answer within 15 seconds. Refresh again later.
-  - `NASA FIRMS did not accept a requested VIIRS product. ...`: a satellite product is not available from NASA right now. Refresh again later.
+  - `NASA FIRMS did not accept a requested VIIRS product. ...`: NASA does not accept the name of a satellite product the app asked for. Refresh again later.
   - `NASA FIRMS refresh failed. ...`: any other failure.
 
 ## Provider status and manual refresh
