@@ -502,7 +502,7 @@ The approach is rule-based and deterministic. GDACS is excluded, because natural
 **Untrusted text** (titles, place names, actor names, GDELT URLs)
 
 - Before persistence: normalize to NFC, strip control characters (except newline in summaries), collapse whitespace, and truncate to the database limits (Title 256, Summary 2000, Text 4000, Url 1024).
-- Display is React text only; there is currently no `dangerouslySetInnerHTML`, and it stays that way.
+- Display is text only: React text in the panels, text nodes in the Event hover tooltip (`eventTooltipContent`), and HTML-escaped values in the FIRMS and conflict-tension popups. There is currently no `dangerouslySetInnerHTML`, and it stays that way.
 
 **URLs**
 
