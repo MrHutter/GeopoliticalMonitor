@@ -15,6 +15,7 @@ const maplibreMock = vi.hoisted(() => {
     static instances: MockPopup[] = [];
     setLngLat = vi.fn(() => this);
     setHTML = vi.fn((_html: string) => this);
+    setDOMContent = vi.fn((_content: Node) => this);
     addTo = vi.fn(() => this);
     remove = vi.fn(() => this);
     options?: { className?: string };
@@ -1370,6 +1371,33 @@ describe('App', () => {
 
     map.triggerLayer('click', eventLayerId, { features: [{ properties: { id: 'evt-demo-baltic-security' } }], lngLat: { lng: 24.8, lat: 57.4 } });
     await waitFor(() => expect(screen.getByRole('heading', { name: nativeEvents[0].title })).toBeInTheDocument());
+  });
+
+  it('shows hostile Event text in the hover tooltip as literal text, never as HTML', async () => {
+    renderWithWebView();
+    const map = await latestMap();
+    const tooltip = maplibreMock.MockPopup.byClass('event-map-tooltip');
+    const payload = '<img src=x onerror=alert(1)><b>bold</b>&amp;';
+    const contentOf = (call: number) => {
+      const container = document.createElement('div');
+      container.append(tooltip.setDOMContent.mock.calls[call][0]);
+      return container;
+    };
+    const features = [{ properties: { title: payload, region: payload, location: payload, sourceCount: 2 } }];
+
+    map.triggerLayer('mouseenter', eventLayerId, { features, lngLat: { lng: 24.8, lat: 57.4 } });
+    map.triggerLayer('mousemove', eventLayerId, { features, lngLat: { lng: 24.9, lat: 57.5 } });
+
+    expect(tooltip.setHTML).not.toHaveBeenCalled();
+    expect(tooltip.setDOMContent).toHaveBeenCalledTimes(2);
+    expect(tooltip.addTo).toHaveBeenCalledTimes(1);
+    for (const call of [0, 1]) {
+      const content = contentOf(call);
+      expect([...content.querySelectorAll('*')].map((element) => element.tagName)).toEqual(['STRONG', 'SPAN', 'SPAN']);
+      expect(content.querySelector('strong')?.textContent).toBe(payload);
+      expect(content.querySelectorAll('span')[0].textContent).toBe(`${payload} / ${payload}`);
+      expect(content.querySelectorAll('span')[1].textContent).toBe('2 sources');
+    }
   });
 
   it('uses the same search-filtered Events for the list and Map markers', async () => {

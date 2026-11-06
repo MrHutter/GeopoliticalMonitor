@@ -156,3 +156,20 @@ export function eventsToFeatureCollection(events: NativeEvent[]): FeatureCollect
     })),
   };
 }
+
+function tooltipLine(tagName: 'strong' | 'span', text: string) {
+  const line = document.createElement(tagName);
+  line.textContent = text;
+  return line;
+}
+
+/** Hover tooltip for an Event marker. Event text is untrusted provider data, so it enters the DOM only as text nodes. */
+export function eventTooltipContent(properties: Record<string, unknown> | null | undefined) {
+  const content = document.createDocumentFragment();
+  content.append(
+    tooltipLine('strong', String(properties?.title ?? 'Local event')),
+    tooltipLine('span', `${properties?.region ?? ''} / ${properties?.location ?? ''}`),
+    tooltipLine('span', `${properties?.sourceCount ?? 0} sources`),
+  );
+  return content;
+}

@@ -38,6 +38,7 @@ import {
   eventLayerId,
   eventSourceId,
   eventsToFeatureCollection,
+  eventTooltipContent,
   getEventCoordinates,
   locateMapView,
   selectedEventLayerId,
@@ -81,11 +82,6 @@ function setLayerVisibility(map: MapLibreMapInstance, layerIds: string[], visibl
 function getMapFeatureId(event: MapLayerMouseEvent) {
   const id = event.features?.[0]?.properties?.id;
   return typeof id === 'string' ? id : undefined;
-}
-
-function tooltipHtml(feature: NonNullable<MapLayerMouseEvent['features']>[number]) {
-  const properties = feature.properties ?? {};
-  return `<strong>${properties.title ?? 'Local event'}</strong><span>${properties.region ?? ''} / ${properties.location ?? ''}</span><span>${properties.sourceCount ?? 0} sources</span>`;
 }
 
 export function MapLibreWorldMap({
@@ -238,13 +234,13 @@ export function MapLibreWorldMap({
       map.getCanvas().style.cursor = 'pointer';
       const feature = event.features?.[0];
       if (feature) {
-        popupRef.current?.setLngLat(event.lngLat).setHTML(tooltipHtml(feature)).addTo(map);
+        popupRef.current?.setLngLat(event.lngLat).setDOMContent(eventTooltipContent(feature.properties)).addTo(map);
       }
     };
 
     const handleMouseMove = (event: MapLayerMouseEvent) => {
       if (event.features?.[0]) {
-        popupRef.current?.setLngLat(event.lngLat).setHTML(tooltipHtml(event.features[0]));
+        popupRef.current?.setLngLat(event.lngLat).setDOMContent(eventTooltipContent(event.features[0].properties));
       }
     };
 

@@ -2,6 +2,7 @@ import { eventSeverities, type NativeEvent } from '../../types/events';
 import type { Accent } from '../../types/mock';
 import {
   eventsToFeatureCollection,
+  eventTooltipContent,
   getCategoryColor,
   getEventCoordinates,
   selectedMarkerPaint,
@@ -66,6 +67,43 @@ describe('mapEvents', () => {
       title: 'Commercial shipping disruption reported in Red Sea demo lane',
       category: 'Infrastructure',
       sourceCount: 3,
+    });
+  });
+
+  describe('eventTooltipContent', () => {
+    const renderTooltip = (properties: Record<string, unknown> | null | undefined) => {
+      const container = document.createElement('div');
+      container.append(eventTooltipContent(properties));
+      return container;
+    };
+
+    it('builds the same title, place and source count markup as direct children', () => {
+      const { properties } = eventsToFeatureCollection(nativeEvents).features[0];
+
+      expect(renderTooltip(properties).innerHTML).toBe(
+        '<strong>Commercial shipping disruption reported in Red Sea demo lane</strong>'
+        + '<span>Red Sea demo corridor / Southern transit lane</span>'
+        + '<span>3 sources</span>',
+      );
+    });
+
+    it('falls back to the fixed text when properties are missing', () => {
+      for (const properties of [{}, null, undefined]) {
+        expect(renderTooltip(properties).innerHTML).toBe('<strong>Local event</strong><span> / </span><span>0 sources</span>');
+      }
+    });
+
+    it.each(['<img src=x onerror=alert(1)>', '<b>bold</b>', '&amp;'])('renders %s in the title and place as literal text and creates no element from it', (payload) => {
+      const hostile: NativeEvent = {
+        ...nativeEvents[0],
+        title: payload,
+        location: { ...nativeEvents[0].location, displayName: payload, region: payload },
+      };
+      const tooltip = renderTooltip(eventsToFeatureCollection([hostile]).features[0].properties);
+
+      expect([...tooltip.querySelectorAll('*')].map((element) => element.tagName)).toEqual(['STRONG', 'SPAN', 'SPAN']);
+      expect(tooltip.querySelector('strong')?.textContent).toBe(payload);
+      expect(tooltip.querySelectorAll('span')[0].textContent).toBe(`${payload} / ${payload}`);
     });
   });
 
